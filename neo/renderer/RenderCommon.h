@@ -536,6 +536,7 @@ struct viewDef_t
 	renderView_t		renderView;
 
 	float				projectionMatrix[16];
+	idRenderMatrix		weaponProjectionMatrix;
 	idRenderMatrix		projectionRenderMatrix;	// tech5 version of projectionMatrix
 
 	// RB begin
