@@ -118,6 +118,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject* globals )
 		}
 		idx++;
 	}
+	//should remove all API scriptinfo's here.
 }
 
 /*
@@ -174,7 +175,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 
 	isActive = false;
 	inhibitControl = false;
-	useInhibtControl = false;
+	useInhibtControl = true;
 
 	crop = false;
 	blackbars = false;
@@ -1128,7 +1129,7 @@ void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject* object, const idS
 
 idSWFScriptVar idSWF::idSWFScriptFunction_trace::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	common->Printf("^1 [%s] ^8 % s\n", thisObject->GetSprite() ? thisObject->GetSprite()->name.c_str() : "NONAME",
+	common->Printf( "^1 [%s] ^8 % s\n", thisObject->GetSprite() ? thisObject->GetSprite()->name.c_str() : "NONAME",
 					parms[0].ToString().c_str() );
 	return idSWFScriptVar();
 }
