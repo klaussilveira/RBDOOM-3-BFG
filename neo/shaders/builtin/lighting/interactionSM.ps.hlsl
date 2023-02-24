@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2023 Robert Beckebans
 Copyright (C) 2020 Panos Karabelas
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -48,7 +48,7 @@ Texture2D				t_Jitter			: register( t6 VK_DESCRIPTOR_SET( 2 ) );
 
 SamplerState			s_Material : register( s0 VK_DESCRIPTOR_SET( 3 ) ); // for the normal/specular/basecolor
 SamplerState 			s_Lighting : register( s1 VK_DESCRIPTOR_SET( 3 ) ); // for sampling the jitter
-SamplerComparisonState  s_Shadow   : register( s2 VK_DESCRIPTOR_SET( 3 ) ); // for the depth shadow map sampler with a compare function
+SamplerState			s_Shadow   : register( s2 VK_DESCRIPTOR_SET( 3 ) ); // for the depth shadow map sampler with a compare function
 SamplerState 			s_Jitter   : register( s3 VK_DESCRIPTOR_SET( 3 ) ); // for sampling the jitter
 
 struct PS_IN
@@ -311,7 +311,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	shadow *= stepSize;
 
-#elif 1
+#elif 0
 
 #if 0
 
@@ -407,21 +407,30 @@ void main( PS_IN fragment, out PS_OUT result )
 #else
 
 #if USE_SHADOW_ATLAS
-	float2 uvShadow;
-	uvShadow.x = shadowTexcoord.x;
-	uvShadow.y = shadowTexcoord.y;
 
 	// [0 .. 1] -> rectangle in atlas transform
-	uvShadow = uvShadow * rpJitterTexScale.y + rpShadowAtlasOffsets[ shadowIndex ].xy;
+	float2 shadowTexcoordAtlas = shadowTexcoord.xy * rpJitterTexScale.y + rpShadowAtlasOffsets[ shadowIndex ].xy;
 
-	float shadow = t_ShadowAtlas.SampleCmpLevelZero( s_Shadow, uvShadow.xy, receiver );
+	//float shadow = t_ShadowAtlas.SampleCmpLevelZero( s_Shadow, uvShadow.xy, receiver );
+
+	float occluder = t_ShadowAtlas.SampleLevel( s_Shadow, shadowTexcoordAtlas, 0 ).r;
+
+
 #else
 	float3 uvzShadow;
 	uvzShadow.x = shadowTexcoord.x;
 	uvzShadow.y = shadowTexcoord.y;
 	uvzShadow.z = shadowTexcoord.w;
-	float shadow = t_ShadowMapArray.SampleCmpLevelZero( samp2, uvzShadow, receiver );
+	//float shadow = t_ShadowMapArray.SampleCmpLevelZero( s_Shadow, uvzShadow, receiver );
+
+	float occluder = t_ShadowMapArray.Sample( s_Shadow, uvzShadow ).r;
 #endif
+
+	float shadow = 1.0;
+	if( occluder < receiver )
+	{
+		shadow = 0.0;
+	}
 
 #if 0
 	if( shadowIndex == 0 )

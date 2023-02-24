@@ -659,6 +659,11 @@ void R_QuadraticImage( idImage* image, nvrhi::ICommandList* commandList )
 // RB begin
 static void R_CreateShadowMapImage_Atlas( idImage* image, nvrhi::ICommandList* commandList )
 {
+	image->GenerateImage( NULL, r_shadowMapAtlasSize.GetInteger(), r_shadowMapAtlasSize.GetInteger(), TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_R32F, commandList, true );
+}
+
+static void R_CreateShadowMapDepthImage_Res0( idImage* image, nvrhi::ICommandList* commandList )
+{
 	image->GenerateImage( NULL, r_shadowMapAtlasSize.GetInteger(), r_shadowMapAtlasSize.GetInteger(), TF_LINEAR, TR_CLAMP_TO_ZERO_ALPHA, TD_DEPTH, commandList, true );
 }
 
@@ -1055,6 +1060,8 @@ void idImageManager::CreateIntrinsicImages()
 
 	// RB begin
 	shadowAtlasImage = ImageFromFunction( "_shadowMapAtlas", R_CreateShadowMapImage_Atlas );
+	shadowAtlasDepthImage = ImageFromFunction( "_shadowMapAtlasDepth", R_CreateShadowMapDepthImage_Res0 );
+
 	shadowImage[0] = ImageFromFunction( va( "_shadowMapArray0_%i", shadowMapResolutions[0] ), R_CreateShadowMapImage_Res0 );
 	shadowImage[1] = ImageFromFunction( va( "_shadowMapArray1_%i", shadowMapResolutions[1] ), R_CreateShadowMapImage_Res1 );
 	shadowImage[2] = ImageFromFunction( va( "_shadowMapArray2_%i", shadowMapResolutions[2] ), R_CreateShadowMapImage_Res2 );

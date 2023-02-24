@@ -400,7 +400,7 @@ void idImage::AllocImage()
 			break;
 
 		case FMT_SHADOW_ARRAY:
-			format = nvrhi::Format::D32;
+			format = nvrhi::Format::R32_FLOAT;
 			break;
 
 		case FMT_RG16F:
@@ -550,7 +550,7 @@ void idImage::AllocImage()
 		.setIsRenderTarget( true )
 		.setKeepInitialState( true );
 
-		if( opts.format == FMT_DEPTH || opts.format == FMT_DEPTH_STENCIL || opts.format == FMT_SHADOW_ARRAY )
+		if( opts.format == FMT_DEPTH || opts.format == FMT_DEPTH_STENCIL )// || opts.format == FMT_SHADOW_ARRAY )
 		{
 			textureDesc.setInitialState( nvrhi::ResourceStates::DepthWrite )
 			.setClearValue( nvrhi::Color( 1.f ) );

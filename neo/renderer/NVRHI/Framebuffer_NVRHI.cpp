@@ -121,6 +121,7 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			.addColorAttachment( deviceManager->GetBackBuffer( index ) ) );
 	}
 
+#if 0
 	for( int arr = 0; arr < 6; arr++ )
 	{
 		for( int mip = 0; mip < MAX_SHADOWMAP_RESOLUTIONS; mip++ )
@@ -132,10 +133,12 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 						.setArraySlice( arr ) ) );
 		}
 	}
+#endif
 
 	globalFramebuffers.shadowAtlasFBO = new Framebuffer( "_shadowAtlas",
 			nvrhi::FramebufferDesc()
-			.setDepthAttachment( globalImages->shadowAtlasImage->texture ) );
+			.addColorAttachment( globalImages->shadowAtlasImage->texture )
+			.setDepthAttachment( globalImages->shadowAtlasDepthImage->texture ) );
 
 	globalFramebuffers.ldrFBO = new Framebuffer( "_ldr",
 			nvrhi::FramebufferDesc()
