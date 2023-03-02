@@ -260,10 +260,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 			}
 			else if( LoadSWF( filename ) )
 			{
-				if( !abcFile.class_count )
-				{
-					WriteBinary( binaryFileName );
-				}
+				WriteBinary( binaryFileName );
 			}
 		}
 	}
