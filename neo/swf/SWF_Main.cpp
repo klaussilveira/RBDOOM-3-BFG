@@ -37,6 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 idCVar swf_loadBinary( "swf_loadBinary", "1", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
 
 idCVar swf_printAbcObjects( "swf_printAbcObjects", "0", CVAR_INTEGER, "used to set whether to print all classes constructed from the DoAbc tag" );
+idCVar swf_enableAbcTrace( "swf_enableAbcTrace", "1", CVAR_INTEGER, "used to set whether to print all actionscript traces to the console " );
 
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
@@ -516,7 +517,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	shortcutKeys = idSWFScriptObject::Alloc();
 	scriptFunction_shortcutKeys_clear.Bind( this );
 	scriptFunction_shortcutKeys_clear.Call( shortcutKeys, idSWFParmList() );
-	globals->Set( "shortcutKeys", shortcutKeys );
+	globals->Set( "shortcutKeys", idSWFScriptVar( shortcutKeys ) );
 	SWF_NATIVE_API_OBJECT_DECLARE( shortcutKeys );
 
 	globals->Set( "deactivate", scriptFunction_deactivate.Bind( this ) );
@@ -1186,8 +1187,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_shortcutKeys_clear::Call( idSWFScriptO
 	object->Set( "UPARROW", "UP" );
 	object->Set( "DOWNARROW", "DOWN" );
 
-
-	return idSWFScriptVar();
+	return "undefined";
 }
 
 idSWFScriptVar idSWF::idSWFScriptNativeVar_blackbars::Get( idSWFScriptObject* object )
@@ -1212,9 +1212,12 @@ void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject* object, const idS
 
 idSWFScriptVar idSWF::idSWFScriptFunction_trace::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 {
-	common->Printf( "^1 [%s] ^8 % s\n", thisObject->GetSprite() ? thisObject->GetSprite()->name.c_str() : "NONAME",
-					parms[0].ToString().c_str() );
-	return idSWFScriptVar();
+	if( swf_enableAbcTrace.GetBool() )
+	{
+		common->Printf( "^1 [%s] ^8 % s\n", thisObject->GetSprite() ? thisObject->GetSprite()->name.c_str() : "NONAME",
+						parms[0].ToString().c_str() );
+	}
+	return "undefined";
 }
 
 idSWFScriptVar idSWF::idSWFScriptFunction_ArrayToString::Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
@@ -1236,7 +1239,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_registerUserMouse::Call( idSWFScriptOb
 {
 	common->Printf( "^1 registerUserMouse \n" );
 
-	return idSWFScriptVar();
+	return "undefined";
 }
 
 
