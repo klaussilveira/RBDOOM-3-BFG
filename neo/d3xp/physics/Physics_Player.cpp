@@ -512,7 +512,7 @@ void idPhysics_Player::Friction()
 	drop = 0;
 
 	// spectator friction
-	if( current.movementType == PM_SPECTATOR )
+	if( current.movementType == PM_SPECTATOR || current.movementType == PM_FLY )
 	{
 		drop += speed * PM_FLYFRICTION * frametime;
 	}
@@ -665,6 +665,43 @@ void idPhysics_Player::FlyMove()
 	idPhysics_Player::Accelerate( wishdir, wishspeed, PM_FLYACCELERATE );
 
 	idPhysics_Player::SlideMove( false, false, false, false );
+}
+
+/*
+===================
+HEXEN
+idPhysics_Player::FlyMoveWithCollision
+===================
+*/
+void idPhysics_Player::FlyMoveWithCollision()
+{
+	idVec3	wishvel;
+	float	wishspeed;
+	idVec3	wishdir;
+	float	scale;
+
+	// normal slowdown
+	idPhysics_Player::Friction();
+
+	scale = idPhysics_Player::CmdScale( command );
+
+	if ( !scale )
+	{
+		wishvel = vec3_origin;
+	}
+	else
+	{
+		int upmove = ((command.buttons & BUTTON_JUMP) ? 127 : 0) - ((command.buttons & BUTTON_CROUCH) ? 127 : 0);
+		wishvel = scale * ( viewForward * command.forwardmove + viewRight * command.rightmove );
+		wishvel -= scale * gravityNormal * upmove;
+	}
+
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
+
+	idPhysics_Player::Accelerate( wishdir, wishspeed, PM_FLYACCELERATE );
+
+	idPhysics_Player::SlideMove( true, true, true, true );
 }
 
 /*
@@ -1027,6 +1064,97 @@ void idPhysics_Player::LadderMove()
 		{
 			current.velocity -= gravityVector * frametime;
 			if( current.velocity * gravityNormal < 0.0f )
+			{
+				current.velocity -= ( gravityNormal * current.velocity ) * gravityNormal;
+			}
+		}
+	}
+
+	idPhysics_Player::SlideMove( false, ( command.forwardmove > 0 ), false, false );
+}
+
+/*
+=============
+HEXEN
+idPhysics_Player::StuckToSurfaceMove
+=============
+*/
+void idPhysics_Player::StuckToSurfaceMove()
+{
+	idVec3	wishdir, wishvel, right;
+	float	wishspeed, scale;
+	float	upscale;
+
+	// stick to the ladder
+	wishvel = -100.0f * SurfaceNormal;
+	current.velocity = ( gravityNormal * current.velocity ) * gravityNormal + wishvel;
+
+	upscale = ( -gravityNormal * viewForward + 0.5f ) * 2.5f;
+	if ( upscale > 1.0f )
+	{
+		upscale = 1.0f;
+	}
+	else if ( upscale < -1.0f )
+	{
+		upscale = -1.0f;
+	}
+
+	scale = idPhysics_Player::CmdScale( command );
+	wishvel = -0.9f * gravityNormal * upscale * scale * (float) command.forwardmove;
+
+	// strafe
+	if ( command.rightmove )
+	{
+		// right vector orthogonal to gravity
+		right = viewRight - ( gravityNormal * viewRight ) * gravityNormal;
+		// project right vector into ladder plane
+		right = right - ( SurfaceNormal * right ) * SurfaceNormal;
+		right.Normalize();
+
+		// if we are looking away from the ladder, reverse the right vector
+		if ( SurfaceNormal * viewForward > 0.0f )
+		{
+			right = -right;
+		}
+		wishvel += 2.0f * right * scale * (float) command.rightmove;
+	}
+
+	int upmove = ((command.buttons & BUTTON_JUMP) ? 127 : 0) - ((command.buttons & BUTTON_CROUCH) ? 127 : 0);
+	// up down movement
+	if ( upmove )
+	{
+		wishvel += -0.5f * gravityNormal * scale * (float) upmove;
+	}
+
+	// accelerate
+	wishspeed = wishvel.Normalize();
+	idPhysics_Player::Accelerate( wishvel, wishspeed, PM_ACCELERATE );
+
+	// cap the vertical velocity
+	upscale = current.velocity * -gravityNormal;
+	if ( upscale < -PM_LADDERSPEED )
+	{
+		current.velocity += gravityNormal * ( upscale + PM_LADDERSPEED );
+	}
+	else if ( upscale > PM_LADDERSPEED )
+	{
+		current.velocity += gravityNormal * ( upscale - PM_LADDERSPEED );
+	}
+
+	if ( (wishvel * gravityNormal) == 0.0f )
+	{
+		if ( current.velocity * gravityNormal < 0.0f )
+		{
+			current.velocity += gravityVector * frametime;
+			if ( current.velocity * gravityNormal > 0.0f )
+			{
+				current.velocity -= ( gravityNormal * current.velocity ) * gravityNormal;
+			}
+		}
+		else
+		{
+			current.velocity -= gravityVector * frametime;
+			if ( current.velocity * gravityNormal < 0.0f )
 			{
 				current.velocity -= ( gravityNormal * current.velocity ) * gravityNormal;
 			}
@@ -1487,11 +1615,56 @@ void idPhysics_Player::DropTimers()
 
 /*
 ================
+Zeroth
+idPhysics_Player::EvalGravity
+================
+*/
+void idPhysics_Player::EvalGravity()
+{
+	const int transitions = 8;
+	const float transitionTime = 0.10f;
+	idVec3 curOrigin = clipModel->GetOrigin();
+	idVec3 curGrav = gravityVector;
+
+	float curTime = MS2SEC( gameLocal.realClientTime );
+	if ( TransitionToGravity != idVec3(0,0,0) && GetGravityNormal() != TransitionToGravity && nextTransition < curTime )
+	{
+		double gravAmount = sqrt( curGrav.x * curGrav.x + curGrav.y * curGrav.y + curGrav.z * curGrav.z );
+		idVec3 gravDir =	TransitionToGravity		* curTransition +
+							TransitionFromGravity	* ( transitions - curTransition );
+		gravDir.Normalize();
+		idActor * owner = static_cast< idActor * >( masterEntity );
+
+		if ( curTransition == transitions )
+		{
+			SetGravity( TransitionToGravity * gravAmount );
+			TransitionToGravity.Zero();
+			nextTransition = 0;
+		}
+		else
+		{
+			SetGravity( gravDir * gravAmount );
+			curTransition++;
+			nextTransition = MS2SEC( gameLocal.realClientTime ) + ( transitionTime / transitions );
+		}
+
+		// flip viewAngles cuz ... things get screwey
+		// avoid getting stuck in wall
+		while ( groundPlane && !HasGroundContacts() ) // we must have ground contacts at all times that we have a groundPlane, else we risk falling through floor
+		{	current.origin = current.origin - gravityNormal;
+			CheckGround();
+		}
+	}
+}
+
+/*
+================
 idPhysics_Player::MovePlayer
 ================
 */
 void idPhysics_Player::MovePlayer( int msec )
 {
+	EvalGravity(); //seems the best place to put this. MovePlayer seems to get called every single frame regardless of if player is actually moving.
 
 	// this counter lets us debug movement problems with a journal
 	// by setting a conditional breakpoint for the previous frame
@@ -1540,6 +1713,14 @@ void idPhysics_Player::MovePlayer( int msec )
 		return;
 	}
 
+	// freemove
+	if ( current.movementType == PM_FLY )
+	{
+		FlyMoveWithCollision();
+		idPhysics_Player::DropTimers(); // 404
+		return;
+	}
+
 	// special no clip mode
 	if( current.movementType == PM_NOCLIP )
 	{
@@ -1577,6 +1758,10 @@ void idPhysics_Player::MovePlayer( int msec )
 		// dead
 		idPhysics_Player::DeadMove();
 	}
+	else if ( StuckToSurface() ) // HEXEN : Zeroth
+	{    DoStuckToSurface(); 
+		idPhysics_Player::StuckToSurfaceMove();
+	}
 	else if( ladder )
 	{
 		// going up or down a ladder
@@ -1606,6 +1791,24 @@ void idPhysics_Player::MovePlayer( int msec )
 	// set watertype, waterlevel and groundentity
 	idPhysics_Player::SetWaterLevel();
 	idPhysics_Player::CheckGround();
+
+	// HEXEN : Zeroth - test if we should modify players gravity
+	//idPlayer *player = static_cast<idPlayer *>( masterEntity );
+	if ( self->gravityMod )
+	{
+		// grnd is not the ground the players feet are on, it's the surface directly below the player's origin
+		idVec3 myOrigin = GetOrigin();
+		float grndDist = 16;
+		trace_t grnd;
+		gameLocal.clip.TracePoint( grnd, myOrigin, myOrigin + GetGravityNormal() * grndDist, MASK_PLAYERSOLID, self );
+
+		if ( grnd.fraction < 1.0f && GetGravityNormal() != -grnd.c.normal && TransitionToGravity != -grnd.c.normal )
+		{
+			TransitionToGravity = -grnd.c.normal;
+			TransitionFromGravity = GetGravityNormal();
+			curTransition = 0;
+		}
+	}
 
 	// move the player velocity back into the world frame
 	current.velocity += current.pushVelocity;
@@ -1713,6 +1916,9 @@ idPhysics_Player::idPhysics_Player()
 	ladderNormal.Zero();
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
+	IsStuckToSurface = false;
+	SurfaceNormal.Zero();
+	TransitionToGravity.Zero();
 }
 
 /*
@@ -1947,10 +2153,13 @@ bool idPhysics_Player::Evaluate( int timeStepMSec, int endTimeMSec )
 
 	clipModel->Link( gameLocal.clip, self, 0, current.origin, clipModel->GetAxis() );
 
+// HEXEN : Zeroth - sometimes this is okay
+#if 0
 	if( IsOutsideWorld() )
 	{
 		gameLocal.Warning( "clip model outside world bounds for entity '%s' at (%s)", self->name.c_str(), current.origin.ToString( 0 ) );
 	}
+#endif
 
 	return true; //( current.origin != oldOrigin );
 }
@@ -2444,3 +2653,62 @@ void idPhysics_Player::ReadFromSnapshot( const idBitMsg& msg )
 
 }
 
+/*
+================
+Zeroth
+idPhysics_Player::StuckToSurface
+================
+*/
+bool idPhysics_Player::StuckToSurface()
+{
+	return IsStuckToSurface;
+}
+
+/*
+================
+Zeroth
+idPhysics_Player::GetSurfaceNormal
+================
+*/
+idVec3 idPhysics_Player::GetSurfaceNormal()
+{
+	return SurfaceNormal;
+}
+
+/*
+================
+Zeroth
+idPhysics_Player::SetSurfaceNormal
+================
+*/
+void idPhysics_Player::SetSurfaceNormal( idVec3 newNormal )
+{
+	SurfaceNormal = newNormal;
+}
+
+/*
+================
+Zeroth
+idPhysics_Player::SetStuckToSurface
+================
+*/
+void idPhysics_Player::SetStuckToSurface( bool yesOrNo )
+{
+	IsStuckToSurface = yesOrNo;
+}
+
+/*
+================
+Zeroth
+idPhysics_Player::DoStuckToSurface
+Do all the math and junk to stick to a wall. This function should be called prior to moving an actor.
+================
+*/
+void idPhysics_Player::DoStuckToSurface()
+{
+    if ( StuckToSurface() )
+	{
+        idVec3 wishvel = -100.0f * SurfaceNormal;
+        current.velocity = ( gravityNormal * current.velocity ) * gravityNormal + wishvel;
+    }
+}

@@ -2063,3 +2063,15 @@ bool idClip::DrawModelContactFeature( const contactInfo_t& contact, const idClip
 
 	return true;
 }
+
+
+/*
+============
+Zeroth
+idClipModel::GetRenderModelHandle
+============
+*/
+int idClipModel::GetRenderModelHandle()
+{
+	return renderModelHandle;
+}

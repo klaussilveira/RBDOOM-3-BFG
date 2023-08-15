@@ -7204,12 +7204,15 @@ bool idPhysics_AF::Evaluate( int timeStepMSec, int endTimeMSec )
 	AddPushVelocity( current.pushVelocity );
 	current.pushVelocity.Zero();
 
+// HEXEN : Zeroth - for some entities, it is okay to move outside world bounds. would be nice to have a "canMoveOutsideWorld" spawnArg
+#if 0
 	if( IsOutsideWorld() )
 	{
 		gameLocal.Warning( "articulated figure moved outside world bounds for entity '%s' type '%s' at (%s)",
 						   self->name.c_str(), self->GetType()->classname, bodies[0]->current->worldOrigin.ToString( 0 ) );
 		Rest();
 	}
+#endif
 
 #ifdef AF_TIMINGS
 	timer_total.Stop();

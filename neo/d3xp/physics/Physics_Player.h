@@ -47,7 +47,8 @@ typedef enum
 	PM_DEAD,				// no acceleration or turning, but free falling
 	PM_SPECTATOR,			// flying without gravity but with collision detection
 	PM_FREEZE,				// stuck in place without control
-	PM_NOCLIP				// flying without collision detection nor gravity
+	PM_NOCLIP,				// flying without collision detection nor gravity
+	PM_FLY					// flying without gravity but with collision detection
 } pmtype_t;
 
 typedef enum
@@ -113,6 +114,14 @@ public:
 	bool					IsCrouching() const;
 	bool					OnLadder() const;
 	const idVec3& 			PlayerGetOrigin() const;	// != GetOrigin
+
+// HEXEN : Zeroth
+public:
+	bool			 	    StuckToSurface();
+	void			 	    SetStuckToSurface( bool yesOrNo );
+	idVec3					GetSurfaceNormal();
+	void					SetSurfaceNormal( idVec3 newNormal );
+	void					DoStuckToSurface();
 
 public:	// common physics interface
 	bool					Evaluate( int timeStepMSec, int endTimeMSec );
@@ -206,6 +215,7 @@ private:
 	void					WaterJumpMove();
 	void					WaterMove();
 	void					FlyMove();
+	void					FlyMoveWithCollision();
 	void					AirMove();
 	void					WalkMove();
 	void					DeadMove();
@@ -221,6 +231,11 @@ private:
 	void					SetWaterLevel();
 	void					DropTimers();
 	void					MovePlayer( int msec );
+
+// HEXEN : Zeroth
+private:
+	void					EvalGravity();
+	void					StuckToSurfaceMove();
 };
 
 #endif /* !__PHYSICS_PLAYER_H__ */

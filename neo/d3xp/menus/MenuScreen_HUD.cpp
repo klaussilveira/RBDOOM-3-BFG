@@ -62,7 +62,6 @@ void idMenuScreen_HUD::ShowScreen( const mainMenuTransition_t transitionType )
 
 	idSWFScriptObject& root = menuGUI->GetRootObject();
 	playerInfo = root.GetNestedObj( "_bottomLeft", "playerInfo", "info" );
-	stamina = root.GetNestedObj( "_bottomLeft", "stamina" );
 	locationName = root.GetNestedText( "_bottomLeft", "location", "txtVal" );
 	tipInfo = root.GetNestedObj( "_left", "tip" );
 
@@ -306,44 +305,6 @@ void idMenuScreen_HUD::UpdateHealthArmor( idPlayer* player )
 
 /*
 ========================
-idMenuScreen_HUD::UpdateStamina
-========================
-*/
-void idMenuScreen_HUD::UpdateStamina( idPlayer* player )
-{
-
-	if( !stamina || !player )
-	{
-		return;
-	}
-
-	idSWFSpriteInstance* stamSprite = stamina->GetSprite();
-	if( stamSprite != NULL )
-	{
-
-		if( common->IsMultiplayer() )
-		{
-			stamSprite->SetVisible( false );
-		}
-		else
-		{
-			float max_stamina = pm_stamina.GetFloat();
-			if( !max_stamina )
-			{
-				stamSprite->SetVisible( false );
-			}
-			else
-			{
-				stamSprite->SetVisible( true );
-				float staminaPercent = idMath::Ftoi( 100.0f * player->stamina / max_stamina );
-				stamSprite->StopFrame( staminaPercent + 1 );
-			}
-		}
-	}
-}
-
-/*
-========================
 idMenuScreen_HUD::UpdateLocation
 ========================
 */
@@ -359,12 +320,12 @@ void idMenuScreen_HUD::UpdateWeaponInfo( idPlayer* player )
 
 	assert( weapon.GetEntity() );
 
-	int inClip = weapon.GetEntity()->AmmoInClip();
-	int ammoAmount = weapon.GetEntity()->AmmoAvailable();
+	float inClip = weapon.GetEntity()->AmmoInClip();
+	float ammoAmount = weapon.GetEntity()->AmmoAvailable();
 
 	//Make sure the hud always knows how many bloodstone charges there are
-	int ammoRequired;
-	int bloodstoneAmmo = 0;
+	float ammoRequired;
+	float bloodstoneAmmo = 0;
 	if( player->weapon_bloodstone >= 0 )
 	{
 		ammo_t ammo_i = player->inventory.AmmoIndexForWeaponClass( "weapon_bloodstone_passive", &ammoRequired );
@@ -408,9 +369,9 @@ void idMenuScreen_HUD::UpdateWeaponInfo( idPlayer* player )
 		else
 		{
 			// show remaining ammo
-			totalAmmo = va( "%i", ammoAmount );
-			playerAmmo = weapon.GetEntity()->ClipSize() ? va( "%i", inClip ) : "--";		// how much in the current clip
-			playerClip = weapon.GetEntity()->ClipSize() ? va( "%i", ammoAmount / weapon.GetEntity()->ClipSize() ) : "--";
+			totalAmmo = va( "%f", ammoAmount );
+			playerAmmo = weapon.GetEntity()->ClipSize() ? va( "%f", inClip ) : "--";		// how much in the current clip
+			playerClip = weapon.GetEntity()->ClipSize() ? va( "%f", ammoAmount / weapon.GetEntity()->ClipSize() ) : "--";
 			//allAmmo = va( "%i/%i", inClip, ammoAmount );
 		}
 

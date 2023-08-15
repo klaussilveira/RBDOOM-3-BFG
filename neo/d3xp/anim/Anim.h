@@ -585,6 +585,15 @@ private:
 	idList<idJointQuat, TAG_ANIM>			AFPoseJointFrame;
 	idBounds					AFPoseBounds;
 	int							AFPoseTime;
+
+// HEXEN : Zeroth
+private:
+	idList< idDict >			jointTransitions;
+	void						transitionJoints();
+
+// HEXEN : Zeroth
+public:
+	void						eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles &to, idAngles &from, float seconds, float transitions );
 };
 
 /*

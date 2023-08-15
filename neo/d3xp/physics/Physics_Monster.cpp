@@ -565,6 +565,9 @@ bool idPhysics_Monster::Evaluate( int timeStepMSec, int endTimeMSec )
 	}
 	else
 	{
+		// HEXEN : Zeroth
+		// eoc_DoStuckOnSurface();
+
 		if( useVelocityMove )
 		{
 			delta = current.velocity * timeStep;
@@ -597,11 +600,14 @@ bool idPhysics_Monster::Evaluate( int timeStepMSec, int endTimeMSec )
 	current.velocity += current.pushVelocity;
 	current.pushVelocity.Zero();
 
+// HEXEN : Zeroth - sometimes this is okay
+#if 0
 	if( IsOutsideWorld() )
 	{
 		gameLocal.Warning( "clip model outside world bounds for entity '%s' at (%s)", self->name.c_str(), current.origin.ToString( 0 ) );
 		Rest();
 	}
+#endif
 
 	return ( current.origin != oldOrigin );
 }

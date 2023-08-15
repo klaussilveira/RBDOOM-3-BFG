@@ -45,6 +45,7 @@ const int BUTTON_RUN			= BIT( 1 );
 const int BUTTON_ZOOM			= BIT( 2 );
 const int BUTTON_SCORES			= BIT( 3 );
 const int BUTTON_USE			= BIT( 4 );
+const int BUTTON_ATTACK2		= BIT( 5 ); // Zeroth404
 const int BUTTON_JUMP			= BIT( 5 );
 const int BUTTON_CROUCH			= BIT( 6 );
 const int BUTTON_CHATTING		= BIT( 7 );
@@ -76,6 +77,12 @@ const int IMPULSE_28			= 28;			// quick 0
 const int IMPULSE_29			= 29;			// quick 1
 const int IMPULSE_30			= 30;			// quick 2
 const int IMPULSE_31			= 31;			// quick 3
+// Zeroth
+const int IMPULSE_41			= 41;			// hec Inventory Scroll Right
+const int IMPULSE_42			= 42;			// hec Inventory Scroll Left
+const int IMPULSE_43			= 43;			// hec use selected item
+const int IMPULSE_44			= 44;			// hec drop selected item
+const int IMPULSE_45			= 45;			// toggle automap
 
 class usercmd_t
 {

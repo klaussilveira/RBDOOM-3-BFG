@@ -1596,7 +1596,6 @@ public:
 	idMenuScreen_HUD() :
 		weaponInfo( NULL ),
 		playerInfo( NULL ),
-		stamina( NULL ),
 		weaponName( NULL ),
 		weaponPills( NULL ),
 		downloadPda( NULL ),
@@ -1661,7 +1660,6 @@ public:
 	virtual void			HideScreen( const mainMenuTransition_t transitionType );
 
 	void					UpdateHealthArmor( idPlayer* player );
-	void					UpdateStamina( idPlayer* player );
 	void					UpdateLocation( idPlayer* player );
 	void					UpdateWeaponInfo( idPlayer* player );
 	void					UpdateWeaponStates( idPlayer* player, bool weaponChanged );
@@ -1713,7 +1711,6 @@ private:
 
 	idSWFScriptObject* 		weaponInfo;
 	idSWFScriptObject* 		playerInfo;
-	idSWFScriptObject* 		stamina;
 	idSWFScriptObject* 		weaponName;
 	idSWFScriptObject* 		weaponPills;
 	idSWFScriptObject* 		downloadPda;

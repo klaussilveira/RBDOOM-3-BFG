@@ -507,6 +507,17 @@ const idVec3& idPhysics_Base::GetGravityNormal() const
 
 /*
 ================
+Zeroth
+idPhysics_Base::SetGravityNormal
+================
+*/
+void idPhysics_Base::SetGravityNormal( idVec3 newNormal )
+{
+	gravityNormal = newNormal;
+}
+
+/*
+================
 idPhysics_Base::ClipTranslation
 ================
 */
@@ -694,6 +705,26 @@ bool idPhysics_Base::HasGroundContacts() const
 		}
 	}
 	return false;
+}
+
+/*
+================
+HEXEN
+idPhysics_Base::NumGroundContacts
+================
+*/
+int idPhysics_Base::NumGroundContacts() const
+{
+	int i, cnt = 0;
+
+	for ( i = 0; i < contacts.Num(); i++ )
+	{
+		if ( contacts[ i ].normal * -gravityNormal > 0.0f )
+		{
+			cnt++;
+		}
+	}
+	return cnt;
 }
 
 /*
