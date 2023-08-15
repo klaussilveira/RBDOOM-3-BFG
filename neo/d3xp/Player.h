@@ -62,12 +62,6 @@ const int	NUM_QUICK_SLOTS = 4;
 
 const int MAX_WEAPONS = 32;
 
-const int DEAD_HEARTRATE = 0;			// fall to as you die
-const int LOWHEALTH_HEARTRATE_ADJ = 20; //
-const int DYING_HEARTRATE = 30;			// used for volumen calc when dying/dead
-const int BASE_HEARTRATE = 70;			// default
-const int ZEROSTAMINA_HEARTRATE = 115;  // no stamina
-const int MAX_HEARTRATE = 130;			// maximum
 const int ZERO_VOLUME = -40;			// volume at zero
 const int DMG_VOLUME = 5;				// volume when taking damage
 const int DEATH_VOLUME = 15;			// volume at death
@@ -76,6 +70,10 @@ const int SAVING_THROW_TIME = 5000;		// maximum one "saving throw" every five se
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 3000 );
 const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range [-1, 60]
+
+const int CLERIC = 0;
+const int MAGE = 1;
+const int FIGHTER = 2;
 
 enum gameExpansionType_t
 {
@@ -133,7 +131,7 @@ enum
 
 typedef struct
 {
-	int ammo;
+	float ammo;
 	int rechargeTime;
 	char ammoName[128];
 } RechargeAmmo_t;
@@ -147,7 +145,10 @@ typedef struct
 
 class idInventory
 {
+// HEXEN : Zeroth
 public:
+	int					Class;
+
 	int						maxHealth;
 	int						weapons;
 	int						powerups;
@@ -209,13 +210,17 @@ public:
 	ammo_t					AmmoIndexForAmmoClass( const char* ammo_classname ) const;
 	int						MaxAmmoForAmmoClass( const idPlayer* owner, const char* ammo_classname ) const;
 	int						WeaponIndexForAmmoClass( const idDict& spawnArgs, const char* ammo_classname ) const;
-	ammo_t					AmmoIndexForWeaponClass( const char* weapon_classname, int* ammoRequired );
+	ammo_t					AmmoIndexForWeaponClass( const char* weapon_classname, float* ammoRequired );
 	const char* 			AmmoPickupNameForIndex( ammo_t ammonum ) const;
 	void					AddPickupName( const char* name, idPlayer* owner );   //_D3XP
 
-	int						HasAmmo( ammo_t type, int amount );
-	bool					UseAmmo( ammo_t type, int amount );
-	int						HasAmmo( const char* weapon_classname, bool includeClip = false, idPlayer* owner = NULL );			// _D3XP
+// HEXEN : Zeroth
+public:
+	void					DoCombinedMana();
+
+	float					HasAmmo( ammo_t type, float amount );
+	bool					UseAmmo( ammo_t type, float amount );
+	float					HasAmmo( const char* weapon_classname, bool includeClip = false, idPlayer* owner = NULL ); // looks up the ammo information for the weapon class first
 
 	bool					HasEmptyClipCannotRefill( const char* weapon_classname, idPlayer* owner );
 
@@ -243,8 +248,20 @@ public:
 	bool					CanGive( idPlayer* owner, const idDict& spawnArgs, const char* statname, const char* value );
 
 private:
-	idArray< idPredictedValue< int >, AMMO_NUMTYPES >		ammo;
-	idArray< idPredictedValue< int >, MAX_WEAPONS >			clip;
+	idArray< idPredictedValue< float >, AMMO_NUMTYPES >		ammo;
+	idArray< idPredictedValue< float >, MAX_WEAPONS >		clip;
+
+public:
+	float GetAmmo( int index )
+	{
+		return ( index >= 0 && index < AMMO_NUMTYPES ) ? ammo[index].Get() : 0.0f;
+	}
+	float GetClip( int index )
+	{
+		return ( index >= 0 && index < MAX_WEAPONS ) ? clip[index].Get() : 0.0f;
+	}
+	void SetAmmo( int index, float amount ) { ammo[index] = amount; }
+	void SetClip(int index, float amount) { clip[index] = amount; }
 };
 
 typedef struct
@@ -318,6 +335,7 @@ public:
 	idScriptBool			AI_STRAFE_LEFT;
 	idScriptBool			AI_STRAFE_RIGHT;
 	idScriptBool			AI_ATTACK_HELD;
+	idScriptBool			AI_ATTACK2_HELD; // HEXEN : Zeroth
 	idScriptBool			AI_WEAPON_FIRED;
 	idScriptBool			AI_JUMP;
 	idScriptBool			AI_CROUCH;
@@ -347,6 +365,8 @@ public:
 	idSWF* 					mpMessages;
 	bool					objectiveSystemOpen;
 	int						quickSlot[ NUM_QUICK_SLOTS ];
+	idUserInterface*		customGui;
+	bool					customGuiOpen;
 
 	int						weapon_soulcube;
 	int						weapon_pda;
@@ -359,15 +379,27 @@ public:
 	int						weapon_bloodstone_active3;
 	bool					harvest_lock;
 
-	int						heartRate;
-	idInterpolate<float>	heartInfo;
-	int						lastHeartAdjust;
-	int						lastHeartBeat;
 	int						lastDmgTime;
+
+// HEXEN : Zeroth
+public:
+	bool					PowerTome;
+	bool					AutoMapOff;
+	idAngles				SpawnViewAngles;			// player view angles
+	bool					invincible;
+	idVec3					SpawnPos;
+	int						BeltSelection;
+	int						BeltPosition;
+	int						speedMod;
+	bool					FreeMove;
+	int						leftWater;
+	idList<idDict *>		Artifact; // list of artifacts & quantities, and other artifact info
+	void					SetClass( const int classnum );
+	bool					beaten; // whether this eoc release has been beaten
+
 	int						deathClearContentsTime;
 	bool					doingDeathSkin;
 	int						lastArmorPulse;		// lastDmgTime if we had armor at time of hit
-	float					stamina;
 	float					healthPool;			// amount of health to give over time
 	int						nextHealthPulse;
 	bool					healthPulse;
@@ -498,7 +530,7 @@ public:
 	virtual void			DamageFeedback( idEntity* victim, idEntity* inflictor, int& damage );
 	void					CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const idDict* damageDef,
 			const float damageScale, const int location, int* health, int* armor );
-	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 
 	// New damage path for instant client feedback.
 	void					ServerDealDamage( int damage, idEntity& inflictor, idEntity& attacker, const idVec3& dir, const char* damageDefName, const int location );     // Actually updates the player's health independent of feedback.
@@ -548,7 +580,7 @@ public:
 	{
 		return inventory;
 	}
-	bool					GiveInventoryItem( idDict* item, unsigned int giveFlags );
+	bool					GiveInventoryItem( idItem* item, unsigned int giveFlags );
 	void					RemoveInventoryItem( idDict* item );
 	bool					GiveInventoryItem( const char* name );
 	void					RemoveInventoryItem( const char* name );
@@ -566,6 +598,36 @@ public:
 
 	void					SetQuickSlot( int index, int val );
 	int						GetQuickSlot( int index );
+
+// HEXEN : Zeroth
+public:
+	void					UpdateHudArtifacts();
+	void					UpdateHudActiveArtifacts();
+	bool					ArtifactVerify( int art ); // return whetherArtifact[art] is safe to use. Or if the artifact is Qty 0, delete it and return false.
+	void					CleanupArtifactItems(); // deletes allAartifactItem[] elements marked as to be.
+	int						InventoryItemQty( const char *name ) const;
+	int						InventoryItemQty( int belt ); // specifically for artifacts
+	void					SortArtifacts(); // sort belt items in ascending order of their "artifact" keys
+	void					ArtifactExec( int belt, char *func, bool remove );
+	void					ArtifactDrop( int belt, bool randomPos );
+	bool					ArtifactRemove( int belt );
+	void					ShowArtifactHud();
+	void					UpdateArtifactHudDescription();
+	int						FindArtifact( int art ); // returns the index inArtifact[] matching "artifact" spawnArg
+	bool					ActiveArtifact( int art );
+	bool					ActiveArtifact( const char *art );
+	void					ArtifactValidateSelection();
+	void					ArtifactScrollRight( int startfrom );
+	void					ArtifactScrollLeft( int startfrom );
+	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
+	// HEXEN : Zeroth
+	/*virtual*/ bool		StuckToSurface();
+	void					SpawnHellions();
+	void					UpdateHudAutoMap();
+	void					AutoMapChange( idStr mapFloor );
+	void					ShowHudMessage( const char *message );
+	void					ShowHudMessage( idStr message );
+	bool					GetPowerTome() { return PowerTome; };
 
 	void					GivePDA( const idDeclPDA* pda, const char* securityItem );
 	void					GiveVideo( const idDeclVideo* video, const char* itemName );
@@ -605,9 +667,6 @@ public:
 	void					AddAIKill();
 	void					SetSoulCubeProjectile( idProjectile* projectile );
 
-	void					AdjustHeartRate( int target, float timeInSecs, float delay, bool force );
-	void					SetCurrentHeartRate();
-	int						GetBaseHeartRate();
 	void					UpdateAir();
 
 	void					UpdatePowerupHud();
@@ -917,10 +976,16 @@ private:
 
 	netBoolEvent_t			respawn_netEvent;
 
+// HEXEN : Zeroth
+private:
+	idVec3					hellion_danger_origin;
+	int						hellion_danger_time;
+
 	void					LookAtKiller( idEntity* inflictor, idEntity* attacker );
 
 	void					StopFiring();
 	void					FireWeapon();
+	void					FireWeaponAlt();
 	void					Weapon_Combat();
 	void					Weapon_NPC();
 	void					Weapon_GUI();
@@ -994,6 +1059,44 @@ private:
 	void					Event_StopHelltime( int mode );
 	void					Event_ToggleBloom( int on );
 	void					Event_SetBloomParms( float speed, float intensity );
+
+// HEXEN : Zeroth
+private:
+	void					Event_GiveHealth( const float amount );
+	void					Event_GiveSpeed( const float amount );
+	void					Event_GiveArmor( const float amount );
+	void					Event_GetHealth();
+	void					Event_GetFullHealth();
+	void					Event_GetArmor();
+	void					Event_GetFullArmor();
+	void					Event_SetHealth( const float amount );
+	void					Event_SetArmor( const float amount );
+	void					Event_GetClass();
+	void					Event_SetAmmo( const char *ammo_classname, const float amount );
+	void					Event_GetAmmo( const char *ammo_classname );
+	void					Event_GetFullAmmo( const char *ammo_classname );
+	void 					Event_SetInvincible( const float number );
+	void 					Event_GetInvincible();
+	void					Event_ChaosDevice();
+	void					Event_SetFreeMove( const float yesorno );
+	void					Event_SetViewAngles( idVec3 &vec );
+	void					Event_GetEyePos();
+	void					Event_SetPowerTome( float val );
+	void					Event_GetPowerTome();
+	void					Event_VecForwardP();
+	void					Event_VecFacingP();
+	void					Event_HudMessage( const char *message );
+	void					Event_ArtifactUseFlash();
+
+	//the following are no longer used - perhaps they will be useful for something else, like sticky bombs of some kind
+    void                    Event_StickToSurface( const idVec3 &surfaceNormal );
+    void                    Event_UnstickToSurface();
+    void                    Event_StuckToSurface();
+
+public:
+	idVec3					VecForwardP() const;
+	idVec3					VecFacingP() const;
+	void					OpenCustomGui( idStr file );
 };
 
 ID_INLINE bool idPlayer::IsRespawning()

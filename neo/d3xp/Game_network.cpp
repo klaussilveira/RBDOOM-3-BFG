@@ -694,7 +694,7 @@ void idGameLocal::ServerProcessReliableMessage( int clientNum, int type, const i
 
 			if( damageDef != NULL )
 			{
-				victim.Damage( NULL, gameLocal.entities[attackerNum], dir, damageDef->GetName(), damageScale, location );
+				victim.Damage( NULL, gameLocal.entities[attackerNum], dir, damageDef->GetName(), damageScale, location, idVec3( 0, 0, 0 ) );
 			}
 			break;
 		}

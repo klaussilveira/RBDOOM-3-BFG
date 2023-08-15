@@ -449,6 +449,13 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 		return;
 	}
 
+	// endgame dialog
+	if ( player->customGuiOpen && player->customGui != NULL )
+	{
+		player->customGui->Redraw( gameLocal.time );
+		return;
+	}
+
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();

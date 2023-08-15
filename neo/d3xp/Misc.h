@@ -609,13 +609,44 @@ class idLiquid : public idEntity
 public:
 	CLASS_PROTOTYPE( idLiquid );
 
+	idLiquid(); // HEXEN : Zeroth
+
 	void				Spawn();
+	void				Think(); // HEXEN : Zeroth
 
 	void				Save( idSaveGame* savefile ) const;
 	void				Restore( idRestoreGame* savefile );
 
 private:
-	void				Event_Touch( idEntity* other, trace_t* trace );
+	void				Event_Touch( idEntity* other, trace_t* trace ); // HEXEN : Zeroth - was commented out
+
+// Zeroth
+	idClipModel *			clipModel;
+	void					TouchEntities();
+	bool					particleOnExit; // whether to spawn a particle when something leaves the water
+	const idDeclParticle *	splashParticleRipple;
+	const idDeclParticle *	splashParticleTiny;
+	const idDeclParticle *	splashParticleSmall;
+	const idDeclParticle *	splashParticleBig;
+	const idDeclParticle *	splashParticleHuge;
+	float					moveResistance;
+	idVec3					moveDir;
+	float					moveAmt;
+	idList<idStr>			touchingEntities; // list of entities touching the trigger
+	idList<bool>			flagEntities;  // used to test if touchingEntities[x] is still touching, if not to be removed from list
+	// idList<int>				resistTimeEntities;
+
+
+// HEXEN : Zeroth - for limit entity types
+private:
+	bool				dontTripby_LocalPlayer;
+	bool				limitEntityType;
+	bool				tripby_idPlayer;
+	bool				tripby_idAI;
+	bool				tripby_idMoveable;
+	bool				tripby_idItem;
+	bool				tripby_idActor;
+	bool				tripby_idProjectile;
 
 
 	idRenderModelLiquid* model;

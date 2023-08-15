@@ -374,7 +374,7 @@ void idGrabber::StopDrag( bool dropOnly )
 			{
 				idAI* aiEnt = static_cast<idAI*>( ent );
 
-				aiEnt->Damage( thePlayer, thePlayer, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT );
+				aiEnt->Damage( thePlayer, thePlayer, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 			}
 
 			af->SetThrown( !dropOnly );

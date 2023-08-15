@@ -29,7 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_ITEM_H__
 #define __GAME_ITEM_H__
 
-
 /*
 ===============================================================================
 
@@ -76,6 +75,14 @@ public:
 	virtual bool			Pickup( idPlayer* player );
 	virtual void			Think();
 	virtual void			Present();
+	void					Hide();
+
+// HEXEN : Zeroth
+public:
+	void					SetOwner( idPlayer *owner );
+	idPlayer*				GetOwner();
+	idPlayer*				GetLastOwner();
+	bool					CallFunc( char *funcName );
 
 	enum
 	{
@@ -102,6 +109,20 @@ protected:
 	{
 		return clientPredictPickupMilliseconds;
 	}
+
+// HEXEN : Zeroth
+public:
+	bool					DeleteMe; // whether this artifact should be deleted in the next artifact cleanup (in player.cpp)
+	bool					ArtifactActive; // whether this artifact is active (valid for time-based effects)
+	bool					Processing; // whether this artifacts script is busy
+	bool					Cooling; // whether artifact is in cooldown mode
+	int						PickupDelayTime; // time in seconds for how long we should wait before letting a player pick up the item he dropped (necessary to prevent instant pickup afte drop)
+
+// HEXEN : Zeroth
+private:
+	idPlayer*				owner;
+	idPlayer*				lastOwner;
+
 
 private:
 	idVec3					orgOrigin;
@@ -130,6 +151,27 @@ private:
 	void					Event_Trigger( idEntity* activator );
 	void					Event_Respawn();
 	void					Event_RespawnFx();
+
+// HEXEN : Zeroth
+private:
+	idDict					projectileDict;
+	idEntity				*projectileEnt;
+//	void Event_GetState();
+//	void Event_SetState( const char *name );
+//	void Event_SetNextState( const char *name );
+	void					Event_ArtifactStart();
+	void					Event_Artifact();
+	void					Event_ArtifactDone();
+	void					Event_ArtifactCoolDown();
+	void					Event_SetArtifactActive( const float yesorno );
+	void					Event_OwnerLaunchProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower );
+	void					Event_OwnerCreateProjectile();
+	void					Event_GetOwner();
+
+// MultiModel
+	void					Event_HideMultiModel();
+public:
+	idEntity				*multimodel;
 };
 
 class idItemPowerup : public idItem
@@ -335,5 +377,15 @@ private:
 	void					Event_HideObjective( idEntity* e );
 	void					Event_GetPlayerPos();
 };
+
+ID_INLINE idPlayer* idItem::GetOwner()
+{
+	return owner;
+}
+
+ID_INLINE idPlayer* idItem::GetLastOwner()
+{
+	return lastOwner;
+}
 
 #endif /* !__GAME_ITEM_H__ */

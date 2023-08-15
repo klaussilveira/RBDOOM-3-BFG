@@ -44,6 +44,11 @@ If you have questions concerning this license or the applicable additional terms
 #define SCRIPT_DEFAULT				"script/doom_main.script"
 #define SCRIPT_DEFAULTFUNC			"doom_main"
 
+// HEXEN : Zeroth
+#define NUM_UNIQUE_ARTIFACTS	(16)
+#define EOC_NUM_VMODES			(15)
+#define EOC_RELEASE				(1)
+
 struct gameReturn_t
 {
 

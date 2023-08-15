@@ -106,7 +106,7 @@ public:
 
 	// Weapon definition management
 	void					Clear();
-	void					GetWeaponDef( const char* objectname, int ammoinclip );
+	void					GetWeaponDef( const char* objectname, float ammoinclip );
 	bool					IsLinked();
 	bool					IsWorldModelReady();
 
@@ -136,6 +136,8 @@ public:
 	void					OwnerDied();
 	void					BeginAttack();
 	void					EndAttack();
+	void					BeginAttack2(); // HEXEN : Zeroth
+	void					EndAttack2(); // HEXEN : Zeroth
 	bool					IsReady() const;
 	bool					IsReloading() const;
 	bool					IsHolstered() const;
@@ -157,6 +159,7 @@ public:
 	void					SetState( const char* statename, int blendFrames );
 	void					UpdateScript();
 	void					EnterCinematic();
+	void					eoc_UnstickAllButtons(); // HEXEN : Zeroth
 	void					ExitCinematic();
 	void					NetCatchup();
 
@@ -178,13 +181,13 @@ public:
 	static const char*		GetAmmoNameForNum( ammo_t ammonum );
 	static const char*		GetAmmoPickupNameForNum( ammo_t ammonum );
 	ammo_t					GetAmmoType() const;
-	int						AmmoAvailable() const;
-	int						AmmoInClip() const;
+	float					AmmoAvailable() const;
+	float					AmmoInClip() const;
 	void					ResetAmmoClip();
-	int						ClipSize() const;
-	int						LowAmmo() const;
-	int						AmmoRequired() const;
-	int						AmmoCount() const;
+	float					ClipSize() const;
+	float					LowAmmo() const;
+	float					AmmoRequired() const;
+	float					AmmoCount() const;
 	int						GetGrabberState() const;
 
 	// Flashlight
@@ -226,6 +229,7 @@ public:
 private:
 	// script control
 	idScriptBool			WEAPON_ATTACK;
+	idScriptBool			WEAPON_ATTACK2; // HEXEN : Zeroth
 	idScriptBool			WEAPON_RELOAD;
 	idScriptBool			WEAPON_NETRELOAD;
 	idScriptBool			WEAPON_NETENDRELOAD;
@@ -242,7 +246,7 @@ private:
 	bool					isPlayerFlashlight;
 
 	// precreated projectile
-	idEntity*				projectileEnt;
+	idList<idEntity	*>		projectileEnts; // HEXEN : Zeroth. turned into an idList.
 
 	idPlayer* 				owner;
 	idEntityPtr<idAnimatedEntity>	worldModel;
@@ -322,10 +326,10 @@ private:
 
 	// ammo management
 	ammo_t					ammoType;
-	int						ammoRequired;		// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
-	int						clipSize;			// 0 means no reload
-	idPredictedValue< int >	ammoClip;
-	int						lowAmmo;			// if ammo in clip hits this threshold, snd_
+	float					ammoRequired;		// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
+	float					clipSize;			// 0 means no reload
+	float					ammoClip;
+	float					lowAmmo;			// if ammo in clip hits this threshold, snd_
 	bool					powerAmmo;			// true if the clip reduction is a factor of the power setting when
 	// a projectile is launched
 	// mp client
@@ -402,8 +406,8 @@ private:
 	void					Event_WeaponHolstered();
 	void					Event_WeaponRising();
 	void					Event_WeaponLowering();
-	void					Event_UseAmmo( int amount );
-	void					Event_AddToClip( int amount );
+	void					Event_UseAmmo( float amount );
+	void					Event_AddToClip( float amount );
 	void					Event_AmmoInClip();
 	void					Event_AmmoAvailable();
 	void					Event_TotalAmmoCount();
@@ -437,7 +441,7 @@ private:
 	void					Event_GrabberHasTarget();
 	void					Event_GrabberSetGrabDistance( float dist );
 	void					Event_LaunchProjectilesEllipse( int num_projectiles, float spreada, float spreadb, float fuseOffset, float power );
-	void					Event_LaunchPowerup( const char* powerup, float duration, int useAmmo );
+	void					Event_LaunchPowerup( const char* powerup, float duration, float useAmmo );
 
 	void					Event_StartWeaponSmoke();
 	void					Event_StopWeaponSmoke();

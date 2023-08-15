@@ -91,6 +91,11 @@ const idEventDef EV_StartSpline( "startSpline", "e" );
 const idEventDef EV_StopSpline( "stopSpline", NULL );
 const idEventDef EV_IsMoving( "isMoving", NULL, 'd' );
 const idEventDef EV_IsRotating( "isRotating", NULL, 'd' );
+const idEventDef EV_EnableClip( "enableClip" );
+const idEventDef EV_DisableClip( "disableClip" );
+const idEventDef EV_CanBecomeSolid( "canBecomeSolid", NULL, 'f' );
+const idEventDef EV_MoverBecomeSolid( "becomeSolid" );
+const idEventDef EV_MoverBecomeNonSolid( "becomeNonSolid" );
 
 CLASS_DECLARATION( idEntity, idMover )
 EVENT( EV_FindGuiTargets,		idMover::Event_FindGuiTargets )
@@ -132,6 +137,11 @@ EVENT( EV_StopSpline,			idMover::Event_StopSpline )
 EVENT( EV_Activate,				idMover::Event_Activate )
 EVENT( EV_IsMoving,				idMover::Event_IsMoving )
 EVENT( EV_IsRotating,			idMover::Event_IsRotating )
+EVENT( EV_EnableClip,			idMover::Event_EnableClip )
+EVENT( EV_DisableClip,			idMover::Event_DisableClip )
+EVENT( EV_CanBecomeSolid,		idMover::Event_CanBecomeSolid )
+EVENT( EV_MoverBecomeSolid,		idMover::Event_BecomeSolid )
+EVENT( EV_MoverBecomeNonSolid,	idMover::Event_BecomeNonSolid )
 END_CLASS
 
 /*
@@ -360,7 +370,9 @@ void idMover::Spawn()
 	spawnArgs.GetFloat( "damage" , "0", damage );
 
 	dest_position = GetPhysics()->GetOrigin();
+	SetPersistentPos( dest_position );
 	dest_angles = GetPhysics()->GetAxis().ToAngles();
+	SetPersistentAng( dest_angles );
 
 	physicsObj.SetSelf( this );
 	physicsObj.SetClipModel( new( TAG_PHYSICS_CLIP_MOVER ) idClipModel( GetPhysics()->GetClipModel() ), 1.0f );
@@ -1152,7 +1164,7 @@ void idMover::Event_PartBlocked( idEntity* blockingEntity )
 {
 	if( damage > 0.0f )
 	{
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 	if( g_debugMover.GetBool() )
 	{
@@ -1191,6 +1203,18 @@ void idMover::Event_SetMoveTime( float time )
 	move_speed = 0;
 	move_time = SEC2MS( time );
 }
+
+#if 0
+/*
+================
+Zeroth
+idMover::eoc_SetMoveTime
+================
+*/
+void idMover::eoc_SetMoveTime( float time ) {
+	Event_SetMoveTime( time );
+}
+#endif
 
 /*
 ================
@@ -1236,8 +1260,56 @@ void idMover::Event_MoveTo( idEntity* ent )
 	}
 
 	dest_position = GetLocalCoordinates( ent->GetPhysics()->GetOrigin() );
+	SetPersistentPos( dest_position );
 	BeginMove( idThread::CurrentThread() );
 }
+
+/*
+================
+Zeroth
+idMover::SetPersistentPos
+================
+*/
+void idMover::SetPersistentPos( idVec3 &pos )
+{
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str, st;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_mover_pos";
+
+	gameLocal.persistentLevelInfo.SetVector( name_str, pos );
+}
+
+/*
+================
+Zeroth
+idMover::SetPersistentAng
+================
+*/
+void idMover::SetPersistentAng( idAngles &ang )
+{
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str, st;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_mover_ang";
+
+	gameLocal.persistentLevelInfo.SetAngles( name_str, ang );
+}
+
+#if 0
+/*
+================
+Zeroth
+idMover::eoc_MoveToPos
+================
+*/
+void idMover::eoc_MoveToPos( const idVec3 &pos )
+{
+	MoveToPos( pos );
+}
+#endif
 
 /*
 ================
@@ -1247,6 +1319,7 @@ idMover::MoveToPos
 void idMover::MoveToPos( const idVec3& pos )
 {
 	dest_position = GetLocalCoordinates( pos );
+	SetPersistentPos( dest_position );
 	BeginMove( NULL );
 }
 
@@ -1273,6 +1346,7 @@ void idMover::Event_MoveDir( float angle, float distance )
 	physicsObj.GetLocalOrigin( org );
 	VectorForDir( angle, dir );
 	dest_position = org + dir * distance;
+	SetPersistentPos( dest_position );
 
 	BeginMove( idThread::CurrentThread() );
 }
@@ -1662,6 +1736,10 @@ idMover::Event_Activate
 */
 void idMover::Event_Activate( idEntity* activator )
 {
+	if ( spawnArgs.GetBool( "NoActivateWhenTriggered", "0" ) ) {
+		return;
+	}
+
 	Show();
 	Event_StartSpline( this );
 }
@@ -1754,6 +1832,112 @@ void idMover::SetPortalState( bool open )
 	assert( areaPortal );
 	gameLocal.SetPortalState( areaPortal, open ? PS_BLOCK_NONE : PS_BLOCK_ALL );
 }
+
+/*
+================
+HEXEN
+idMover::Event_EnableClip
+================
+*/
+void idMover::Event_EnableClip() {
+	physicsObj.SetClipMask( MASK_SOLID );
+}
+
+/*
+================
+HEXEN
+idMover::Event_DisableClip
+================
+*/
+void idMover::Event_DisableClip() {
+	physicsObj.SetClipMask( 0 );
+}
+
+/*
+================
+HEXEN
+idMover::Event_CanBecomeSolid
+================
+*/
+void idMover::Event_CanBecomeSolid() {
+	idThread::ReturnFloat( CanBecomeSolid() );
+}
+
+/*
+================
+HEXEN
+idMover::CanBecomeSolid
+================
+*/
+bool idMover::CanBecomeSolid() {
+	int			i;
+	int			num;
+	idEntity *	hit;
+	idClipModel *cm;
+	idClipModel *clipModels[ MAX_GENTITIES ];
+
+	num = gameLocal.clip.ClipModelsTouchingBounds( physicsObj.GetAbsBounds(), MASK_MONSTERSOLID, clipModels, MAX_GENTITIES );
+	for ( i = 0; i < num; i++ ) {
+		cm = clipModels[ i ];
+
+		// don't check render entities
+		if ( cm->IsRenderModel() ) {
+			continue;
+		}
+
+		hit = cm->GetEntity();
+		if ( ( hit == this ) || !hit->fl.takedamage ) {
+			continue;
+		}
+
+		if ( physicsObj.ClipContents( cm ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/*
+================
+HEXEN
+idMover::Event_BecomeSolid
+================
+*/
+void idMover::Event_BecomeSolid() {
+	BecomeSolid( );
+}
+
+/*
+================
+HEXEN
+idMover::BecomeSolid
+================
+*/
+void idMover::BecomeSolid() {
+	physicsObj.SetContents( MASK_SOLID );
+}
+
+/*
+================
+HEXEN
+idMover::Event_BecomeNonSolid
+================
+*/
+void idMover::Event_BecomeNonSolid() {
+	BecomeNonSolid();
+}
+
+/*
+================
+HEXEN
+idMover::BecomeSolid
+================
+*/
+void idMover::BecomeNonSolid() {
+	physicsObj.SetContents( 0 );
+}
+
 
 /*
 ===============================================================================
@@ -4420,7 +4604,7 @@ void idDoor::Event_PartBlocked( idEntity* blockingEntity )
 {
 	if( damage > 0.0f )
 	{
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 
@@ -5071,7 +5255,7 @@ void idPlat::Event_PartBlocked( idEntity* blockingEntity )
 {
 	if( damage > 0.0f )
 	{
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 
@@ -5173,7 +5357,7 @@ void idMover_Periodic::Event_PartBlocked( idEntity* blockingEntity )
 {
 	if( damage > 0.0f )
 	{
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 

@@ -1151,7 +1151,7 @@ void idTrigger_Hurt::Save( idSaveGame* savefile ) const
 {
 	savefile->WriteBool( on );
 	savefile->WriteFloat( delay );
-	savefile->WriteInt( nextTime );
+	savefile->WriteInt( (int &) nextTime );
 }
 
 /*
@@ -1163,7 +1163,7 @@ void idTrigger_Hurt::Restore( idRestoreGame* savefile )
 {
 	savefile->ReadBool( on );
 	savefile->ReadFloat( delay );
-	savefile->ReadInt( nextTime );
+	savefile->ReadInt( (int &) nextTime );
 }
 
 /*
@@ -1196,7 +1196,7 @@ void idTrigger_Hurt::Event_Touch( idEntity* other, trace_t* trace )
 		return;
 	}
 
-	if( on && other && gameLocal.time >= nextTime )
+	if( on && other && gameLocal.time >= (int &) nextTime )
 	{
 		bool playerOnly = spawnArgs.GetBool( "playerOnly" );
 		if( playerOnly )
@@ -1214,7 +1214,7 @@ void idTrigger_Hurt::Event_Touch( idEntity* other, trace_t* trace )
 			dir = other->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 			dir.Normalize();
 		}
-		other->Damage( NULL, NULL, dir, damage, 1.0f, INVALID_JOINT );
+		other->Damage( NULL, NULL, dir, damage, 1.0f, INVALID_JOINT, trace->c.point );
 
 		ActivateTargets( other );
 		CallScript();

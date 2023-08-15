@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_PROJECTILE_H__
 #define __GAME_PROJECTILE_H__
 
+class idMoveable;
+
 /*
 ===============================================================================
 
@@ -163,7 +165,11 @@ private:
 	idVec3					launchOrigin;
 	idMat3					launchAxis;
 
+// HEXEN : Zeroth: changed to protected
+protected:
 	void					AddDefaultDamageEffect( const trace_t& collision, const idVec3& velocity );
+
+private:
 	void					AddParticlesAndLight();
 
 	void					Event_Explode();
@@ -171,6 +177,10 @@ private:
 	void					Event_RadiusDamage( idEntity* ignore );
 	void					Event_Touch( idEntity* other, trace_t* trace );
 	void					Event_GetProjectileState();
+
+// HEXEN : Zeroth
+private:
+	void					Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower );
 };
 
 class idGuidedProjectile : public idProjectile
@@ -351,6 +361,10 @@ private:
 
 	void					Event_Explode();
 	void					Event_Fizzle();
+
+public:
+	bool					randomPosInBounds;
+	idMoveable*				randomPosEnt;
 };
 
 #endif /* !__GAME_PROJECTILE_H__ */

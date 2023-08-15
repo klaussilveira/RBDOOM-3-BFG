@@ -72,7 +72,7 @@ class EnvironmentProbe; // RB
 
 const int MAX_CLIENTS			= MAX_PLAYERS;
 const int MAX_CLIENTS_IN_PVS	= MAX_CLIENTS >> 3;
-const int GENTITYNUM_BITS		= 12;
+const int GENTITYNUM_BITS		= 13;
 const int MAX_GENTITIES			= 1 << GENTITYNUM_BITS;
 const int ENTITYNUM_NONE		= MAX_GENTITIES - 1;
 const int ENTITYNUM_WORLD		= MAX_GENTITIES - 2;
@@ -107,6 +107,10 @@ void gameError( const char* fmt, ... );
 
 
 class idWeapon;
+
+//============================================================================
+// HEXEN : Zeroth - Forward Declarations
+
 
 //============================================================================
 
@@ -167,6 +171,13 @@ typedef struct
 	int			dist;
 	int			team;
 } spawnSpot_t;
+
+// HEXEN : Zeroth
+typedef struct {
+	int width;
+	int height;
+	int ratio;
+} r_vmodes_type;
 
 //============================================================================
 
@@ -304,6 +315,7 @@ public:
 	idArray< int, 2 >		firstFreeEntityIndex;	// first free index in the entities array. [0] for replicated entities, [1] for non-replicated
 	int						num_entities;			// current number <= MAX_GENTITIES
 	idHashIndex				entityHash;				// hash table to quickly find entities by name
+	idHashIndex				entypeHash;				// hash table to quickly find entities by type (works in paralel with entityHash)
 	idWorldspawn* 			world;					// world entity
 	idLinkList<idEntity>	spawnedEntities;		// all spawned entities
 	idLinkList<idEntity>	activeEntities;			// all thinking entities (idEntity::thinkFlags != 0)
@@ -344,6 +356,7 @@ public:
 	int						framenum;
 	int						time;					// in msec
 	int						previousTime;			// time in msec of last frame
+	bool					paused; // For HEXEN mod
 
 	int						vacuumAreaNum;			// -1 if level doesn't have any outside areas
 
@@ -358,6 +371,10 @@ public:
 
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
+
+// HEXEN : Zeroth
+	r_vmodes_type		r_vmodes[EOC_NUM_VMODES];
+	int					r_vmode;
 
 	idEntityPtr<idPlayer>	playerActivateFragChamber;	// The player that activated the frag chamber
 
@@ -482,7 +499,7 @@ public:
 
 	bool					InPlayerPVS( idEntity* ent ) const;
 	bool					InPlayerConnectedArea( idEntity* ent ) const;
-	pvsHandle_t				GetPlayerPVS()
+	pvsHandle_t				GetPlayerPVS() // HEXEN : Zeroth (this was used in Doom 3 vanilla for HeXen mod previously)
 	{
 		return playerPVS;
 	};
@@ -502,12 +519,16 @@ public:
 	static void				ArgCompletion_EntityName( const idCmdArgs& args, void( *callback )( const char* s ) );
 	idEntity* 				FindTraceEntity( idVec3 start, idVec3 end, const idTypeInfo& c, const idEntity* skip ) const;
 	idEntity* 				FindEntity( const char* name ) const;
+
+// HEXEN : Zeroth
+	idEntity*				FindEntityType( const idTypeInfo &type ) const;
+
 	idEntity* 				FindEntityUsingDef( idEntity* from, const char* match ) const;
 	int						EntitiesWithinRadius( const idVec3 org, float radius, idEntity** entityList, int maxCount ) const;
 
 	void					KillBox( idEntity* ent, bool catch_teleport = false );
 	void					RadiusDamage( const idVec3& origin, idEntity* inflictor, idEntity* attacker, idEntity* ignoreDamage, idEntity* ignorePush, const char* damageDefName, float dmgPower = 1.0f );
-	void					RadiusPush( const idVec3& origin, const float radius, const float push, const idEntity* inflictor, const idEntity* ignore, float inflictorScale, const bool quake );
+	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake, const bool notlocalplayer=false, const bool notprojectiles=true );
 	void					RadiusPushClipModel( const idVec3& origin, const float push, const idClipModel* clipModel );
 
 	void					ProjectDecal( const idVec3& origin, const idVec3& dir, float depth, bool parallel, float size, const char* material, float angle = 0 );
@@ -529,7 +550,9 @@ public:
 	};
 
 	int						GetNextClientNum( int current ) const;
-	idPlayer* 				GetClientByNum( int current ) const;
+	idPlayer*				GetClientByNum( int current ) const;
+	idPlayer*				GetClientByName( const char* name ) const;
+	idPlayer*				GetClientByCmdArgs( const idCmdArgs& args ) const;
 
 	idPlayer* 				GetLocalPlayer() const;
 
@@ -629,6 +652,31 @@ public:
 	}
 
 	const char* 			GetMPPlayerDefName() const;
+
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+	idList<int>             musicSpeakers; //SnoopJeDi - holds entitynum values for speakers with s_music set
+// ******
+	void					SetLocalPlayerSpawnPoint(idStr point);
+//	void					FoliageRendering();
+	idStr					eoc_MapPath;
+	void					InitHub(void);
+	void					SendLocalUserHudMessage( const char *message );
+	void					SendLocalUserHudMessage( idStr message );
+	void					UpdateFog();
+	void					SetPersistentRemove( const char *name );
+	void					SetPersistentLightOn( const char *name, bool state );
+	void					SetPersistentLightBroken( const char *name );
+	void					SetPersistentTrigger( const char *type, const char *name, const bool state );
+	void					SetPersistentTriggerInt( const char *type, const char *var, const char *name, int val );
+	void					SavePersistentMoveables(void);
+// HEXEN : Zeroth
+public:
+	idStr					eoc_LocalPlayerSpawnPoint;
+	float					eoc_MapLoading;
+	float					eoc_MapLoadingPrev;
+	idStr					mapNameForCheat;
+	idList<idVec3 *>		BanishLocationList;
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
@@ -877,6 +925,7 @@ typedef enum
 #define	MASK_SHOT_BOUNDINGBOX		(CONTENTS_SOLID|CONTENTS_BODY)
 
 const float DEFAULT_GRAVITY			= 1066.0f;
+const idVec3 DEFAULT_GRAVITY_NORMAL	= idVec3( 0, 0, -1 ); // HEXEN : Zeroth
 #define DEFAULT_GRAVITY_STRING		"1066"
 const idVec3 DEFAULT_GRAVITY_VEC3( 0, 0, -DEFAULT_GRAVITY );
 

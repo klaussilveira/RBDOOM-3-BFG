@@ -115,6 +115,21 @@ const idEventDef EV_GetGuiParmFloat( "getGuiParmFloat", "ds", 'f' );
 const idEventDef EV_MotionBlurOn( "motionBlurOn" );
 const idEventDef EV_MotionBlurOff( "motionBlurOff" );
 const idEventDef EV_GuiNamedEvent( "guiNamedEvent", "ds" );
+// HEXEN : Zeroth
+const idEventDef EV_SetGravity( "SetGravity", "v" );
+const idEventDef EV_GetGravity( "GetGravity", NULL, 'v' );
+const idEventDef EV_GetGravityNormal( "GetGravityNormal", NULL, 'v' );
+const idEventDef EV_GetSelfEntity( "GetSelfEntity", NULL, 'e' );
+const idEventDef EV_SpawnProjectiles( "EntityLaunchProjectiles", "dffff" );
+const idEventDef EV_CreateProjectile( "EntityCreateProjectile", NULL, 'e' );
+const idEventDef EV_GetMaster( "GetMaster", NULL, 'e' );
+const idEventDef EV_GetModelDims( "GetModelDims", NULL, 'v' );
+const idEventDef EV_ReplaceMaterial( "ReplaceMaterial", "ss" );
+const idEventDef EV_ResetGravity( "ResetGravity" );
+const idEventDef EV_GetHealth( "GetHealth", NULL, 'f' );
+const idEventDef EV_SetHealth( "SetHealth", "f" );
+const idEventDef EV_HudMessage( "HudMessage", "s" );
+const idEventDef EV_GetType( "GetType", NULL, 'f' );
 
 ABSTRACT_DECLARATION( idClass, idEntity )
 EVENT( EV_GetName,				idEntity::Event_GetName )
@@ -185,6 +200,21 @@ EVENT( EV_PrecacheGui,			idEntity::Event_PrecacheGui )
 EVENT( EV_GetGuiParm,			idEntity::Event_GetGuiParm )
 EVENT( EV_GetGuiParmFloat,		idEntity::Event_GetGuiParmFloat )
 EVENT( EV_GuiNamedEvent,		idEntity::Event_GuiNamedEvent )
+// HEXEN : Zeroth
+EVENT( EV_SetGravity,			idEntity::Event_SetGravity )
+EVENT( EV_GetGravity,			idEntity::Event_GetGravity )
+EVENT( EV_GetGravityNormal,		idEntity::Event_GetGravityNormal )
+EVENT( EV_GetSelfEntity,		idEntity::Event_GetSelfEntity )
+EVENT( EV_SpawnProjectiles,		idEntity::Event_SpawnProjectiles )
+EVENT( EV_CreateProjectile,		idEntity::Event_CreateProjectile )
+EVENT( EV_GetMaster,			idEntity::Event_GetMaster )
+EVENT( EV_GetModelDims,			idEntity::Event_GetModelDims )
+EVENT( EV_ReplaceMaterial,		idEntity::Event_ReplaceMaterial )
+EVENT( EV_ResetGravity,			idEntity::Event_ResetGravity )
+EVENT( EV_GetHealth,			idEntity::Event_GetHealth )
+EVENT( EV_SetHealth,			idEntity::Event_SetHealth )
+EVENT( EV_HudMessage,			idEntity::Event_HudMessage )
+EVENT( EV_GetType,				idEntity::Event_GetType )
 END_CLASS
 
 /*
@@ -538,6 +568,14 @@ idEntity::idEntity():
 	xraySkin = NULL;
 
 	noGrab = false;
+
+	// HEXEN : Zeroth
+	scriptThread = NULL; // initialized by ConstructScriptObject, which is called by idEntity::Spawn
+	state = NULL;
+	idealState = NULL;
+	waitState = "";
+	gravityMod = false;
+	inWater = false;
 }
 
 /*
@@ -571,6 +609,11 @@ void idEntity::Spawn()
 	const idKeyValue*	networkSync;
 	const char*			classname;
 	const char*			scriptObjectName;
+
+	// HEXEN : Zeroth
+	onFire = 0;
+	nextFlame = 0;
+	fireJoint = 0;
 
 	gameLocal.RegisterEntity( this, -1, gameLocal.GetSpawnArgs() );
 
@@ -742,6 +785,7 @@ idEntity::~idEntity
 */
 idEntity::~idEntity()
 {
+	ShutdownThreads();
 	DeconstructScriptObject();
 	scriptObject.Free();
 
@@ -862,6 +906,50 @@ void idEntity::Save( idSaveGame* savefile ) const
 	}
 
 	savefile->WriteInt( mpGUIState );
+
+	// HEXEN : Zeroth
+	savefile->WriteObject( scriptThread );
+	savefile->WriteString( waitState );
+
+	//FIXME: this is unneccesary
+	idToken token;
+	// HEXEN : Zeroth
+	if ( state )
+	{
+		idLexer src( state->Name(), idStr::Length( state->Name() ), "idEntity::Save" );
+
+		src.ReadTokenOnLine( &token );
+		src.ExpectTokenString( "::" );
+		src.ReadTokenOnLine( &token );
+
+		savefile->WriteString( token );
+	}
+	else
+	{
+		savefile->WriteString( "" );
+	}
+
+	// HEXEN : Zeroth
+	if ( idealState )
+	{
+		idLexer src( idealState->Name(), idStr::Length( idealState->Name() ), "idEntity::Save" );
+
+		src.ReadTokenOnLine( &token );
+		src.ExpectTokenString( "::" );
+		src.ReadTokenOnLine( &token );
+
+		savefile->WriteString( token );
+	}
+	else
+	{
+		savefile->WriteString( "" );
+	}
+
+	// HEXEN : Zeroth
+	savefile->WriteObject( projectileEnt );
+	savefile->WriteInt( nextFlame );
+	savefile->WriteInt( fireJoint );
+	savefile->WriteInt( onFire );
 }
 
 /*
@@ -962,6 +1050,42 @@ void idEntity::Restore( idRestoreGame* savefile )
 	{
 		modelDefHandle = gameRenderWorld->AddEntityDef( &renderEntity );
 	}
+
+	// HEXEN : Zeroth
+	savefile->ReadObject( reinterpret_cast<idClass *&>( scriptThread ) );
+	savefile->ReadString( waitState );
+	idStr statename;
+
+	// HEXEN : Zeroth
+	savefile->ReadString( statename );
+	if ( statename.Length() > 0 )
+	{
+		state = GetScriptFunction( statename );
+	}
+
+	// HEXEN : Zeroth
+	savefile->ReadString( statename );
+	if ( statename.Length() > 0 )
+	{
+		idealState = GetScriptFunction( statename );
+	}
+
+	// HEXEN : Zeroth
+	const idDeclEntityDef *projectileDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_projectile" ), false );
+	if ( projectileDef )
+	{
+		projectileDict = projectileDef->dict;
+	}
+	else
+	{
+		projectileDict.Clear();
+	}
+
+	// HEXEN : Zeroth
+	savefile->ReadObject( reinterpret_cast<idClass *&>( projectileEnt ) );
+	savefile->ReadInt( nextFlame );
+	savefile->ReadInt( fireJoint );
+	savefile->ReadInt( onFire );
 }
 
 /*
@@ -3800,7 +3924,7 @@ inflictor, attacker, dir, and point can be NULL for environmental effects
 ============
 */
 void idEntity::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-					   const char* damageDefName, const float damageScale, const int location )
+					   const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
 {
 	if( !fl.takedamage )
 	{
@@ -3952,7 +4076,6 @@ Can be overridden by subclasses when a thread doesn't need to be allocated.
 */
 idThread* idEntity::ConstructScriptObject()
 {
-	idThread*		thread;
 	const function_t* constructor;
 
 	// init the script object's data
@@ -3963,20 +4086,24 @@ idThread* idEntity::ConstructScriptObject()
 	if( constructor )
 	{
 		// start a thread that will initialize after Spawn is done being called
-		thread = new idThread();
-		thread->SetThreadName( name.c_str() );
-		thread->CallFunction( this, constructor, true );
-		thread->DelayedStart( 0 );
+		scriptThread = new idThread();
+		scriptThread->SetThreadName( name.c_str() );
+		scriptThread->CallFunction( this, constructor, true );
+		scriptThread->DelayedStart( 0 );
+
+		// HEXEN : Zeroth
+		scriptThread->ManualDelete();
+		//scriptThread->ManualControl();
 	}
 	else
 	{
-		thread = NULL;
+		scriptThread = NULL;
 	}
 
 	// clear out the object's memory
 	scriptObject.ClearObject();
 
-	return thread;
+	return scriptThread;
 }
 
 /*
@@ -4513,6 +4640,68 @@ void idEntity::ActivateTargets( idEntity* activator ) const
 			}
 		}
 	}
+}
+
+/*
+==============================
+Zeroth
+idAnimatedEntity::EmitFlames
+==============================
+*/
+void idAnimatedEntity::EmitFlames()
+{
+	if ( gameLocal.time < nextFlame )
+	{
+		return;
+	}
+
+	particleEmitter_t pe;
+	idStr particleName = "firestorm_incinerator";
+	idVec3 origin;
+	idMat3 axis;
+
+	idAnimator *anim = GetAnimator();
+	if ( anim == NULL )
+	{
+		return;
+	}
+
+	int numjoints = anim->NumJoints();
+	if ( numjoints <= 0 )
+	{
+		return;
+	}
+
+	nextFlame += gameLocal.random.RandomFloat() * ( ( 50 / numjoints ) );
+
+	fireJoint++;
+
+	if ( fireJoint >= numjoints )
+	{
+		fireJoint = 0;
+	}
+
+	pe.joint = (jointHandle_t) fireJoint;
+	//idAnimatedEntity *aent=static_cast< idAnimatedEntity * >( ent );
+
+	anim->GetJointTransform( pe.joint, gameLocal.time, origin, axis );
+	origin = renderEntity.origin + origin * renderEntity.axis;
+	//origin = GetJointPos( (jointHandle_t)fireJoint );
+
+	BecomeActive( TH_UPDATEPARTICLES );
+	if ( !gameLocal.time )
+	{
+		// particles with time of 0 don't show, so set the time differently on the first frame
+		pe.time = 1;
+	}
+	else
+	{
+		pe.time = gameLocal.time;
+	}
+	pe.particle = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, particleName ) );
+	gameLocal.smokeParticles->EmitSmoke(pe.particle, pe.time, gameLocal.random.CRandomFloat(), origin, axis, timeGroup );
+
+	//particles.Append( pe );
 }
 
 /***********************************************************************
@@ -5188,8 +5377,19 @@ idEntity::Event_GetAngles
 */
 void idEntity::Event_GetAngles()
 {
-	idAngles ang = GetPhysics()->GetAxis().ToAngles();
-	idThread::ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
+	idAngles ang = GetAngles();
+	idThread::ReturnVector( idVec3( ang.yaw, ang.pitch, ang.roll) );
+}
+
+/*
+================
+HEXEN
+idEntity::GetAngles
+================
+*/
+idAngles idEntity::GetAngles()
+{
+	return( GetPhysics()->GetAxis().ToAngles() );
 }
 
 /*
@@ -5444,10 +5644,13 @@ void idEntity::Event_GetEntityKey( const char* key )
 	}
 
 	ent = gameLocal.FindEntity( entname );
+	// HEXEN : Zeroth - this gets annoying, not necessary. commenting out.
+	#if 0
 	if( !ent )
 	{
 		gameLocal.Warning( "Couldn't find entity '%s' specified in '%s' key in entity '%s'", entname, key, name.c_str() );
 	}
+	#endif
 
 	idThread::ReturnEntity( ent );
 }
@@ -6239,6 +6442,8 @@ const idEventDef EV_SetJointPos( "setJointPos", "ddv" );
 const idEventDef EV_SetJointAngle( "setJointAngle", "ddv" );
 const idEventDef EV_GetJointPos( "getJointPos", "d", 'v' );
 const idEventDef EV_GetJointAngle( "getJointAngle", "d", 'v' );
+// HEXEN : Zeroth
+const idEventDef EV_TransitionJointAngle( "transitionJointAngle", "ddvvff" );
 
 CLASS_DECLARATION( idEntity, idAnimatedEntity )
 EVENT( EV_GetJointHandle,		idAnimatedEntity::Event_GetJointHandle )
@@ -6248,6 +6453,8 @@ EVENT( EV_SetJointPos,			idAnimatedEntity::Event_SetJointPos )
 EVENT( EV_SetJointAngle,		idAnimatedEntity::Event_SetJointAngle )
 EVENT( EV_GetJointPos,			idAnimatedEntity::Event_GetJointPos )
 EVENT( EV_GetJointAngle,		idAnimatedEntity::Event_GetJointAngle )
+// HEXEN : Zeroth
+EVENT( EV_TransitionJointAngle,	idAnimatedEntity::Event_TransitionJointAngle )
 END_CLASS
 
 /*
@@ -6352,6 +6559,16 @@ void idAnimatedEntity::Think()
 	UpdateAnimation();
 	Present();
 	UpdateDamageEffects();
+
+	
+	// HEXEN : Zeroth
+	if ( gameLocal.time < onFire )
+	{
+		if ( gameLocal.time >= nextFlame )
+		{
+			EmitFlames();
+		}
+	}
 }
 
 /*
@@ -6783,12 +7000,54 @@ void idAnimatedEntity::Event_SetJointAngle( jointHandle_t jointnum, jointModTran
 
 /*
 ================
+Zeroth
+idAnimatedEntity::Event_TransitionJointAngle
+================
+*/
+void idAnimatedEntity::Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions )
+{
+	TransitionJointAngle( jointnum, transform_type, to, from, seconds, transitions );
+}
+
+/*
+================
+Zeroth
+idAnimatedEntity::TransitionJointAngle
+================
+*/
+void idAnimatedEntity::TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions )
+{
+//	idVec3 offset;
+//	idMat3 axis;
+	idAngles aTo = to;
+	idAngles aFrom = from;
+
+//	if ( !GetJointWorldTransform( jointnum, gameLocal.time, offset, axis ) ) {
+//		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  jointnum, name.c_str() );
+//	}
+
+	animator.eoc_TransitionJointAngle( jointnum, transform_type, aTo, aFrom, seconds, transitions );
+}
+
+/*
+================
 idAnimatedEntity::Event_GetJointPos
 
 returns the position of the joint in worldspace
 ================
 */
 void idAnimatedEntity::Event_GetJointPos( jointHandle_t jointnum )
+{
+	idThread::ReturnVector( GetJointPos( jointnum ) );
+}
+
+/*
+================
+Zeroth
+idAnimatedEntity::GetJointPos
+================
+*/
+idVec3 idAnimatedEntity::GetJointPos( jointHandle_t jointnum )
 {
 	idVec3 offset;
 	idMat3 axis;
@@ -6798,7 +7057,7 @@ void idAnimatedEntity::Event_GetJointPos( jointHandle_t jointnum )
 		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  jointnum, name.c_str() );
 	}
 
-	idThread::ReturnVector( offset );
+	return offset;
 }
 
 /*
@@ -6821,4 +7080,639 @@ void idAnimatedEntity::Event_GetJointAngle( jointHandle_t jointnum )
 	idAngles ang = axis.ToAngles();
 	idVec3 vec( ang[ 0 ], ang[ 1 ], ang[ 2 ] );
 	idThread::ReturnVector( vec );
+}
+
+/*
+=====================
+Zeroth
+idAnimatedEntity::GetJointAngle
+=====================
+*/
+idAngles idAnimatedEntity::GetJointAngle( jointHandle_t jointnum )
+{
+	idVec3 offset;
+	idMat3 axis;
+
+	if ( !GetJointWorldTransform( jointnum, gameLocal.time, offset, axis ) )
+	{
+		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  jointnum, name.c_str() );
+	}
+
+	return( axis.ToAngles() );
+}
+
+/*
+=====================
+Zeroth
+idAnimatedEntity::SetJointAngle
+=====================
+*/
+void idAnimatedEntity::SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles )
+{
+	idMat3 mat;
+
+	mat = angles.ToMat3();
+	animator.SetJointAxis( jointnum, transform_type, mat );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_SetGravity
+=====================
+*/
+void idEntity::Event_SetGravity( const idVec3 &grav )
+{
+	GetPhysics()->SetGravity( grav );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_GetGravity
+=====================
+*/
+void idEntity::Event_GetGravity()
+{
+	idVec3 cur = GetPhysics()->GetGravity();
+
+	idThread::ReturnVector( cur );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_GetGravityNormal
+=====================
+*/
+void idEntity::Event_GetGravityNormal()
+{
+	idVec3 cur = GetPhysics()->GetGravityNormal();
+
+	idThread::ReturnVector( cur );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_GetSelfEntity
+=====================
+*/
+void idEntity::Event_GetSelfEntity()
+{
+	idThread::ReturnEntity( this );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_GetHealth
+=====================
+*/
+void idEntity::Event_GetHealth()
+{
+	idThread::ReturnInt( health );
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_SetHealth
+=====================
+*/
+void idEntity::Event_SetHealth( float newHealth )
+{
+	health = newHealth;
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_HudMessage
+=====================
+*/
+void idEntity::Event_HudMessage( const char *message )
+{
+	gameLocal.SendLocalUserHudMessage( message );
+}
+
+/*
+=====================
+Zeroth
+idEntity::GetScriptFunction
+=====================
+*/
+const function_t *idEntity::GetScriptFunction( const char *funcname )
+{
+	const function_t *func;
+
+	func = scriptObject.GetFunction( funcname );
+	if ( !func )
+	{
+		scriptThread->Error( "Unknown function '%s' in '%s'", funcname, scriptObject.GetTypeName() );
+	}
+
+	return func;
+}
+
+/*
+=====================
+Zeroth
+idEntity::SetState
+=====================
+*/
+void idEntity::SetState( const function_t *newState )
+{
+	if ( !newState )
+	{
+		gameLocal.Printf("idEntity::SetState(): %s: Null State.\n", name.c_str());
+	}
+
+	state = newState;
+	idealState = state;
+	scriptThread->CallFunction( this, state, true );
+}
+
+/*
+=====================
+Zeroth
+idEntity::SetState
+=====================
+*/
+void idEntity::SetState( const char *statename )
+{
+	const function_t *newState;
+
+	newState = GetScriptFunction( statename );
+	SetState( newState );
+}
+
+/*
+=====================
+idEntity::UpdateScript
+=====================
+*/
+void idEntity::UpdateScript()
+{
+    int    i;
+
+    // a series of state changes can happen in a single frame.
+    // this loop limits them in case we've entered an infinite loop.
+    for( i = 0; i < 20; i++ )
+	{
+        if ( idealState != state )
+		{
+            SetState( idealState );
+        }
+
+        // don't call script until it's done waiting
+        if ( scriptThread->IsWaiting() )
+		{
+            break;
+        }
+
+        scriptThread->Execute();
+        if ( idealState == state )
+		{
+            break;
+        }
+    }
+
+    if ( i == 20 )
+	{
+        scriptThread->Warning( "idEntity::UpdateScript: exited loop to prevent lockup" );
+    }
+}
+
+/*
+================
+Zeroth
+idEntity::ShutdownThreads
+================
+*/
+void idEntity::ShutdownThreads()
+{
+	if ( scriptThread )
+	{
+		scriptThread->EndThread();
+		scriptThread->PostEventMS( &EV_Remove, 0 );
+		delete scriptThread;
+		scriptThread = NULL;
+	}
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_SetNextState
+=====================
+*/
+void idEntity::Event_SetNextState( const char *name )
+{
+	idealState = GetScriptFunction( name );
+	if ( idealState == state )
+	{
+		state = NULL;
+	}
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_SetState
+=====================
+*/
+void idEntity::Event_SetState( const char *name )
+{
+	idealState = GetScriptFunction( name );
+	if ( idealState == state )
+	{
+		state = NULL;
+	}
+	scriptThread->DoneProcessing();
+}
+
+/*
+=====================
+Zeroth
+idEntity::Event_GetState
+=====================
+*/
+void idEntity::Event_GetState()
+{
+	if ( state )
+	{
+		idThread::ReturnString( state->Name() );
+	}
+	else
+	{
+		idThread::ReturnString( "" );
+	}
+}
+
+
+/*
+=====================
+Zeroth
+idEntity::WaitState
+=====================
+*/
+const char *idEntity::WaitState() const
+{
+	if ( waitState.Length() )
+	{
+		return waitState;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+/*
+=====================
+Zeroth
+idEntity::SetWaitState
+=====================
+*/
+void idEntity::SetWaitState( const char *_waitstate )
+{
+	waitState = _waitstate;
+}
+
+#if 0
+/*
+================
+Zeroth
+idEntity::FinishSetup
+================
+*/
+void idEntity::FinishSetup()
+{
+	const char	*scriptObjectName;
+	// setup script object
+	if ( spawnArgs.GetString( "scriptobject", NULL, &scriptObjectName ) )
+	{
+		if ( !scriptObject.SetType( scriptObjectName ) )
+		{
+			gameLocal.Error( "Script object '%s' not found on entity '%s'.", scriptObjectName, name.c_str() );
+		}
+		ConstructScriptObject();
+	}
+}
+#endif
+
+#if 0
+/*
+================
+HEXEN : Zeroth
+idEntity::IsInUse
+================
+*/
+bool IsInUse()
+{
+	if ( scriptThread != NULL )
+	{
+		return ( scriptThread->IsBusy() );
+	}
+
+	return false;
+}
+#endif
+
+/*
+================
+Zeroth
+idEntity::Event_GetType
+================
+*/
+void idEntity::Event_GetType()
+{
+	idThread::ReturnFloat( (float)GetType()->typeNum );
+}
+
+/*
+================
+Zeroth
+idEntity::Event_SpawnProjectiles
+================
+*/
+void idEntity::Event_SpawnProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower )
+{
+	idProjectile		*proj;
+	idEntity		*ent;
+	int			i;
+	idVec3			dir;
+	float			ang;
+	float			spin;
+	float			distance;
+	trace_t			tr;
+	idVec3			start;
+	idVec3			muzzle_pos;
+	idBounds		ownerBounds, projBounds;
+
+	idVec3			playerViewOrigin;
+	idMat3			playerViewAxis;
+	idVec3			zzero;
+	idEntity		*owner = this;
+
+	zzero.Zero();
+
+	playerViewOrigin.Zero();
+	playerViewAxis.Zero();
+
+	playerViewOrigin = physics->GetOrigin();
+	playerViewAxis = physics->GetAxis();
+
+	if ( !projectileDict.GetNumKeyVals() )
+	{
+		const char *classname =  this->spawnArgs.GetString("inv_name");
+		gameLocal.Warning( "No projectile defined on '%s'", classname );
+		return;
+	}
+
+	if ( common->IsClient() )
+	{
+		// predict instant hit projectiles
+		if ( projectileDict.GetBool( "net_instanthit" ) )
+		{
+			float spreadRad = DEG2RAD( spread );
+			muzzle_pos = playerViewOrigin + playerViewAxis[ 0 ] * 2.0f;
+			for( i = 0; i < num_projectiles; i++ )
+			{
+				ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
+				spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
+				dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
+				dir.Normalize();
+				gameLocal.clip.Translation( tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
+				if ( tr.fraction < 1.0f )
+				{
+					idProjectile::ClientPredictionCollide( this, projectileDict, tr, vec3_origin, true );
+				}
+			}
+		}
+
+	}
+	else
+	{
+
+		ownerBounds = owner->GetPhysics()->GetAbsBounds();
+
+//		owner->AddProjectilesFired( num_projectiles );
+
+		float spreadRad = DEG2RAD( spread );
+		for( i = 0; i < num_projectiles; i++ )
+		{
+			ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
+			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
+			dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
+			dir.Normalize();
+
+			if ( projectileEnt )
+			{
+				ent = projectileEnt;
+				ent->Show();
+				ent->Unbind();
+				projectileEnt = NULL;
+			}
+			else
+			{
+				gameLocal.SpawnEntityDef( projectileDict, &ent, false );
+			}
+
+			if ( !ent || !ent->IsType( idProjectile::Type ) )
+			{
+				const char *projectileName = this->spawnArgs.GetString( "def_projectile" );
+				gameLocal.Error( "'%s' is not an idProjectile", projectileName );
+			}
+
+			if ( projectileDict.GetBool( "net_instanthit" ) )
+			{
+				// don't synchronize this on top of the already predicted effect
+				ent->fl.networkSync = false;
+			}
+
+			proj = static_cast<idProjectile *>(ent);
+			proj->Create( owner, playerViewOrigin, dir );
+
+			projBounds = proj->GetPhysics()->GetBounds().Rotate( proj->GetPhysics()->GetAxis() );
+
+			// make sure the projectile starts inside the bounding box of the owner
+			if ( i == 0 )
+			{
+				muzzle_pos = playerViewOrigin + playerViewAxis[ 0 ] * 2.0f;
+				if ( ( ownerBounds - projBounds).RayIntersection( muzzle_pos, playerViewAxis[0], distance ) )
+				{
+					start = muzzle_pos + distance * playerViewAxis[0];
+				}
+				else
+				{
+					start = ownerBounds.GetCenter();
+				}
+				gameLocal.clip.Translation( tr, start, muzzle_pos, proj->GetPhysics()->GetClipModel(), proj->GetPhysics()->GetClipModel()->GetAxis(), MASK_SHOT_RENDERMODEL, owner );
+				muzzle_pos = tr.endpos;
+			}
+
+			proj->Launch( muzzle_pos, dir, zzero, fuseOffset, launchPower, dmgPower );
+		}
+
+	}
+}
+
+/*
+================
+Zeroth
+idEntity::Event_CreateProjectile
+================
+*/
+void idEntity::Event_CreateProjectile()
+{
+	idEntity	*owner = this;
+
+	if ( !common->IsClient() )
+	{
+		projectileEnt = NULL;
+		gameLocal.SpawnEntityDef( projectileDict, &projectileEnt, false );
+		if ( projectileEnt )
+		{
+			projectileEnt->SetOrigin( GetPhysics()->GetOrigin() );
+			projectileEnt->Bind( owner, false );
+			projectileEnt->Hide();
+		}
+		idThread::ReturnEntity( projectileEnt );
+	}
+	else
+	{
+		idThread::ReturnEntity( NULL );
+	}
+}
+
+/*
+================
+Zeroth
+idEntity::Event_GetMaster
+================
+*/
+void idEntity::Event_GetMaster()
+{
+	idThread::ReturnEntity( bindMaster );
+}
+
+/*
+================
+Zeroth
+idEntity::Event_GetModelDims
+================
+*/
+void idEntity::Event_GetModelDims()
+{
+	idThread::ReturnVector( GetModelDims() );
+}
+
+/*
+================
+Zeroth
+idEntity::GetModelDims
+================
+*/
+idVec3 idEntity::GetModelDims()
+{
+	idVec3 a;
+	if ( renderEntity.hModel )
+	{
+		a.x = abs(renderEntity.bounds.GetMaxs().x) + abs(renderEntity.bounds.GetMins().x);
+		a.y = abs(renderEntity.bounds.GetMaxs().y) + abs(renderEntity.bounds.GetMins().y);
+		a.z = abs(renderEntity.bounds.GetMaxs().z) + abs(renderEntity.bounds.GetMins().z);
+	}
+	else
+	{
+		a.Zero();
+	}
+	return a;
+}
+
+/*
+================
+Zeroth
+idEntity::Event_ResetGravity
+================
+*/
+void idEntity::Event_ResetGravity()
+{
+	physics->SetGravity( gameLocal.GetGravity() );
+}
+
+// HEXEN : Zeroth - broken
+/*
+================
+Zeroth
+idEntity::Event_ReplaceMaterial
+================
+*/
+void idEntity::Event_ReplaceMaterial( const char * replacee, const char * replacer )
+{
+#if 0
+	idStr str = replacer;
+
+	if ( !str.Length() ) {
+		return;
+	}
+	int i, num = renderEntity.hModel->NumSurfaces();
+
+	for ( i = 0; i < num; i++ ) {
+		renderEntity.hModel->ma
+			this->UpdateRenderEntity(
+		renderEntity.hModel->Surface(i)->shader->FreeData() );
+
+		gameLocal.Printf("repmat: %s\n", replacer);
+		gameLocal.Printf("curmat: %s\n", renderEntity.hModel->Surface(i)->shader->GetName());
+
+		const idMaterial * shd;
+		shd = renderEntity.hModel->Surface(i)->shader;
+
+		shd = declManager->FindMaterial( replacer );
+		renderEntity.hModel->Surface(i)->shader = declManager->FindMaterial( replacer );
+
+		gameLocal.Printf("newmat: %s\n", renderEntity.hModel->Surface(i)->shader->GetName());
+		this->renderEntity.hModel->FinishSurfaces();
+	}
+#endif
+}
+
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+/*
+================
+idEntity::FadeMusic
+================
+*/
+void idEntity::FadeMusic( int channel, float to, float over )
+{
+	if ( spawnArgs.GetBool( "s_music" ) )
+	{
+		Event_FadeSound( channel, to, over );
+	}
+}
+// ******
+
+/*
+================
+Zeroth
+idEntity::curNorm
+================
+*/
+idVec3 idEntity::curNorm()
+{
+	return physics->GetGravityNormal();
+}
+
+/*
+================
+Zeroth
+idEntity::curGrav
+================
+*/
+idVec3 idEntity::curGrav()
+{
+	return physics->GetGravity();
 }

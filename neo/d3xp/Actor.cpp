@@ -2452,6 +2452,30 @@ void idActor::Gib( const idVec3& dir, const char* damageDefName )
 	StopSound( SND_CHANNEL_VOICE, false );
 }
 
+// HEXEN : Zeroth
+/*
+================
+idActor::IsEnemy
+================
+*/
+bool idActor::IsEnemy( idEntity *test )
+{
+	idActor		*ent;
+	for( ent = enemyList.Next(); ent != NULL; ent = ent->enemyNode.Next() )
+	{
+		if ( ent->fl.hidden )
+		{
+			continue;
+		}
+		gameLocal.Printf(" [%s] - [%s]", ent->name.c_str(), test->name.c_str());
+		if ( ent->name.c_str() == test->name.c_str() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 
 /*
 ============
@@ -2474,7 +2498,7 @@ calls Damage()
 */
 idCVar actor_noDamage(	"actor_noDamage",			"0",		CVAR_BOOL, "actors don't take damage -- for testing" );
 void idActor::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-					  const char* damageDefName, const float damageScale, const int location )
+					  const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
 {
 	if( !fl.takedamage || actor_noDamage.GetBool() )
 	{
@@ -2739,10 +2763,25 @@ bool idActor::Pain( idEntity* inflictor, idEntity* attacker, int damage, const i
 		return false;
 	}
 
-	// set the pain anim
 	idStr damageGroup = GetDamageGroup( location );
 
 	painAnim = "";
+	if ( g_debugDamage.GetBool() ) {
+		gameLocal.Printf( "Damage: joint: '%s', zone '%s', anim '%s'\n", animator.GetJointName( ( jointHandle_t )location ), 
+			damageGroup.c_str(), painAnim.c_str() );
+	}
+
+	// HEXEN : Zeroth: don't do pain anims for trigger types
+	if ( inflictor ) {
+		if ( inflictor->IsType( idTrigger_Hurt::Type ) ) {
+			return false;
+		}
+		if ( inflictor->IsType( idTrigger_Touch::Type ) ) {
+			return false;
+		}
+	}
+
+	// set the pain anim
 	if( animPrefix.Length() )
 	{
 		if( damageGroup.Length() && ( damageGroup != "legs" ) )
@@ -2783,12 +2822,6 @@ bool idActor::Pain( idEntity* inflictor, idEntity* attacker, int damage, const i
 	if( !painAnim.Length() )
 	{
 		painAnim = "pain";
-	}
-
-	if( g_debugDamage.GetBool() )
-	{
-		gameLocal.Printf( "Damage: joint: '%s', zone '%s', anim '%s'\n", animator.GetJointName( ( jointHandle_t )location ),
-						  damageGroup.c_str(), painAnim.c_str() );
 	}
 
 	return true;
@@ -2925,10 +2958,48 @@ void idActor::PlayFootStepSound()
 {
 	const char* sound = NULL;
 	const idMaterial* material;
+	idPlayer *player;
 
 	if( !GetPhysics()->HasGroundContacts() )
 	{
 		return;
+	}
+
+	// HEXEN : Zeroth
+	if ( this->IsType( idPlayer::Type ) ) {
+		player = static_cast< idPlayer* >( this );
+
+		// no footstep sounds when flying (wings of wrath)
+		if ( player->FreeMove ) {
+			return;
+		}
+
+		if ( player->inWater ) {
+			waterLevel_t level = static_cast< idPhysics_Player* >( player->GetPlayerPhysics() )->GetWaterLevel();
+
+			if ( level == WATERLEVEL_FEET ) {
+				sound = spawnArgs.GetString( "snd_footstep_water_feet" );
+			} else if ( level == WATERLEVEL_WAIST ) {
+				sound = spawnArgs.GetString( "snd_footstep_water_waist" );
+			} else if ( level == WATERLEVEL_HEAD ) {
+				sound = spawnArgs.GetString( "snd_footstep_water_head" );
+			} else {
+				sound = spawnArgs.GetString( "snd_footstep_water_feet" );
+			}
+
+			if ( *sound != '\0' ) {
+				StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, SSF_NO_DUPS, false, NULL );
+			}
+
+			return;
+		} else if ( player->leftWater != 0 && gameLocal.time < player->leftWater + 3000 ) {
+			sound = spawnArgs.GetString( "snd_footstep_wet" );
+
+			if ( *sound != '\0' ) {
+				StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, SSF_NO_DUPS, false, NULL );
+			}
+			return;
+		}
 	}
 
 	// start footstep sound based on material type
@@ -2943,7 +3014,7 @@ void idActor::PlayFootStepSound()
 	}
 	if( sound != NULL && *sound != '\0' )
 	{
-		StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
+		StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, SSF_NO_DUPS, false, NULL );
 	}
 }
 
@@ -3768,6 +3839,17 @@ idActor::Event_AnimLength
 */
 void idActor::Event_AnimLength( int channel, const char* animname )
 {
+	idThread::ReturnFloat( GetAnimLength(channel, animname) );
+}
+
+// HEXEN : Zeroth
+/*
+================
+idActor::GetAnimLength
+================
+*/
+float idActor::GetAnimLength( int channel, const char *animname )
+{
 	int anim;
 
 	anim = GetAnim( channel, animname );
@@ -3778,17 +3860,17 @@ void idActor::Event_AnimLength( int channel, const char* animname )
 			if( head.GetEntity() )
 			{
 				idThread::ReturnFloat( MS2SEC( head.GetEntity()->GetAnimator()->AnimLength( anim ) ) );
-				return;
+				return MS2SEC( head.GetEntity()->GetAnimator()->AnimLength( anim ) );
 			}
 		}
 		else
 		{
 			idThread::ReturnFloat( MS2SEC( animator.AnimLength( anim ) ) );
-			return;
+			return MS2SEC( animator.AnimLength( anim ) );
 		}
 	}
 
-	idThread::ReturnFloat( 0.0f );
+	return 0.0f;
 }
 
 /*

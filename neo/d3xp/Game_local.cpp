@@ -33,6 +33,17 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Game_local.h"
 
+// HEXEN : Zeroth
+#include "projectiles/Wraithverge.h"
+#include "projectiles/FireStorm.h"
+#include "projectiles/Soul.h"
+#include "ai/AI_Veloxite.h"
+#include "ai/AI_Golem.h"
+#include "ai/AI_Shadowspawn.h"
+#include "objects/Tree.h"
+#include "objects/Leaf.h"
+#include "objects/LeafEmitter.h"
+
 #ifdef GAME_DLL
 
 	idSys* 						sys = NULL;
@@ -219,6 +230,9 @@ void idGameLocal::Clear()
 	num_entities = 0;
 	spawnedEntities.Clear();
 	activeEntities.Clear();
+	// ** thanks snoopjedi
+	musicSpeakers.Clear();  // SnoopJeDi - Housekeeping!
+	// **
 	numEntitiesToDeactivate = 0;
 	sortPushers = false;
 	sortTeamMasters = false;
@@ -245,6 +259,7 @@ void idGameLocal::Clear()
 	time = 0;
 	vacuumAreaNum = 0;
 	mapFileName.Clear();
+	BanishLocationList.Clear();
 	mapFile = NULL;
 	spawnCount = INITIAL_SPAWN_COUNT;
 	mapSpawnCount = 0;
@@ -277,6 +292,7 @@ void idGameLocal::Clear()
 
 	shellHandler = NULL;
 	selectedGroup = 0;
+	// HEXEN : Zeroth (these 2 variables have been used in Doom 3 vanilla for HeXen mod previously)
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
 
@@ -297,6 +313,8 @@ void idGameLocal::Init()
 {
 	const idDict* dict;
 	idAAS* aas;
+
+	eoc_MapPath.Clear();
 
 #ifndef GAME_DLL
 
@@ -376,6 +394,67 @@ void idGameLocal::Init()
 	}
 
 	gamestate = GAMESTATE_NOMAP;
+
+// HEXEN : Zeroth - setup r_vmodes
+	r_vmodes[0].ratio = 0;
+	r_vmodes[0].width = 800;
+	r_vmodes[0].height = 600;
+
+	r_vmodes[1].ratio = 0;
+	r_vmodes[1].width = 1024;
+	r_vmodes[1].height = 768;
+
+	r_vmodes[2].ratio = 0;
+	r_vmodes[2].width = 1280;
+	r_vmodes[2].height = 960;
+
+	r_vmodes[3].ratio = 0;
+	r_vmodes[3].width = 1400;
+	r_vmodes[3].height = 1050;
+
+	r_vmodes[4].ratio = 1;
+	r_vmodes[4].width = 856;
+	r_vmodes[4].height = 480;
+
+	r_vmodes[5].ratio = 1;
+	r_vmodes[5].width = 1024;
+	r_vmodes[5].height = 576;
+
+	r_vmodes[6].ratio = 1;
+	r_vmodes[6].width = 1280;
+	r_vmodes[6].height = 720;
+
+	r_vmodes[7].ratio = 1;
+	r_vmodes[7].width = 1366;
+	r_vmodes[7].height = 768;
+
+	r_vmodes[8].ratio = 1;
+	r_vmodes[8].width = 1600;
+	r_vmodes[8].height = 900;
+
+	r_vmodes[9].ratio = 1;
+	r_vmodes[9].width = 1920;
+	r_vmodes[9].height = 1080;
+
+	r_vmodes[10].ratio = 2;
+	r_vmodes[10].width = 1280;
+	r_vmodes[10].height = 800;
+
+	r_vmodes[11].ratio = 2;
+	r_vmodes[11].width = 1440;
+	r_vmodes[11].height = 900;
+
+	r_vmodes[12].ratio = 2;
+	r_vmodes[12].width = 1680;
+	r_vmodes[12].height = 1050;
+
+	r_vmodes[13].ratio = 2;
+	r_vmodes[13].width = 1920;
+	r_vmodes[13].height = 1200;
+
+	r_vmodes[14].ratio = 2;
+	r_vmodes[14].width = 2560;
+	r_vmodes[14].height = 1600;
 
 	Printf( "...%d aas types\n", aasList.Num() );
 	Printf( "game initialized.\n" );
@@ -492,6 +571,10 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 		// save game bugs.
 		f->ForceFlush();
 	}
+
+	// a number to signify which release the save file belons to. this
+	// way we can make save games compatible with newer releases of EOC
+	savegame.WriteInt( EOC_RELEASE );
 
 	// go through all entities and threads and add them to the object list
 	for( i = 0; i < MAX_GENTITIES; i++ )
@@ -616,6 +699,10 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 	savegame.WriteInt( realClientTime );
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
+
+	// HEXEN : Zeroth404
+	portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
 
 	portalSkyEnt.Save( &savegame );
 	savegame.WriteBool( portalSkyActive );
@@ -986,6 +1073,12 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 	memset( spawnIds, -1, sizeof( spawnIds ) );
 	spawnCount = INITIAL_SPAWN_COUNT;
 
+	// HEXEN : Zeroth
+	// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+	s_music_vol.ClearModified();
+	s_music_vol.SetModified(); // SnoopJeDi: we want to fade on level start
+	// ******
+
 	spawnedEntities.Clear();
 	activeEntities.Clear();
 	aimAssistEntities.Clear();
@@ -1334,6 +1427,11 @@ idGameLocal::InitFromNewMap
 void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld* renderWorld, idSoundWorld* soundWorld, int gameMode, int randseed )
 {
 
+	// ** thanks snoopjedi
+	musicSpeakers.Clear(); // SnoopJeDi: new map, not reload, so clear the list
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "heartbeat\n" ); // SnoopJeDi - iddevnet fix to keep server from dropping off master list
+	// **
+
 	this->gameType = ( gameType_t )idMath::ClampInt( GAME_SP, GAME_COUNT - 1, gameMode );
 
 	if( mapFileName.Length() )
@@ -1347,6 +1445,7 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld* renderWorl
 
 	gameRenderWorld = renderWorld;
 	gameSoundWorld = soundWorld;
+	eoc_MapPath.Clear();
 
 	if( common->IsMultiplayer() )
 	{
@@ -1376,6 +1475,10 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld* renderWorl
 
 	gamestate = GAMESTATE_ACTIVE;
 
+	// HEXEN : Zeroth
+	InitHub();
+	UpdateFog();
+
 	Printf( "--------------------------------------\n" );
 }
 
@@ -1398,6 +1501,8 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 
 	Printf( "------- Game Map Init SaveGame -------\n" );
 
+	eoc_MapPath.Clear();
+
 	gamestate = GAMESTATE_STARTUP;
 
 	gameRenderWorld = renderWorld;
@@ -1411,6 +1516,11 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	idFile_SaveGamePipelined* pipelineFile = new( TAG_SAVEGAMES ) idFile_SaveGamePipelined();
 	pipelineFile->OpenForReading( saveGameFile );
 	idRestoreGame savegame( pipelineFile, stringTableFile, saveGameVersion );
+
+	// a number to signify which release the save file belons to. this
+	// way we can make save games compatible with newer releases of 
+	int eocnum;
+	savegame.ReadInt( eocnum );
 
 	// Create the list of all objects in the game
 	savegame.CreateObjects();
@@ -1564,6 +1674,10 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
 
+	// HEXEN : Zeroth404
+	portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+
 	portalSkyEnt.Restore( &savegame );
 	savegame.ReadBool( portalSkyActive );
 
@@ -1635,6 +1749,9 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 
 	savegame.RestoreObjects();
 
+	// HEXEN : Zeroth
+	InitHub();
+
 	mpGame.Reset();
 	mpGame.Precache();
 
@@ -1660,6 +1777,8 @@ void idGameLocal::MapClear( bool clearClients )
 {
 	int i;
 
+	SavePersistentMoveables();
+
 	for( i = ( clearClients ? 0 : MAX_CLIENTS ); i < MAX_GENTITIES; i++ )
 	{
 		delete entities[ i ];
@@ -1670,6 +1789,7 @@ void idGameLocal::MapClear( bool clearClients )
 	}
 
 	entityHash.Clear( 1024, MAX_GENTITIES );
+	entypeHash.Clear( 1024, MAX_GENTITIES );
 
 	if( !clearClients )
 	{
@@ -1681,6 +1801,7 @@ void idGameLocal::MapClear( bool clearClients )
 				continue;
 			}
 			entityHash.Add( entityHash.GenerateKey( entities[ i ]->name.c_str(), true ), i );
+			entypeHash.Add( entypeHash.GenerateKey( entities[ i ]->GetClassname(), true ), i );
 		}
 	}
 
@@ -1755,6 +1876,7 @@ void idGameLocal::MapShutdown()
 	fileSystem->UnloadMapResources( mapName );
 
 	mapFileName.Clear();
+	BanishLocationList.Clear();
 
 	gameRenderWorld = NULL;
 	gameSoundWorld = NULL;
@@ -2217,6 +2339,53 @@ idPlayer* idGameLocal::GetClientByNum( int current ) const
 
 /*
 ================
+For HEXEN
+idGameLocal::GetClientByName
+================
+*/
+idPlayer* idGameLocal::GetClientByName(const char* name) const
+{
+	int i;
+	idEntity* ent;
+	for (i = 0; i < numClients; i++) {
+		ent = entities[i];
+		if (ent && ent->IsType(idPlayer::Type)) {
+			// if ( idStr::IcmpNoColor(name, userInfo[i].GetString("ui_name")) == 0 ) {
+				return static_cast<idPlayer*>(ent);
+			// }
+		}
+	}
+	return NULL;
+}
+
+/*
+================
+For HEXEN
+idGameLocal::GetClientByCmdArgs
+================
+*/
+idPlayer* idGameLocal::GetClientByCmdArgs(const idCmdArgs& args) const
+{
+	idPlayer* player;
+	idStr client = args.Argv(1);
+	if (!client.Length()) {
+		return NULL;
+	}
+	// we don't allow numeric ui_name so this can't go wrong
+	if (client.IsNumeric()) {
+		player = GetClientByNum(atoi(client.c_str()));
+	}
+	else {
+		player = GetClientByName(client.c_str());
+	}
+	if (!player) {
+		common->Printf("Player '%s' not found\n", client.c_str());
+	}
+	return player;
+}
+
+/*
+================
 idGameLocal::GetNextClientNum
 ================
 */
@@ -2332,6 +2501,7 @@ void idGameLocal::SetupPlayerPVS()
 			playerConnectedAreas = newPVS;
 		}
 
+		// HEXEN : Zeroth (this conditional was before in Doom 3 vanilla for HeXen mod previously)
 		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
 		if( portalSkyEnt.GetEntity() )
 		{
@@ -2626,6 +2796,14 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	idPlayer*	player;
 	const renderView_t* view;
 
+// HEXEN : Zeroth - for foliage rendering
+/*
+	idEntity *ent;
+	float	isFoliage=0;
+	idVec3	dist;
+	float	maxFoliageDist=2000;
+*/
+
 	if( g_recordTrace.GetBool() )
 	{
 		bool result = BeginTraceRecording( "e:\\gametrace.pix2" );
@@ -2651,6 +2829,31 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	ServerSendNetworkSyncCvars();
 
 	player = GetLocalPlayer();
+#if 0
+// HEXEN : Zeroth - foliage rendering
+	for ( int i = 0; i < MAX_GENTITIES; i++ )
+	{
+		ent = entities[i];
+		if (ent)
+		{
+			ent = entities[i];
+			ent->spawnArgs.GetFloat( "foliage", "0", isFoliage );
+			if ( isFoliage )
+			{
+				dist = ent->GetPhysics()->GetOrigin() - player->GetPhysics()->GetOrigin();
+					 
+				if ( sqrt( dist.x * dist.x + dist.y * dist.y + dist.z * dist.z ) > maxFoliageDist )
+				{
+					ent->Hide();
+				}
+				else
+				{
+					ent->Show();
+				}
+			}
+		}
+	}
+#endif
 
 	if( !common->IsMultiplayer() && g_stopTime.GetBool() )
 	{
@@ -2669,12 +2872,14 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	{
 		do
 		{
-			// update the game time
-			framenum++;
-			fast.previousTime = FRAME_TO_MSEC( framenum - 1 );
-			fast.time = FRAME_TO_MSEC( framenum );
-			fast.realClientTime = fast.time;
-			SetServerGameTimeMs( fast.time );
+			if ( !paused ) {
+				// update the game time
+				framenum++;
+				fast.previousTime = FRAME_TO_MSEC( framenum - 1 );
+				fast.time = FRAME_TO_MSEC( framenum );
+				fast.realClientTime = fast.time;
+				SetServerGameTimeMs( fast.time );
+			}
 
 			ComputeSlowScale();
 
@@ -3175,6 +3380,15 @@ makes rendering and sound system calls
 */
 bool idGameLocal::Draw( int clientNum )
 {
+	
+	if ( s_music_vol.IsModified() ) {  //SnoopJeDi, fade that sound!
+		for ( int i = 0; i < musicSpeakers.Num(); i++ ) {
+			idSound* ent = static_cast<idSound *>(entities[ musicSpeakers[ i ] ]);
+			if (ent)
+				ent->FadeMusic( 0, s_music_vol.GetFloat(), 0 );
+		}
+		s_music_vol.ClearModified();
+	}
 
 	if( clientNum == -1 )
 	{
@@ -3201,6 +3415,60 @@ bool idGameLocal::Draw( int clientNum )
 
 	return true;
 }
+
+#if 0
+#ifdef EOC_WIN32
+void idGameLocal::GetMainWindowHandle(void) {
+	extern HWND eoc_hwnd;
+	if (eoc_hwnd != 0)
+		return;
+	GUITHREADINFO winfo;
+	winfo.cbSize = sizeof(GUITHREADINFO);
+	GetGUIThreadInfo(GetCurrentThreadId(), &winfo);
+	eoc_hwnd = winfo.hwndActive;
+}
+#endif
+void idGameLocal::GetDesktopResolution(int *X, int *Y) {
+	gameLocal.Printf("Entered");
+	#ifdef EOC_WIN32
+		RECT rect;
+		GetWindowRect(GetDesktopWindow(), &rect);
+		*X = (int) (rect.right - rect.left);
+		*Y = (int) (rect.bottom - rect.top);
+	#endif
+}
+void idGameLocal::GetMouseCoord(int *X, int *Y) {
+	#ifdef EOC_WIN32
+		int width, height;
+		float posX, posY;
+		POINT pt;
+		RECT rect;
+		extern HWND eoc_hwnd;
+		GetDesktopResolution(&width, &height);
+		GetMainWindowHandle();
+		GetWindowRect(eoc_hwnd, &rect);
+		GetCursorPos(&pt);
+		gameLocal.Printf("\n\n------------------------------");
+		gameLocal.Printf("Doom Res: %d, %d\n", (rect.right - rect.left), (rect.bottom - rect.top) );
+		gameLocal.Printf("GetCursorPos: %d, %d\n", pt.x, pt.y);
+		posX = (float) pt.x; // convert to float so we don't lose precision
+		posY = (float) pt.y;
+		gameLocal.Printf("Subracting Left/Top: %d, %d\n", rect.left, rect.top);
+		posX -= rect.left;
+		posY -= rect.top;
+		if (posX < 0) posX=0;
+		if (posY < 0) posY=0;
+		if (posX > rect.right) posX=rect.right;
+		if (posY > rect.bottom) posY=rect.bottom;
+		gameLocal.Printf("Subracted: %f, %f\n", posX, posY);
+		*X = (int) posX;
+		*Y = (int) posY;
+		gameLocal.Printf("Converted to Int: %d, %d\n", *X, *Y );
+		gameLocal.Printf("------------------------------\n\n");
+		// scale down to dooms actual resolution
+#endif
+}
+#endif
 
 /*
 ================
@@ -4068,7 +4336,7 @@ void idGameLocal::SpawnMapEntities()
 	int			numEntities;
 	idDict		args;
 
-	Printf( "Spawning entities\n" );
+	// Printf( "Spawning entities\n" );
 
 	if( mapFile == NULL )
 	{
@@ -4094,6 +4362,10 @@ void idGameLocal::SpawnMapEntities()
 
 	num = 1;
 	inhibit = 0;
+
+	// if ( loadGui != NULL ) {
+	//	tickShader = loadGui->GetStateString( "tickshader" );
+	// }
 
 	for( i = 1 ; i < numEntities ; i++ )
 	{
@@ -4134,6 +4406,7 @@ void idGameLocal::AddEntityToHash( const char* name, idEntity* ent )
 		Error( "Multiple entities named '%s'", name );
 	}
 	entityHash.Add( entityHash.GenerateKey( name, true ), ent->entityNumber );
+	entypeHash.Add( entypeHash.GenerateKey( ent->spawnArgs.GetString( "spawnclass" ), true ), ent->entityNumber );
 }
 
 /*
@@ -4144,6 +4417,15 @@ idGameLocal::RemoveEntityFromHash
 bool idGameLocal::RemoveEntityFromHash( const char* name, idEntity* ent )
 {
 	int hash, i;
+
+	// HEXEN : Zeroth
+	hash = entypeHash.GenerateKey( ent->spawnArgs.GetString("spawnclass"), true );
+	for ( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) ) {
+		if ( entities[i] && entities[i] == ent && entities[i]->name.Icmp( name ) == 0 && !strcmp(entities[i]->GetClassname(), ent->GetClassname() ) ) {
+			entypeHash.Remove( hash, i );
+			break;
+		}
+	}
 
 	hash = entityHash.GenerateKey( name, true );
 	for( i = entityHash.First( hash ); i != -1; i = entityHash.Next( i ) )
@@ -4250,6 +4532,26 @@ idEntity* idGameLocal::FindEntity( const char* name ) const
 	{
 		if( entities[i] && entities[i]->name.Icmp( name ) == 0 )
 		{
+			return entities[i];
+		}
+	}
+
+	return NULL;
+}
+
+/*
+=============
+Zeroth
+idGameLocal::FindEntityType
+=============
+*/
+idEntity *idGameLocal::FindEntityType( const idTypeInfo &type ) const {
+	int hash, i;
+
+	// HEXEN : Zeroth
+	hash = entypeHash.GenerateKey( type.classname, true );
+	for ( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) ) {
+		if ( entities[i] && !strcmp(entities[i]->GetClassname(), type.classname ) ) {
 			return entities[i];
 		}
 	}
@@ -4412,12 +4714,12 @@ void idGameLocal::KillBox( idEntity* ent, bool catch_teleport )
 			}
 			else if( !catch_teleport )
 			{
-				hit->Damage( ent, ent, vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT );
+				hit->Damage( ent, ent, vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 			}
 		}
 		else if( !catch_teleport )
 		{
-			hit->Damage( ent, ent, vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT );
+			hit->Damage( ent, ent, vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 		}
 	}
 }
@@ -4504,6 +4806,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 	idBounds	bounds;
 	idVec3 		v, damagePoint, dir;
 	int			i, e, damage, radius, push;
+	bool		notlocalplayer;
 
 	const idDict* damageDef = FindEntityDefDict( damageDefName, false );
 	if( !damageDef )
@@ -4517,6 +4820,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 	damageDef->GetInt( "push", va( "%d", damage * 100 ), push );
 	damageDef->GetFloat( "attackerDamageScale", "0.5", attackerDamageScale );
 	damageDef->GetFloat( "attackerPushScale", "0", attackerPushScale );
+	damageDef->GetBool( "notlocalplayer", "1", notlocalplayer );
 
 	if( radius < 1 )
 	{
@@ -4546,6 +4850,11 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 	{
 		ent = entityList[ e ];
 		assert( ent );
+
+		if ( notlocalplayer && ent == GetLocalPlayer() )
+		{
+			continue;
+		}
 
 		if( !ent->fl.takedamage )
 		{
@@ -4612,7 +4921,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 				killedBySplash = false;
 			}
 
-			ent->Damage( inflictor, attacker, dir, damageDefName, damageScale, INVALID_JOINT );
+			ent->Damage( inflictor, attacker, dir, damageDefName, damageScale, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 
 
 			// If the player is local. SHAkkkkkkeeee!
@@ -4651,7 +4960,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 	// push physics objects
 	if( push )
 	{
-		RadiusPush( origin, radius, push * dmgPower, attacker, ignorePush, attackerPushScale, false );
+		RadiusPush( origin, radius, push * dmgPower, attacker, ignorePush, attackerPushScale, false, notlocalplayer, damageDef->GetBool( "notprojectiles", "1" ) );
 	}
 }
 
@@ -4660,7 +4969,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 idGameLocal::RadiusPush
 ==============
 */
-void idGameLocal::RadiusPush( const idVec3& origin, const float radius, const float push, const idEntity* inflictor, const idEntity* ignore, float inflictorScale, const bool quake )
+void idGameLocal::RadiusPush( const idVec3& origin, const float radius, const float push, const idEntity* inflictor, const idEntity* ignore, float inflictorScale, const bool quake, const bool notlocalplayer, const bool notprojectiles )
 {
 	int i, numListedClipModels;
 	idClipModel* clipModel;
@@ -4701,8 +5010,13 @@ void idGameLocal::RadiusPush( const idVec3& origin, const float radius, const fl
 
 		ent = clipModel->GetEntity();
 
+		if ( notlocalplayer && ent == GetLocalPlayer() )
+		{
+			continue;
+		}
+
 		// never push projectiles
-		if( ent->IsType( idProjectile::Type ) )
+		if( notprojectiles && ent->IsType( idProjectile::Type ) )
 		{
 			continue;
 		}
@@ -5001,6 +5315,16 @@ void idGameLocal::SetCamera( idCamera* cam )
 			}
 		}
 	}
+	// HEXEN : Zeroth
+	//	if ( camera ) {
+	//		renderView_t *rv = camera->GetRenderView();
+	//		Printf( "= camera\n" );
+	//		if ( rv ) {
+	//			Printf( "==============[ %f, %f ]==============", rv->fov_x, rv->fov_y );	
+	//		}
+	//	} else {
+	//		Printf( "= no camera\n" );
+	//	}
 }
 
 /*
@@ -5332,6 +5656,17 @@ void idGameLocal::RandomizeInitialSpawns()
 
 /*
 ===========
+Zeroth
+idGameLocal::SetLocalPlayerSpawnPoint
+===========
+*/
+void idGameLocal::SetLocalPlayerSpawnPoint(idStr point)
+{
+	eoc_LocalPlayerSpawnPoint = point;
+}
+
+/*
+===========
 idGameLocal::SelectInitialSpawnPoint
 spectators are spawned randomly anywhere
 in-game clients are spawned based on distance to active players (randomized on the first half)
@@ -5349,11 +5684,20 @@ idEntity* idGameLocal::SelectInitialSpawnPoint( idPlayer* player )
 
 	if( !common->IsMultiplayer() || !spawnSpots.Num() || ( mpGame.IsGametypeFlagBased() && ( !teamSpawnSpots[0].Num() || !teamSpawnSpots[1].Num() ) ) )    /* CTF */
 	{
-		spot.ent = FindEntityUsingDef( NULL, "info_player_start" );
+		// HEXEN : Zeroth
+		idStr point = "info_player_start_";
+		if ( eoc_LocalPlayerSpawnPoint == "" ) eoc_LocalPlayerSpawnPoint = "1";
+		point += eoc_LocalPlayerSpawnPoint;
+
+		spot.ent = FindEntity( point );
+
 		if( !spot.ent )
 		{
-			Error( "No info_player_start on map.\n" );
+			Error( "Did not find Player Spawn Point in map: %s", point.c_str() );
 		}
+
+		eoc_LocalPlayerSpawnPoint = "1"; // should always be 1 by default
+
 		return spot.ent;
 	}
 
@@ -5516,7 +5860,7 @@ int idGameLocal::GetSpawnId( const idEntity* ent ) const
 	return ( gameLocal.spawnIds[ ent->entityNumber ] << GENTITYNUM_BITS ) | ent->entityNumber;
 }
 
-
+// HEXEN: Zeroth (this function was used in Doom 3 vanilla for HeXen mod previously)
 /*
 =================
 idPlayer::SetPortalSkyEnt
@@ -5527,6 +5871,7 @@ void idGameLocal::SetPortalSkyEnt( idEntity* ent )
 	portalSkyEnt = ent;
 }
 
+// HEXEN: Zeroth (this function was used in Doom 3 vanilla for HeXen mod previously)
 /*
 =================
 idPlayer::IsPortalSkyAcive
@@ -6150,4 +6495,395 @@ bool idGameLocal::ProcessDemoCommand( idDemoFile* readDemo )
 	}
 
 	return true;
+}
+
+/*
+===============
+Zeroth
+idGameLocal::InitHub
+===============
+*/
+void idGameLocal::InitHub() {
+	idEntity* ent;
+	idStr name,tmp,name_str,st;
+	int nt = 0;
+	idVec3 vc;
+	idAngles ag;
+	idMat3 ax;
+
+	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+		ent = gameLocal.entities[i];
+		if ( ent ) {
+
+			name = ent->GetEntityDefName();
+
+			// find banish locations
+			if ( name == "speaker" || name == "light" || name.Left(8) == "trigger_" ||
+				name.Left(5) == "ammo_" ||	name.Left(5) == "path_" ) {
+				BanishLocationList.AddUnique( new idVec3( ent->GetPhysics()->GetOrigin() ) );
+			}
+
+			// remove leaves //z.todo: this is a temporary fix for a clipping issue that
+			// causes the game to freeze after a savegame load (not crash)
+			if ( ent->IsType( idEntity_Leaf::Type ) ) {
+				delete ent;
+				continue;
+			}
+
+			// entities which need to be removed
+			tmp = GetMapName();
+			tmp += "_";
+			tmp += ent->GetName();
+			name_str = tmp;
+			name_str += "_remove";
+
+			if ( persistentLevelInfo.GetInt( name_str ) ) {
+				delete ent;
+				gameLocal.entities[i]=NULL;
+				continue;
+			}
+
+			// idTrigger enable/disable
+			name_str = tmp;
+			name_str += "_trig";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st == "on" ) {
+				static_cast<idTrigger *>(gameLocal.entities[i])->Enable();
+				continue;
+			} else if ( st == "off" ) {
+				static_cast<idTrigger *>(gameLocal.entities[i])->Disable();
+				continue;
+			}
+
+			// idTrigger_Timer enable/disable
+			name_str = tmp;
+			name_str += "_timer";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st == "on" ) {
+				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Enable();
+				continue;
+			} else if ( st == "off" ) {
+				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Disable();
+				continue;
+			}
+
+			// idTrigger_Touch enable/disable
+			name_str = tmp;
+			name_str += "_touch";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st == "on" ) {
+				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Enable();
+				continue;
+			} else if ( st == "off" ) {
+				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Disable();
+				continue;
+			}
+
+			// idTrigger_Count 'count' variable
+			name_str = tmp;
+			name_str += "_count_count";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st != "" ) {
+				nt = persistentLevelInfo.GetInt( name_str );
+				static_cast<idTrigger_Count *>( gameLocal.entities[i] )->SetCount( nt );
+				continue;
+			}
+
+			// idTrigger_Count 'goal' variable
+			name_str = tmp;
+			name_str += "_count_goal";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st != "" ) {
+				nt = persistentLevelInfo.GetInt( name_str );
+				static_cast<idTrigger_Count *>(gameLocal.entities[i])->SetGoal( nt );
+				continue;
+			}
+
+			// light broken
+			name_str = tmp;
+			name_str += "_light_broken";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st == "1" ) {
+				static_cast<idLight *>(gameLocal.entities[i])->BecomeBroken( NULL );
+				continue;
+			}
+
+			// light on
+			name_str = tmp;
+			name_str += "_light_on";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st == "on" ) {
+				static_cast<idLight *>(gameLocal.entities[i])->On();
+				continue;
+			} else if ( st == "off" ) {
+				static_cast<idLight *>(gameLocal.entities[i])->Off();
+				continue;
+			}
+
+			// mover pos
+			name_str = tmp;
+			name_str += "_mover_pos";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st != "" ) {
+				vc = persistentLevelInfo.GetVector( name_str );
+				static_cast<idMover *>(gameLocal.entities[i])->GetPhysics()->SetOrigin( vc );
+				static_cast<idMover *>(gameLocal.entities[i])->SetDestPos( vc );
+				continue;
+			}
+
+			// mover ang
+			name_str = tmp;
+			name_str += "_mover_pos";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st != "" ) {
+				ag = persistentLevelInfo.GetAngles( name_str );
+				ag.Normalize360();
+				static_cast<idPhysics_Parametric *>(static_cast<idMover *>(gameLocal.entities[i])->GetPhysics())->SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, ag, ang_zero, ang_zero );
+				continue;
+			}
+
+			// moveable pos/ang/vel
+			name_str = tmp;
+			name_str += "_moveable_pos";
+			st = persistentLevelInfo.GetString( name_str );
+
+			if ( st != "" ) {
+				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetOrigin( persistentLevelInfo.GetVector( name_str ) );
+				name_str = tmp;
+				name_str += "_moveable_ang";
+				static_cast<idMoveable *>(gameLocal.entities[i])->SetAngles( persistentLevelInfo.GetAngles( name_str ) );
+				name_str = tmp;
+				name_str += "_moveable_vel";
+				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetLinearVelocity( persistentLevelInfo.GetVector( name_str ) );
+				continue;
+			}
+		}
+	}
+
+	if ( BanishLocationList.Num() > 0 ) {
+		BanishLocationList.Shuffle();
+	}
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SendLocalUserHudMessage
+===============
+*/
+void idGameLocal::SendLocalUserHudMessage( const char *message ) {
+	GetLocalPlayer()->ShowHudMessage( message );
+}
+
+void idGameLocal::SendLocalUserHudMessage( idStr message ) {
+	GetLocalPlayer()->ShowHudMessage( message.c_str() );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::UpdateFog
+Shows or hides fog based on r_fog.
+===============
+*/
+void idGameLocal::UpdateFog() {
+	idStr nam;
+	idStr fogprefix="fog_";
+	bool eoc_fog = r_fog.GetBool();
+
+	int hash = gameLocal.entypeHash.GenerateKey( idLight::Type.classname, true );
+	idLight *light;
+
+	for ( int i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
+		if ( gameLocal.entities[i] && !strcmp(gameLocal.entities[i]->GetClassname(), idLight::Type.classname ) ) {
+			if ( !gameLocal.entities[i]->IsType( idLight::Type ) ) {
+				continue;
+			}
+
+			light = static_cast< idLight* >( gameLocal.entities[i] );
+
+			if ( !light ) {
+				continue;
+			}
+
+			nam = light->GetName();
+
+			if ( fogprefix == nam.Left(4) ) {
+				if ( eoc_fog ) {
+					light->On();
+				} else {
+					light->Off();
+				}
+			}
+		}
+	}
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SetPersistentRemove
+===============
+*/
+void idGameLocal::SetPersistentRemove( const char *name ) {
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += name;
+	name_str += "_remove";
+
+	persistentLevelInfo.Set( name_str, "1" );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SetPersistentLightBroken
+===============
+*/
+void idGameLocal::SetPersistentLightBroken( const char *name ) {
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += name;
+	name_str += "_light_broken";
+
+	persistentLevelInfo.Set( name_str, "1" );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SetPersistentLightOn
+===============
+*/
+void idGameLocal::SetPersistentLightOn( const char *name, bool state ) {
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str, st;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += name;
+	name_str += "_light_on";
+
+	if ( state ) {
+		st = "on";
+	} else {
+		st = "off";
+	}
+
+	persistentLevelInfo.Set( name_str, st );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SetPersistentTrigger
+===============
+*/
+void idGameLocal::SetPersistentTrigger( const char *type, const char *name, const bool state ) {
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str, st;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += name;
+	name_str += "_";
+	name_str += type;
+
+	if ( state ) {
+		st = "on";
+	} else {
+		st = "off";
+	}
+
+	persistentLevelInfo.Set( name_str, st );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SetPersistentTriggerInt
+===============
+*/
+void idGameLocal::SetPersistentTriggerInt( const char *type, const char *var, const char *name, int val ) {
+	// for removing items/creatures/etc after returning to a level (hubs)
+	idStr name_str, st;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += name;
+	name_str += "_";
+	name_str += type;
+	name_str += "_";
+	name_str += var;
+
+	persistentLevelInfo.SetInt( name_str, val );
+}
+
+/*
+===============
+Zeroth
+idGameLocal::SavePersistentMoveables
+===============
+*/
+void idGameLocal::SavePersistentMoveables(void) {
+	idEntity* ent;
+	idStr tmp, name_str, st, name;
+	int nt = 0;
+	// idVec3 vc;
+	idAngles ag;
+
+	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+		ent = gameLocal.entities[i];
+		if (ent) {
+
+			name = ent->GetEntityDefName();
+
+			// find moveables locations
+			if ( name.Left(9) == "moveable_" ) {
+				/*
+				vc = ent->GetPhysics()->GetOrigin();
+				if ( vc == ent->spawnArgs.GetVector("origin") ) {
+					continue;
+				}
+				*/
+
+				if ( static_cast<idMoveable *>( ent )->savePersistentInfo == false ) {
+					continue;
+				}
+
+				tmp = GetMapName();
+				tmp += "_";
+				tmp += ent->GetName();
+				name_str = tmp;
+				name_str += "_moveable_pos";
+
+				persistentLevelInfo.SetVector( name_str, ent->GetPhysics()->GetOrigin() );
+
+				name_str = tmp;
+				name_str += "_moveable_ang";
+
+				persistentLevelInfo.SetAngles( name_str, ent->GetAngles() );
+
+				name_str = tmp;
+				name_str += "_moveable_vel";
+
+				persistentLevelInfo.SetVector( name_str, ent->GetPhysics()->GetLinearVelocity() );
+			}
+		}
+	}
 }

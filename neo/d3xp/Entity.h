@@ -205,7 +205,13 @@ public:
 
 	idList< idEntityPtr<idEntity>, TAG_ENTITY >	targets;		// when this entity is activated these entities entity are activated
 
-	int						health;					// FIXME: do all objects really need health?
+	// HEXEN : Zeroth
+protected:
+	int						nextFlame;
+	int						fireJoint;
+public:
+	int						health;
+	int						onFire;
 
 	struct entityFlags_s
 	{
@@ -224,6 +230,16 @@ public:
 		bool				grabbed				: 1;	// if true object is currently being grabbed
 		bool				skipReplication		: 1; // don't replicate this entity over the network.
 	} fl;
+
+// HEXEN : Zeroth
+public:
+	bool					gravityMod;
+	bool					inWater;
+
+// HEXEN : Zeroth
+public:
+	idVec3					curGrav();
+	idVec3					curNorm();
 
 	int						timeGroup;
 
@@ -261,6 +277,16 @@ public:
 	// clients generate views based on all the player specific options,
 	// cameras have custom code, and everything else just uses the axis orientation
 	virtual renderView_t* 	GetRenderView();
+	void ShutdownThreads();
+	void UpdateScript();
+	void SetState( const char *statename );
+	void SetState( const function_t *newState );
+	const function_t *GetScriptFunction( const char *funcname );
+	const char *WaitState() const;
+	void SetWaitState( const char *_waitstate );
+	//idThread *ConstructScriptObject();
+	//void idEntity::FinishSetup();
+	//bool IsInUse(); // HEXEN : Zeroth
 
 	// thinking
 	virtual void			Think();
@@ -391,7 +417,7 @@ public:
 	// returns true if this entity can be damaged from the given origin
 	virtual bool			CanDamage( const idVec3& origin, idVec3& damagePoint ) const;
 	// applies damage to this entity
-	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 	// adds a damage effect like overlays, blood, sparks, debris etc.
 	virtual void			AddDamageEffect( const trace_t& collision, const idVec3& velocity, const char* damageDefName );
 	// callback function for when another entity received damage from this entity.  damage can be adjusted and returned to the caller.
@@ -456,6 +482,11 @@ public:
 	void					ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excluding = lobbyUserID_t() ) const;
 	void					ClientSendEvent( int eventId, const idBitMsg* msg ) const;
 
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+	void                    FadeMusic( int channel, float to, float over );
+// ******
+
 	void					SetUseClientInterpolation( bool use )
 	{
 		useClientInterpolation = use;
@@ -514,6 +545,14 @@ protected:
 	int						modelDefHandle;						// handle to static renderer model
 	refSound_t				refSound;							// used to present sound to the audio engine
 
+// HEXEN : Zeroth
+	// state variables
+	const function_t		*state;
+	const function_t		*idealState;
+	// script variables
+	idThread *				scriptThread;
+	idStr					waitState;
+
 	idVec3					GetOriginDelta() const
 	{
 		return originDelta;
@@ -538,6 +577,7 @@ private:
 	signalList_t* 			signals;
 
 	int						mpGUIState;							// local cache to avoid systematic SetStateInt
+	idThread *				thread;
 
 	uint32					predictionKey;						// Unique key used to sync predicted ents (projectiles) in MP.
 
@@ -649,6 +689,32 @@ public:
 	void					Event_GetGuiParm( int guiNum, const char* key );
 	void					Event_GetGuiParmFloat( int guiNum, const char* key );
 	void					Event_GuiNamedEvent( int guiNum, const char* event );
+
+// HEXEN : Zeroth
+private:
+	idDict					projectileDict;
+	idEntity				*projectileEnt;
+	void 					Event_GetState();
+	void 					Event_SetState( const char *name );
+	void 					Event_SetNextState( const char *name );
+
+	void					Event_SetGravity( const idVec3 &grav );
+	void					Event_GetGravity();
+	void					Event_GetGravityNormal();
+	void                    Event_GetSelfEntity();
+	void					Event_SetHealth( float newHealth );
+	void					Event_GetHealth();
+	void					Event_GetType();
+	void					Event_SpawnProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower );
+	void					Event_CreateProjectile();
+	void					Event_GetMaster();
+	void					Event_GetModelDims();
+	void					Event_ReplaceMaterial( const char * replacee, const char * replacer );
+	void					Event_ResetGravity();
+	void					Event_HudMessage( const char *message );
+public:
+	idAngles				GetAngles();
+	idVec3					GetModelDims();
 };
 
 ID_INLINE float idEntity::DistanceTo( idEntity* ent )
@@ -706,6 +772,7 @@ public:
 	virtual void			AddDamageEffect( const trace_t& collision, const idVec3& velocity, const char* damageDefName );
 	void					AddLocalDamageEffect( jointHandle_t jointNum, const idVec3& localPoint, const idVec3& localNormal, const idVec3& localDir, const idDeclEntityDef* def, const idMaterial* collisionMaterial );
 	void					UpdateDamageEffects();
+	void					EmitFlames();
 
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg& msg );
 
@@ -727,6 +794,15 @@ private:
 	void 					Event_SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles& angles );
 	void 					Event_GetJointPos( jointHandle_t jointnum );
 	void 					Event_GetJointAngle( jointHandle_t jointnum );
+
+// HEXEN : Zeroth
+private:
+	void					Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
+public:
+	idVec3					GetJointPos( jointHandle_t jointnum );
+	void					TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
+	void 					SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles );
+	idAngles				GetJointAngle( jointHandle_t jointnum );
 };
 
 
