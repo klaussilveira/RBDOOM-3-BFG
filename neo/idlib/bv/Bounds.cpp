@@ -35,6 +35,28 @@ idBounds bounds_unitCube( idVec3( -1.0f ), idVec3( 1.0f ) );
 
 /*
 ============
+Zeroth
+idBounds::GetMaxs
+============
+*/
+idVec3 idBounds::GetMaxs() const
+{
+	return idVec3( b[1] );
+}
+
+/*
+============
+Zeroth
+idBounds::GetMins
+============
+*/
+idVec3 idBounds::GetMins() const
+{
+	return idVec3( b[0] );
+}
+
+/*
+============
 idBounds::GetRadius
 ============
 */

@@ -65,6 +65,12 @@ public:
 
 	idVec3			GetCenter() const;						// returns center of bounds
 	float			GetRadius() const;						// returns the radius relative to the bounds origin
+
+// HEXEN : Zeroth
+public:
+	idVec3			GetMaxs() const;
+	idVec3			GetMins() const;
+
 	float			GetRadius( const idVec3& center ) const;		// returns the radius relative to the given center
 	float			GetVolume() const;						// returns the volume of the bounds
 	bool			IsCleared() const;						// returns true if bounds are inside out

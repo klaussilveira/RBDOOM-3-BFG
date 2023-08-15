@@ -158,6 +158,10 @@ public:
 	_type_* 		Ptr();												// returns a pointer to the list
 	const _type_* 	Ptr() const;										// returns a pointer to the list
 	_type_& 		Alloc();											// returns reference to a new data element at the end of the list
+	
+// HEXEN : Zeroth
+	int				New();										// append element
+
 	int				Append( const _type_ & obj );						// append element
 	int				Append( const idList& other );						// append list
 	int				AddUnique( const _type_ & obj );					// add unique element
@@ -172,6 +176,7 @@ public:
 	bool			Remove( const _type_ & obj );						// remove the element
 //	void			Sort( cmp_t *compare = ( cmp_t * )&idListSortCompare<_type_, _tag_> );
 	void			SortWithTemplate( const idSort<_type_>& sort = idSort_QuickDefault<_type_>() );
+	void			Shuffle();
 //	void			SortSubSection( int startIndex, int endIndex, cmp_t *compare = ( cmp_t * )&idListSortCompare<_type_> );
 	void			Swap( idList& other );								// swap the contents of the lists
 	void			DeleteContents( bool clear = true );				// delete the contents of the list
@@ -893,6 +898,40 @@ ID_INLINE int idList<_type_, _tag_>::Append( _type_ const& obj )
 	return num - 1;
 }
 
+/*
+================
+Zeroth
+idList<_type_, _tag_>::New
+Increases the size of the list by one element.
+if it is a pointer, user is responsible for NULL'ing it.
+Returns the index of the new element.
+================
+*/
+template< typename _type_, memTag_t _tag_ >
+ID_INLINE int idList<_type_, _tag_>::New()
+{
+	if ( !list )
+	{
+		Resize( granularity );
+	}
+
+	if ( num == size )
+	{
+		int newsize;
+
+		if ( granularity == 0 )
+		{	// this is a hack to fix our memset classes
+			granularity = 16;
+		}
+		newsize = size + granularity;
+		Resize( newsize - newsize % granularity );
+	}
+
+	list[ num ] = *(new type);
+	num++;
+
+	return num - 1;
+}
 
 /*
 ================
@@ -1212,6 +1251,33 @@ ID_INLINE void idList<_type_, _tag_>::SortWithTemplate( const idSort<_type_>& so
 	}
 	sort.Sort( Ptr(), Num() );
 }
+
+/*
+================
+HEXEN
+idList<_type_, _tag_>::Shuffle
+================
+*/
+template< typename _type_, memTag_t _tag_ >
+ID_INLINE void idList<_type_, _tag_>::Shuffle()
+{
+	if ( !list )
+	{
+		return;
+	}
+
+	int i, rnd;
+	_type_ tmp;
+
+	for ( i = 0; i < num; i++ )
+	{
+		rnd = rand() % num;
+		tmp = list[rnd];
+		list[rnd] = list[i];
+		list[i] = tmp;
+	}
+}
+
 //
 ///*
 //================
