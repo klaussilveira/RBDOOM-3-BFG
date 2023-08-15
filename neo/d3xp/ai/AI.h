@@ -278,6 +278,7 @@ public:
 
 	void					Save( idSaveGame* savefile ) const;
 	void					Restore( idRestoreGame* savefile );
+	void					Kill();
 
 	void					Spawn();
 	void					HeardSound( idEntity* ent, const char* action );
@@ -548,7 +549,7 @@ protected:
 	idProjectile*			LaunchProjectile( const char* jointname, idEntity* target, bool clampToAttackCone );
 	virtual void			DamageFeedback( idEntity* victim, idEntity* inflictor, int& damage );
 	void					DirectDamage( const char* meleeDefName, idEntity* ent );
-	bool					TestMelee() const;
+	bool					TestMelee( const idVec3 &iPoint ) const;
 	bool					AttackMelee( const char* meleeDefName );
 	void					BeginAttack( const char* name );
 	void					EndAttack();
@@ -713,6 +714,38 @@ protected:
 	void					Event_StartEmitter( const char* name, const char* joint, const char* particle );
 	void					Event_GetEmitter( const char* name );
 	void					Event_StopEmitter( const char* name );
+
+// HEXEN : Zeroth
+protected:
+	void					Event_IsEnemy( const idEntity *test );
+	void					Event_NumGroundContacts();
+	void					Event_VecForward();
+	void					Event_VecFacing();
+	void					Event_SetFacingDir( idVec3 dir);
+	void					Event_IgnoreObstacles();
+	void					Event_GetRealEnemyPos();
+	void					Event_DirectMoveToPosition( const idVec3 &pos );
+	void					Event_MoveForward();
+
+// HEXEN : Zeroth
+public:
+	bool					ignoreObstacles;
+
+// HEXEN : Zeroth
+public:
+	idVec3					FacingNormal();
+	idVec3					PredictEnemyPos( float time );
+	bool					CanHitEnemy();
+	void					BecomeNonSolid();
+	bool					CanBecomeSolid();
+	void					BecomeSolid();
+
+// HEXEN : Zeroth
+protected:
+//	bool					AI_DirectMoveToPosition( const idVec3 &pos );
+//	bool					AI_MoveForward();
+	void					MoveForward();
+	idVec3					GetJumpVelocity( const idVec3 &pos, float speed, float max_height );
 };
 
 class idCombatNode : public idEntity

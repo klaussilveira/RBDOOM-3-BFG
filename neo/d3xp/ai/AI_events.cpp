@@ -62,6 +62,7 @@ const idEventDef AI_MeleeAttackToJoint( "meleeAttackToJoint", "ss", 'd' );
 const idEventDef AI_RandomPath( "randomPath", NULL, 'e' );
 const idEventDef AI_CanBecomeSolid( "canBecomeSolid", NULL, 'f' );
 const idEventDef AI_BecomeSolid( "becomeSolid" );
+const idEventDef AI_BecomeNonSolid( "becomeNonSolid" );
 const idEventDef AI_BecomeRagdoll( "becomeRagdoll", NULL, 'd' );
 const idEventDef AI_StopRagdoll( "stopRagdoll" );
 const idEventDef AI_SetHealth( "setHealth", "f" );
@@ -170,7 +171,16 @@ const idEventDef AI_TriggerFX( "triggerFX", "ss" );
 const idEventDef AI_StartEmitter( "startEmitter", "sss", 'e' );
 const idEventDef AI_GetEmitter( "getEmitter", "s", 'e' );
 const idEventDef AI_StopEmitter( "stopEmitter", "s" );
-
+// HEXEN : Zeroth
+const idEventDef AI_IsEnemy( "IsEnemy", "e", 'f' );
+const idEventDef AI_NumGroundContacts( "NumGroundContacts", NULL, 'f' );
+const idEventDef AI_VecForward( "VecForward", NULL, 'v' );
+const idEventDef AI_VecFacing( "VecFacing", NULL, 'v' );
+//const idEventDef AI_SetFacingDir( "SetFacingDir", "v" );
+const idEventDef AI_IgnoreObstacles( "IgnoreObstacles" );
+const idEventDef AI_DirectMoveToPosition( "DirectMoveToPosition", "v" );
+const idEventDef AI_MoveForward( "MoveForward" );
+const idEventDef AI_GetRealEnemyPos( "getRealEnemyPos", NULL, 'v' );
 
 
 CLASS_DECLARATION( idActor, idAI )
@@ -311,6 +321,17 @@ EVENT( AI_TriggerFX,						idAI::Event_TriggerFX )
 EVENT( AI_StartEmitter,						idAI::Event_StartEmitter )
 EVENT( AI_GetEmitter,						idAI::Event_GetEmitter )
 EVENT( AI_StopEmitter,						idAI::Event_StopEmitter )
+// HEXEN : Zeroth
+EVENT( AI_IsEnemy,							idAI::Event_IsEnemy )
+EVENT( AI_NumGroundContacts,				idAI::Event_NumGroundContacts )
+EVENT( AI_VecForward,						idAI::Event_VecForward )
+EVENT( AI_VecFacing,						idAI::Event_VecFacing )
+//EVENT( AI_SetFacingDir,						idAI::Event_SetFacingDir )
+EVENT( AI_IgnoreObstacles,					idAI::Event_IgnoreObstacles )
+EVENT( AI_IgnoreObstacles,					idAI::Event_IgnoreObstacles )
+EVENT( AI_MoveForward,						idAI::MoveForward )
+EVENT( AI_DirectMoveToPosition,				idAI::DirectMoveToPosition )
+EVENT( AI_GetRealEnemyPos,					idAI::Event_GetRealEnemyPos )
 END_CLASS
 
 /*
@@ -928,6 +949,17 @@ idAI::Event_CanBecomeSolid
 */
 void idAI::Event_CanBecomeSolid()
 {
+	idThread::ReturnFloat( CanBecomeSolid() );
+}
+
+/*
+=====================
+HEXEN
+idAI::CanBecomeSolid
+=====================
+*/
+bool idAI::CanBecomeSolid()
+{
 	int			i;
 	int			num;
 	bool		returnValue = true;
@@ -976,7 +1008,7 @@ void idAI::Event_CanBecomeSolid()
 		}
 	}
 
-	idThread::ReturnFloat( returnValue );
+	return returnValue;
 }
 
 /*
@@ -985,6 +1017,17 @@ idAI::Event_BecomeSolid
 =====================
 */
 void idAI::Event_BecomeSolid()
+{
+	BecomeSolid();
+}
+
+/*
+=====================
+HEXEN
+idAI::BecomeSolid
+=====================
+*/
+void idAI::BecomeSolid()
 {
 	physicsObj.EnableClip();
 	if( spawnArgs.GetBool( "big_monster" ) )
@@ -1009,6 +1052,17 @@ idAI::Event_BecomeNonSolid
 =====================
 */
 void idAI::Event_BecomeNonSolid()
+{
+	BecomeNonSolid();
+}
+
+/*
+=====================
+HEXEN
+idAI::BecomeNonSolid
+=====================
+*/
+void idAI::BecomeNonSolid()
 {
 	fl.takedamage = false;
 	physicsObj.SetContents( 0 );
@@ -1487,38 +1541,7 @@ idAI::Event_GetJumpVelocity
 */
 void idAI::Event_GetJumpVelocity( const idVec3& pos, float speed, float max_height )
 {
-	idVec3 start;
-	idVec3 end;
-	idVec3 dir;
-	float dist;
-	bool result;
-	idEntity* enemyEnt = enemy.GetEntity();
-
-	if( !enemyEnt )
-	{
-		idThread::ReturnVector( vec3_zero );
-		return;
-	}
-
-	start = physicsObj.GetOrigin();
-	end = pos;
-	dir = end - start;
-	dist = dir.Normalize();
-	if( dist > 16.0f )
-	{
-		dist -= 16.0f;
-		end -= dir * 16.0f;
-	}
-
-	result = PredictTrajectory( start, end, speed, physicsObj.GetGravity(), physicsObj.GetClipModel(), MASK_MONSTERSOLID, max_height, this, enemyEnt, ai_debugMove.GetBool() ? 4000 : 0, dir );
-	if( result )
-	{
-		idThread::ReturnVector( dir * speed );
-	}
-	else
-	{
-		idThread::ReturnVector( vec3_zero );
-	}
+	idThread::ReturnVector( GetJumpVelocity( pos, speed, max_height ) ) ;
 }
 
 /*
@@ -1684,6 +1707,17 @@ void idAI::Event_GetEnemy()
 
 /*
 =====================
+HEXEN
+idAI::Event_GetRealEnemyPos
+=====================
+*/
+void idAI::Event_GetRealEnemyPos()
+{
+	idThread::ReturnVector( enemy.GetEntity()->GetPhysics()->GetOrigin() );
+}
+
+/*
+=====================
 idAI::Event_GetEnemyPos
 =====================
 */
@@ -1709,6 +1743,17 @@ idAI::Event_PredictEnemyPos
 */
 void idAI::Event_PredictEnemyPos( float time )
 {
+	idThread::ReturnVector( PredictEnemyPos( time ) );
+}
+
+/*
+=====================
+HEXEN
+idAI::PredictEnemyPos
+=====================
+*/
+idVec3 idAI::PredictEnemyPos( float time )
+{
 	predictedPath_t path;
 	idActor* enemyEnt = enemy.GetEntity();
 
@@ -1716,13 +1761,13 @@ void idAI::Event_PredictEnemyPos( float time )
 	if( !enemyEnt )
 	{
 		idThread::ReturnVector( physicsObj.GetOrigin() );
-		return;
+		return physicsObj.GetOrigin();
 	}
 
 	// predict the enemy movement
 	idAI::PredictPath( enemyEnt, aas, lastVisibleEnemyPos, enemyEnt->GetPhysics()->GetLinearVelocity(), SEC2MS( time ), SEC2MS( time ), ( move.moveType == MOVETYPE_FLY ) ? SE_BLOCKED : ( SE_BLOCKED | SE_ENTER_LEDGE_AREA ), path );
 
-	idThread::ReturnVector( path.endPos );
+	return path.endPos;
 }
 
 /*
@@ -1732,6 +1777,17 @@ idAI::Event_CanHitEnemy
 */
 void idAI::Event_CanHitEnemy()
 {
+	idThread::ReturnInt( CanHitEnemy() );
+}
+
+/*
+=====================
+HEXEN
+idAI::CanHitEnemy
+=====================
+*/
+bool idAI::CanHitEnemy()
+{
 	trace_t	tr;
 	idEntity* hit;
 
@@ -1739,14 +1795,14 @@ void idAI::Event_CanHitEnemy()
 	if( !AI_ENEMY_VISIBLE || !enemyEnt )
 	{
 		idThread::ReturnInt( false );
-		return;
+		return false;
 	}
 
 	// don't check twice per frame
 	if( gameLocal.time == lastHitCheckTime )
 	{
 		idThread::ReturnInt( lastHitCheckResult );
-		return;
+		return lastHitCheckResult;
 	}
 
 	lastHitCheckTime = gameLocal.time;
@@ -1775,7 +1831,7 @@ void idAI::Event_CanHitEnemy()
 		lastHitCheckResult = false;
 	}
 
-	idThread::ReturnInt( lastHitCheckResult );
+	return lastHitCheckResult;
 }
 
 /*
@@ -2145,7 +2201,7 @@ idAI::Event_TestMeleeAttack
 */
 void idAI::Event_TestMeleeAttack()
 {
-	bool result = TestMelee();
+	bool result = TestMelee( idVec3() );
 	idThread::ReturnInt( result );
 }
 
@@ -3400,4 +3456,81 @@ void idAI::Event_SetHomingMissileGoal()
 	}
 
 	homingMissileGoal = enemy->GetPhysics()->GetOrigin();
+}
+
+/*
+================
+Zeroth
+idAI::Event_GetReachableEntityPosition
+================
+*/
+void idAI::Event_IsEnemy( const idEntity *test )
+{
+	idThread::ReturnFloat(IsEnemy( (idEntity *) test));
+}
+
+/*
+================
+Zeroth
+idAI::Event_NumGroundContacts
+================
+*/
+void idAI::Event_NumGroundContacts()
+{
+	idThread::ReturnFloat( physicsObj.NumGroundContacts() );
+}
+
+/*
+================
+Zeroth
+idAI::Event_VecFacing
+================
+*/
+void idAI::Event_VecFacing()
+{
+	// return proper facing direction (yaw only)
+	idVec3 dir = viewAxis[ 0 ] * physicsObj.GetGravityAxis();
+	dir.Normalize();
+	idThread::ReturnVector(dir);
+}
+
+// HEXEN : Zeroth - no workie
+#if 0
+/*
+================
+Zeroth
+idAI::Event_SetFacingDir
+================
+*/
+void idAI::Event_SetFacingDir( idVec3 dir )
+{
+	// return proper facing direction (yaw only)
+	dir.Normalize();
+	viewAxis[ 0 ] = dir;// * physicsObj.GetGravityAxis();
+}
+#endif
+
+/*
+================
+Zeroth
+idAI::Event_VecForward
+================
+*/
+void idAI::Event_VecForward()
+{
+	// return proper forward vector for whatever way the AI is looking
+	idVec3 dir = deltaViewAngles.ToForward() * physicsObj.GetGravityAxis();
+	dir.Normalize();
+	idThread::ReturnVector(dir);
+}
+
+/*
+================
+Zeroth
+idAI::Event_IgnoreObstacles
+================
+*/
+void idAI::Event_IgnoreObstacles()
+{
+	ignoreObstacles = true;
 }
