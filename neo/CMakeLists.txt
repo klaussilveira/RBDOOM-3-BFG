@@ -807,7 +807,9 @@ set(GAMED3XP_SOURCES
 	d3xp/Mover.cpp
 	d3xp/MultiplayerGame.cpp
 	d3xp/Player.cpp
+	d3xp/PlayerArtifacts.cpp
 	d3xp/PlayerIcon.cpp
+	d3xp/PlayerScriptEvents.cpp
 	d3xp/PlayerView.cpp
 	d3xp/precompiled.cpp
 	d3xp/Projectile.cpp
@@ -841,8 +843,14 @@ set(GAMED3XP_GAMESYS_SOURCES
 file(GLOB GAMED3XP_MENUS_INCLUDES d3xp/menus/*.h)
 file(GLOB GAMED3XP_MENUS_SOURCES d3xp/menus/*.cpp)
 	
+file(GLOB GAMED3XP_OBJECTS_INCLUDES d3xp/objects/*.h)
+file(GLOB GAMED3XP_OBJECTS_SOURCES d3xp/objects/*.cpp)
+
 file(GLOB GAMED3XP_PHYSICS_INCLUDES d3xp/physics/*.h)
 file(GLOB GAMED3XP_PHYSICS_SOURCES d3xp/physics/*.cpp)
+
+file(GLOB GAMED3XP_PROJECTILES_INCLUDES d3xp/projectiles/*.h)
+file(GLOB GAMED3XP_PROJECTILES_SOURCES d3xp/projectiles/*.cpp)
 
 file(GLOB GAMED3XP_SCRIPT_INCLUDES d3xp/script/*.h)
 file(GLOB GAMED3XP_SCRIPT_SOURCES d3xp/script/*.cpp)
@@ -1189,8 +1197,14 @@ source_group("game-d3xp\\gamesys" FILES ${GAMED3XP_GAMESYS_SOURCES})
 source_group("game-d3xp\\menus" FILES ${GAMED3XP_MENUS_INCLUDES})
 source_group("game-d3xp\\menus" FILES ${GAMED3XP_MENUS_SOURCES})
 
+source_group("game-d3xp\\objects" FILES ${GAMED3XP_OBJECTS_INCLUDES})
+source_group("game-d3xp\\objects" FILES ${GAMED3XP_OBJECTS_SOURCES})
+
 source_group("game-d3xp\\physics" FILES ${GAMED3XP_PHYSICS_INCLUDES})
 source_group("game-d3xp\\physics" FILES ${GAMED3XP_PHYSICS_SOURCES})
+
+source_group("game-d3xp\\projectiles" FILES ${GAMED3XP_PROJECTILES_INCLUDES})
+source_group("game-d3xp\\projectiles" FILES ${GAMED3XP_PROJECTILES_SOURCES})
 
 source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_INCLUDES})
 source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_SOURCES})
@@ -1323,7 +1337,9 @@ set(RBDOOM3_INCLUDES
 			${GAMED3XP_ANIM_INCLUDES} 
 			${GAMED3XP_GAMESYS_INCLUDES} 
 			${GAMED3XP_MENUS_INCLUDES}
+			${GAMED3XP_OBJECTS_INCLUDES}
 			${GAMED3XP_PHYSICS_INCLUDES}
+			${GAMED3XP_PROJECTILES_INCLUDES}
 			${GAMED3XP_SCRIPT_INCLUDES}
 			)
 			
@@ -1370,7 +1386,9 @@ set(RBDOOM3_SOURCES
 			${GAMED3XP_ANIM_SOURCES}
 			${GAMED3XP_GAMESYS_SOURCES}
 			${GAMED3XP_MENUS_SOURCES}
+			${GAMED3XP_OBJECTS_SOURCES}
 			${GAMED3XP_PHYSICS_SOURCES}
+			${GAMED3XP_PROJECTILES_SOURCES}
 			${GAMED3XP_SCRIPT_SOURCES}
 			)
 
