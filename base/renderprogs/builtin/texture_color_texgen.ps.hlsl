@@ -29,10 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "renderprogs/global.inc.hlsl"
 
 
-uniform sampler2D samp0 :
-register( s0 );
-
 // *INDENT-OFF*
+uniform sampler2D samp0 : register( s0 );
+
 struct PS_IN {
 	float4 position : VPOS;
 	float4 texcoord0 : TEXCOORD0_centroid;

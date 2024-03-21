@@ -127,7 +127,7 @@ void idRenderProgManager::Init()
 		{ BUILTIN_TEXTURE_VERTEXCOLOR, "builtin/texture_color", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "builtin/texture_color", "_sRGB", BIT( USE_SRGB ), false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "builtin/texture_color_skinned", "", 0, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
-		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "builtin/texture_color_texgen", "",  0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
+		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "builtin/texture_color_texgen", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 
 		// RB begin
 		{ BUILTIN_INTERACTION, "builtin/lighting/interaction", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
@@ -170,7 +170,7 @@ void idRenderProgManager::Init()
 		// RB end
 
 		{ BUILTIN_ENVIRONMENT, "builtin/legacy/environment", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
-		{ BUILTIN_ENVIRONMENT_SKINNED, "builtin/legacy/environment_skinned", "",  0, true , SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT},
+		{ BUILTIN_ENVIRONMENT_SKINNED, "builtin/legacy/environment_skinned", "", 0, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_BUMPY_ENVIRONMENT, "builtin/legacy/bumpyenvironment", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "builtin/legacy/bumpyenvironment_skinned", "", 0, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 
@@ -186,7 +186,7 @@ void idRenderProgManager::Init()
 		{ BUILTIN_BLENDLIGHT, "builtin/fog/blendlight", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_FOG, "builtin/fog/fog", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_FOG_SKINNED, "builtin/fog/fog_skinned", "", 0, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
-		{ BUILTIN_SKYBOX, "builtin/legacy/skybox", "",  0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
+		{ BUILTIN_SKYBOX, "builtin/legacy/skybox", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_WOBBLESKY, "builtin/legacy/wobblesky", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_POSTPROCESS, "builtin/post/postprocess", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		// RB begin
@@ -212,7 +212,7 @@ void idRenderProgManager::Init()
 		// RB end
 		{ BUILTIN_STEREO_DEGHOST, "builtin/VR/stereoDeGhost", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		{ BUILTIN_STEREO_WARP, "builtin/VR/stereoWarp", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
-		{ BUILTIN_BINK, "builtin/video/bink", "",  0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
+		{ BUILTIN_BINK, "builtin/video/bink", "", 0, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		// SRS - Added Bink shader without sRGB to linear conversion for testVideo cmd
 		{ BUILTIN_BINK_SRGB, "builtin/video/bink", "_sRGB", BIT( USE_SRGB ), false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT },
 		// SRS end

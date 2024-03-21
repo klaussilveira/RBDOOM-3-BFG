@@ -100,8 +100,8 @@ public:
 
 	void		OpenBlock( const char* label, const idVec4& color = colorBlack );
 	void		CloseBlock();
-	void		OpenMainBlock( renderLogMainBlock_t block );// {}
-	void		CloseMainBlock();// {}
+	void		OpenMainBlock( renderLogMainBlock_t block );
+	void		CloseMainBlock();
 	void		Indent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT ) {}
 	void		Outdent( renderLogIndentLabel_t label = RENDER_LOG_INDENT_DEFAULT ) {}
 

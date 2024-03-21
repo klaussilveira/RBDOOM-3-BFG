@@ -194,8 +194,7 @@ gameReturn_t idGameThread::RunGameAndDraw( int numGameFrames_, idUserCmdMgr& use
 	numGameFrames = numGameFrames_;
 
 	// start the thread going
-	// foresthale 2014-05-12: also check com_editors as many of them are not particularly thread-safe (editLights for example)
-	if( com_smp.GetInteger() <= 0 || com_editors != 0 )
+	if( com_smp.GetBool() == false )
 	{
 		// run it in the main thread so PIX profiling catches everything
 		Run();
@@ -347,8 +346,6 @@ void idCommonLocal::Draw()
 	}
 	else if( readDemo )
 	{
-		// SRS - Advance demo inside Frame() instead of Draw() to support smp mode playback
-		// AdvanceRenderDemo( true );
 		renderWorld->RenderScene( &currentDemoRenderView );
 		renderSystem->DrawDemoPics();
 	}
@@ -627,11 +624,6 @@ void idCommonLocal::Frame()
 		{
 			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
 		}
-		else if( com_smp.GetInteger() < 0 )
-		{
-			// RB: this is the same as Doom 3 renderSystem->BeginFrame()
-			renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
-		}
 		else
 		{
 			// the GPU will stay idle through command generation for minimal
@@ -772,11 +764,6 @@ void idCommonLocal::Frame()
 			ExecuteMapChange();
 			mapSpawnData.savegameFile = NULL;
 			mapSpawnData.persistentPlayerInfo.Clear();
-			// SRS - If in Doom 3 mode (com_smp = -1) on map change, must obey fence before returning to avoid command buffer sync issues
-			if( com_smp.GetInteger() < 0 )
-			{
-				renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
-			}
 			return;
 		}
 		else if( session->GetState() != idSession::INGAME && mapSpawned )

@@ -62,10 +62,6 @@ const char* renderLogMainBlockLabels[] =
 	ASSERT_ENUM_STRING( MRB_TOTAL,							15 )
 };
 
-#if defined( USE_VULKAN )
-	compile_time_assert( NUM_TIMESTAMP_QUERIES >= ( MRB_TOTAL_QUERIES ) );
-#endif
-
 extern uint64 Sys_Microseconds();
 /*
 ================================================================================================
@@ -113,35 +109,6 @@ void PC_BeginNamedEvent( const char* szName, const idVec4& color )
 		return;
 	}
 
-#if defined( USE_VULKAN )
-
-	// start an annotated group of calls under the this name
-	// SRS - Prefer VK_EXT_debug_utils over VK_EXT_debug_marker/VK_EXT_debug_report (deprecated by VK_EXT_debug_utils)
-	if( vkcontext.debugUtilsSupportAvailable )
-	{
-		VkDebugUtilsLabelEXT label = {};
-		label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-		label.pLabelName = szName;
-		label.color[0] = color.x;
-		label.color[1] = color.y;
-		label.color[2] = color.z;
-		label.color[3] = color.w;
-
-		qvkCmdBeginDebugUtilsLabelEXT( vkcontext.commandBuffer[ vkcontext.frameParity ], &label );
-	}
-	else if( vkcontext.debugMarkerSupportAvailable )
-	{
-		VkDebugMarkerMarkerInfoEXT  label = {};
-		label.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-		label.pMarkerName = szName;
-		label.color[0] = color.x;
-		label.color[1] = color.y;
-		label.color[2] = color.z;
-		label.color[3] = color.w;
-
-		qvkCmdDebugMarkerBeginEXT( vkcontext.commandBuffer[ vkcontext.frameParity ], &label );
-	}
-#else
 	// RB: colors are not supported in OpenGL
 
 	// only do this if RBDOOM-3-BFG was started by RenderDoc or some similar tool
@@ -149,7 +116,6 @@ void PC_BeginNamedEvent( const char* szName, const idVec4& color )
 	{
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION_ARB, 0, GLsizei( strlen( szName ) ), szName );
 	}
-#endif
 
 #if 0
 	if( !r_pix.GetBool() )
@@ -347,13 +313,13 @@ void idRenderLog::OpenMainBlock( renderLogMainBlock_t block )
 		}
 
 #else
-		if( glcontext.renderLogMainBlockTimeQueryIds[ glcontext.frameParity ][ mainBlock * 2 ] == 0 )
+		if( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 ] == 0 )
 		{
-			glCreateQueries( GL_TIMESTAMP, 2, &glcontext.renderLogMainBlockTimeQueryIds[ glcontext.frameParity ][ mainBlock * 2 ] );
+			glCreateQueries( GL_TIMESTAMP, 2, &tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 ] );
 		}
 
-		glQueryCounter( glcontext.renderLogMainBlockTimeQueryIds[ glcontext.frameParity ][ mainBlock * 2 + 0 ], GL_TIMESTAMP );
-		glcontext.renderLogMainBlockTimeQueryIssued[ glcontext.frameParity ][ mainBlock * 2 + 0 ]++;
+		glQueryCounter( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 + 0 ], GL_TIMESTAMP );
+		tr.backend.glState.renderLogMainBlockTimeQueryIssued[ tr.backend.glState.frameParity ][ mainBlock * 2 + 0 ]++;
 #endif
 	}
 }
@@ -391,8 +357,8 @@ void idRenderLog::CloseMainBlock()
 		}
 
 #else
-		glQueryCounter( glcontext.renderLogMainBlockTimeQueryIds[ glcontext.frameParity ][ mainBlock * 2 + 1 ], GL_TIMESTAMP );
-		glcontext.renderLogMainBlockTimeQueryIssued[ glcontext.frameParity ][ mainBlock * 2 + 1 ]++;
+		glQueryCounter( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 + 1 ], GL_TIMESTAMP );
+		tr.backend.glState.renderLogMainBlockTimeQueryIssued[ tr.backend.glState.frameParity ][ mainBlock * 2 + 1 ]++;
 #endif
 	}
 }

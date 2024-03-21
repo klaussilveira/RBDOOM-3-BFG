@@ -32,14 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATERIAL_H__
 #define __MATERIAL_H__
 
-
-// RB: define this to use the id Tech 4.5 UI interface for ImGui instead of OpenGL or Vulkan
-// this allows to have the com_showFPS stats in screenshots
-
-//#if defined( USE_VULKAN )
-#define IMGUI_BFGUI 1
-//#endif
-
 /*
 ===============================================================================
 
@@ -395,7 +387,7 @@ typedef enum
 	CONTENTS_NOCSG				= BIT( 21 ),	// don't cut this brush with CSG operations in the editor
 	CONTENTS_ORIGIN				= BIT( 22 ),
 
-	CONTENTS_REMOVE_UTIL		= ~( CONTENTS_AREAPORTAL | CONTENTS_NOCSG )
+	CONTENTS_REMOVE_UTIL		= ( int )( ~( CONTENTS_AREAPORTAL | CONTENTS_NOCSG ) )
 } contentsFlags_t;
 
 // surface types

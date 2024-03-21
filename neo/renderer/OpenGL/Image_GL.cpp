@@ -105,7 +105,7 @@ void idImage::Bind()
 	const int texUnit = tr.backend.GetCurrentTextureUnit();
 
 	// RB: added support for more types
-	tmu_t* tmu = &glcontext.tmu[texUnit];
+	tmu_t* tmu = &tr.backend.glState.tmu[texUnit];
 	// bind the texture
 	if( opts.textureType == TT_2D )
 	{
@@ -441,6 +441,7 @@ void idImage::SetTexParameters()
 			//target = GL_TEXTURE_2D_MULTISAMPLE;
 			//break;
 			// no texture parameters for MSAA FBO textures
+			// RB: FIXME?
 			return;
 		// RB end
 		default:
@@ -874,9 +875,9 @@ void idImage::PurgeImage()
 	// clear all the current binding caches, so the next bind will do a real one
 	for( int i = 0; i < MAX_MULTITEXTURE_UNITS; i++ )
 	{
-		glcontext.tmu[i].current2DMap = TEXTURE_NOT_LOADED;
-		glcontext.tmu[i].current2DArray = TEXTURE_NOT_LOADED;
-		glcontext.tmu[i].currentCubeMap = TEXTURE_NOT_LOADED;
+		tr.backend.glState.tmu[i].current2DMap = TEXTURE_NOT_LOADED;
+		tr.backend.glState.tmu[i].current2DArray = TEXTURE_NOT_LOADED;
+		tr.backend.glState.tmu[i].currentCubeMap = TEXTURE_NOT_LOADED;
 	}
 
 	// reset for reloading images

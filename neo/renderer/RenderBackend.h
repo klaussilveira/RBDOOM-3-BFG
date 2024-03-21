@@ -111,132 +111,31 @@ void RB_SetVertexColorParms( stageVertexColor_t svc );
 //bool ChangeDisplaySettingsIfNeeded( gfxImpParms_t parms );
 //bool CreateGameWindow( gfxImpParms_t parms );
 
-#if defined( USE_VULKAN )
 
-// SRS - Generalized Vulkan SDL platform
-#if defined(VULKAN_USE_PLATFORM_SDL)
-	#include <SDL.h>
-	#include <SDL_vulkan.h>
-#endif
 
-struct gpuInfo_t
+struct glState_t
 {
-	VkPhysicalDevice					device;
-	VkPhysicalDeviceProperties			props;
-	VkPhysicalDeviceMemoryProperties	memProps;
-	VkSurfaceCapabilitiesKHR			surfaceCaps;
-	idList< VkSurfaceFormatKHR >		surfaceFormats;
-	idList< VkPresentModeKHR >			presentModes;
-	idList< VkQueueFamilyProperties >	queueFamilyProps;
-	idList< VkExtensionProperties >		extensionProps;
-};
+	tmu_t				tmu[ MAX_MULTITEXTURE_UNITS ];
+	int					currenttmu;
 
-struct vulkanContext_t
-{
-	// Eric: If on linux, use this to pass SDL_Window pointer to the SDL_Vulkan_* methods not in sdl_vkimp.cpp file.
-// SRS - Generalized Vulkan SDL platform
-#if defined(VULKAN_USE_PLATFORM_SDL)
-	SDL_Window*						sdlWindow = nullptr;
-#endif
-	uint64							frameCounter;
-	uint32							frameParity;
+	unsigned int		currentVertexBuffer;
+	unsigned int		currentIndexBuffer;
+	Framebuffer*		currentFramebuffer;		// RB: for offscreen rendering
 
-	vertCacheHandle_t				jointCacheHandle;
+	vertexLayoutType_t	vertexLayout;
 
-	VkInstance						instance;
+	float				polyOfsScale;
+	float				polyOfsBias;
 
-	// selected physical device
-	VkPhysicalDevice				physicalDevice;
-	VkPhysicalDeviceFeatures		physicalDeviceFeatures;
+	uint64				frameCounter;
+	uint32				frameParity;
 
-	// logical device
-	VkDevice						device;
-
-	VkQueue							graphicsQueue;
-	VkQueue							presentQueue;
-	int								graphicsFamilyIdx;
-	int								presentFamilyIdx;
-	VkDebugReportCallbackEXT		callback;
-
-	idList< const char* >			instanceExtensions;
-	idList< const char* >			deviceExtensions;
-	idList< const char* >			validationLayers;
-
-	bool							debugMarkerSupportAvailable;
-	bool							debugUtilsSupportAvailable;
-	bool                            deviceProperties2Available;     // SRS - For getting device properties in support of gfxInfo
-
-	// selected GPU
-	gpuInfo_t* 						gpu;
-
-	// all GPUs found on the system
-	idList< gpuInfo_t >				gpus;
-
-	VkCommandPool					commandPool;
-	idArray< VkCommandBuffer, NUM_FRAME_DATA >	commandBuffer;
-	idArray< VkFence, NUM_FRAME_DATA >			commandBufferFences;
-	idArray< bool, NUM_FRAME_DATA >				commandBufferRecorded;
-
-	VkSurfaceKHR					surface;
-	VkPresentModeKHR				presentMode;
-	VkFormat						depthFormat;
-	VkRenderPass					renderPass;
-	VkPipelineCache					pipelineCache;
-	VkSampleCountFlagBits			sampleCount;
-	bool							supersampling;
-
-	int								fullscreen;
-	VkSwapchainKHR					swapchain;
-	VkFormat						swapchainFormat;
-	VkExtent2D						swapchainExtent;
-	uint32							currentSwapIndex;
-	VkImage							msaaImage;
-	VkImageView						msaaImageView;
-#if defined( USE_AMD_ALLOCATOR )
-	VmaAllocation					msaaVmaAllocation;
-	VmaAllocationInfo				msaaAllocation;
-#else
-	vulkanAllocation_t				msaaAllocation;
-#endif
-	idArray< VkImage, NUM_FRAME_DATA >			swapchainImages;
-	idArray< VkImageView, NUM_FRAME_DATA >		swapchainViews;
-
-	idArray< VkFramebuffer, NUM_FRAME_DATA >	frameBuffers;
-	idArray< VkSemaphore, NUM_FRAME_DATA >		acquireSemaphores;
-	idArray< VkSemaphore, NUM_FRAME_DATA >		renderCompleteSemaphores;
-
-	int											currentImageParm;
-	idArray< idImage*, MAX_IMAGE_PARMS >		imageParms;
-
-	//typedef uint32 QueryTuple[2];
-
-	// GPU timestamp queries
-	idArray< uint32, NUM_FRAME_DATA >									queryIndex;
-	idArray< idArray< uint32, MRB_TOTAL_QUERIES >, NUM_FRAME_DATA >		queryAssignedIndex;
-	idArray< idArray< uint64, NUM_TIMESTAMP_QUERIES >, NUM_FRAME_DATA >	queryResults;
-	idArray< VkQueryPool, NUM_FRAME_DATA >		queryPools;
-};
-
-extern vulkanContext_t vkcontext;
-
-#else //if defined( ID_OPENGL )
-
-struct glContext_t
-{
-	uint64		frameCounter;
-	uint32		frameParity;
-
-	tmu_t		tmu[ MAX_MULTITEXTURE_UNITS ];
-	uint64		stencilOperations[ STENCIL_FACE_NUM ];
+	//uint64				stencilOperations[ STENCIL_FACE_NUM ];
 
 	// for GL_TIME_ELAPSED_EXT queries
-	GLuint		renderLogMainBlockTimeQueryIds[ NUM_FRAME_DATA ][ MRB_TOTAL_QUERIES ];
-	uint32		renderLogMainBlockTimeQueryIssued[ NUM_FRAME_DATA ][ MRB_TOTAL_QUERIES ];
+	GLuint				renderLogMainBlockTimeQueryIds[ NUM_FRAME_DATA ][ MRB_TOTAL_QUERIES ];
+	uint32				renderLogMainBlockTimeQueryIssued[ NUM_FRAME_DATA ][ MRB_TOTAL_QUERIES ];
 };
-
-extern glContext_t glcontext;
-
-#endif
 
 /*
 ===========================================================================
@@ -252,6 +151,7 @@ struct ImDrawData;
 class idRenderBackend
 {
 	friend class Framebuffer;
+	friend class idImage;
 
 public:
 	idRenderBackend();
@@ -454,8 +354,6 @@ public:
 	drawSurf_t			testImageSurface;
 
 private:
-	uint64				glStateBits;
-
 	const viewDef_t* 	viewDef;
 
 	const viewEntity_t*	currentSpace;			// for detecting when a matrix must change
@@ -476,22 +374,15 @@ private:
 	// RB end
 
 private:
-#if !defined( USE_VULKAN )
-	int					currenttmu;
-
-	unsigned int		currentVertexBuffer;
-	unsigned int		currentIndexBuffer;
-	Framebuffer*		currentFramebuffer;		// RB: for offscreen rendering
-
-	vertexLayoutType_t	vertexLayout;
-
-	float				polyOfsScale;
-	float				polyOfsBias;
+	uint64				glStateBits;			// for all render APIs
 
 public:
+#if !defined( USE_VULKAN )
+	glState_t			glState;
+
 	int					GetCurrentTextureUnit() const
 	{
-		return currenttmu;
+		return glState.currenttmu;
 	}
 
 #endif // !defined( USE_VULKAN )

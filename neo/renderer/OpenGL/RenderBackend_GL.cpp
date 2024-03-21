@@ -69,8 +69,6 @@ static GLsync	renderSync[2];
 void GLimp_SwapBuffers();
 void RB_SetMVP( const idRenderMatrix& mvp );
 
-glContext_t glcontext;
-
 /*
 ==================
 GL_CheckErrors
@@ -695,16 +693,16 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf )
 	renderProgManager.CommitUniforms( glStateBits );
 
 	// RB: 64 bit fixes, changed GLuint to GLintptr
-	if( currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
+	if( glState.currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
 	{
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ( GLintptr )indexBuffer->GetAPIObject() );
-		currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
+		glState.currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
 	}
 
-	if( ( vertexLayout != LAYOUT_DRAW_VERT ) || ( currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+	if( ( glState.vertexLayout != LAYOUT_DRAW_VERT ) || ( glState.currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
 	{
 		glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
-		currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+		glState.currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
 
 		glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
 		glEnableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
@@ -720,7 +718,7 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf )
 		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_ST_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_TANGENT_OFFSET ) );
 
-		vertexLayout = LAYOUT_DRAW_VERT;
+		glState.vertexLayout = LAYOUT_DRAW_VERT;
 	}
 	// RB end
 
@@ -797,8 +795,8 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 
 	// RB: at this time the image is presented on the screen
 
-	glcontext.frameCounter++;
-	glcontext.frameParity = glcontext.frameCounter % NUM_FRAME_DATA;
+	glState.frameCounter++;
+	glState.frameParity = glState.frameCounter % NUM_FRAME_DATA;
 
 	const int beforeFence = Sys_Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeFence - beforeSwap > 1 )
@@ -877,14 +875,15 @@ void idRenderBackend::GL_SetDefaultState()
 	glClearDepth( 1.0f );
 
 	// make sure our GL state vector is set correctly
-	memset( &glcontext.tmu, 0, sizeof( glcontext.tmu ) );
-	currenttmu = 0;
-	currentVertexBuffer = 0;
-	currentIndexBuffer = 0;
-	currentFramebuffer = 0;
-	vertexLayout = LAYOUT_UNKNOWN;
-	polyOfsScale = 0.0f;
-	polyOfsBias = 0.0f;
+	memset( &glState.tmu, 0, sizeof( glState.tmu ) );
+	glState.currenttmu = 0;
+	glState.currentVertexBuffer = 0;
+	glState.currentIndexBuffer = 0;
+	glState.currentFramebuffer = 0;
+	glState.vertexLayout = LAYOUT_UNKNOWN;
+	glState.polyOfsScale = 0.0f;
+	glState.polyOfsBias = 0.0f;
+
 	glStateBits = 0;
 
 	hdrAverageLuminance = 0;
@@ -1149,7 +1148,7 @@ void idRenderBackend::GL_State( uint64 stateBits, bool forceGlState )
 	{
 		if( stateBits & GLS_POLYGON_OFFSET )
 		{
-			glPolygonOffset( polyOfsScale, polyOfsBias );
+			glPolygonOffset( glState.polyOfsScale, glState.polyOfsBias );
 			glEnable( GL_POLYGON_OFFSET_FILL );
 			glEnable( GL_POLYGON_OFFSET_LINE );
 		}
@@ -1309,7 +1308,7 @@ idRenderBackend::SelectTexture
 */
 void idRenderBackend::GL_SelectTexture( int unit )
 {
-	if( currenttmu == unit )
+	if( glState.currenttmu == unit )
 	{
 		return;
 	}
@@ -1322,7 +1321,7 @@ void idRenderBackend::GL_SelectTexture( int unit )
 
 	RENDERLOG_PRINTF( "GL_SelectTexture( %i );\n", unit );
 
-	currenttmu = unit;
+	glState.currenttmu = unit;
 }
 
 
@@ -1354,8 +1353,8 @@ idRenderBackend::GL_PolygonOffset
 */
 void idRenderBackend::GL_PolygonOffset( float scale, float bias )
 {
-	polyOfsScale = scale;
-	polyOfsBias = bias;
+	glState.polyOfsScale = scale;
+	glState.polyOfsBias = bias;
 
 	if( glStateBits & GLS_POLYGON_OFFSET )
 	{
@@ -1751,10 +1750,10 @@ void idRenderBackend::DrawStencilShadowPass( const drawSurf_t* drawSurf, const b
 	RENDERLOG_PRINTF( "Binding Buffers: %p %p\n", vertexBuffer, indexBuffer );
 
 	// RB: 64 bit fixes, changed GLuint to GLintptr
-	if( currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
+	if( glState.currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
 	{
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ( GLintptr )indexBuffer->GetAPIObject() );
-		currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
+		glState.currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
 	}
 
 	if( drawSurf->jointCache )
@@ -1772,10 +1771,10 @@ void idRenderBackend::DrawStencilShadowPass( const drawSurf_t* drawSurf, const b
 		const GLintptr ubo = jointBuffer.GetAPIObject();
 		glBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetSize() );
 
-		if( ( vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED ) || ( currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+		if( ( glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED ) || ( glState.currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
 		{
 			glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
-			currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+			glState.currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
 
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
 			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
@@ -1794,16 +1793,16 @@ void idRenderBackend::DrawStencilShadowPass( const drawSurf_t* drawSurf, const b
 			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_COLOR2_OFFSET ) );
 #endif
 
-			vertexLayout = LAYOUT_DRAW_SHADOW_VERT_SKINNED;
+			glState.vertexLayout = LAYOUT_DRAW_SHADOW_VERT_SKINNED;
 		}
 
 	}
 	else
 	{
-		if( ( vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+		if( ( glState.vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( glState.currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
 		{
 			glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
-			currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+			glState.currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
 
 			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
 			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
@@ -1818,7 +1817,7 @@ void idRenderBackend::DrawStencilShadowPass( const drawSurf_t* drawSurf, const b
 			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), ( void* )( SHADOWVERT_XYZW_OFFSET ) );
 #endif
 
-			vertexLayout = LAYOUT_DRAW_SHADOW_VERT;
+			glState.vertexLayout = LAYOUT_DRAW_SHADOW_VERT;
 		}
 	}
 	// RB end
@@ -1885,14 +1884,14 @@ idRenderBackend::idRenderBackend
 */
 idRenderBackend::idRenderBackend()
 {
-	glcontext.frameCounter = 0;
-	glcontext.frameParity = 0;
+	glState.frameCounter = 0;
+	glState.frameParity = 0;
 
-	memset( glcontext.tmu, 0, sizeof( glcontext.tmu ) );
-	memset( glcontext.stencilOperations, 0, sizeof( glcontext.stencilOperations ) );
+	memset( glState.tmu, 0, sizeof( glState.tmu ) );
+	//memset( glState.stencilOperations, 0, sizeof( glcontext.stencilOperations ) );
 
-	memset( glcontext.renderLogMainBlockTimeQueryIds, 0, sizeof( glcontext.renderLogMainBlockTimeQueryIds ) );
-	memset( glcontext.renderLogMainBlockTimeQueryIssued, 0, sizeof( glcontext.renderLogMainBlockTimeQueryIssued ) );
+	memset( glState.renderLogMainBlockTimeQueryIds, 0, sizeof( glState.renderLogMainBlockTimeQueryIds ) );
+	memset( glState.renderLogMainBlockTimeQueryIssued, 0, sizeof( glState.renderLogMainBlockTimeQueryIssued ) );
 }
 
 /*
@@ -2442,7 +2441,7 @@ void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )
 #undef OFFSETOF
 
 #endif
-	tr.backend.vertexLayout = LAYOUT_DRAW_IMGUI_VERT;
+	tr.backend.glState.vertexLayout = LAYOUT_DRAW_IMGUI_VERT;
 
 	for( int n = 0; n < draw_data->CmdListsCount; n++ )
 	{

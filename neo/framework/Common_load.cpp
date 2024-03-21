@@ -1110,6 +1110,7 @@ bool idCommonLocal::LoadGame( const char* saveName )
 	{
 		ClearWipe();
 	}
+
 	return false;
 }
 
@@ -1421,31 +1422,5 @@ CONSOLE_COMMAND( testmap, "tests a map", idCmdSystem::ArgCompletion_MapName )
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 
 	sprintf( string, "devmap %s", map.c_str() );
-	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
-}
-
-
-/*
-==================
-Common_TestMap_f
-==================
-*/
-CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSystem::ArgCompletion_MapName )
-{
-	idStr map, string;
-
-	map = args.Argv( 1 );
-	if( !map.Length() )
-	{
-		return;
-	}
-	map.StripFileExtension();
-
-	cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
-
-	sprintf( string, "devmap %s.map", map.c_str() );
-	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
-
-	sprintf( string, "bakeEnvironmentProbes" );
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 }

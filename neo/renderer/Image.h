@@ -338,27 +338,6 @@ public:
 	// Platform specific implementations
 	//---------------------------------------------
 
-#if defined( USE_VULKAN )
-	static void	EmptyGarbage();
-
-	VkImage		GetImage() const
-	{
-		return image;
-	}
-	VkImageView	GetView() const
-	{
-		return view;
-	}
-	VkImageLayout GetLayout() const
-	{
-		return layout;
-	}
-	VkSampler	GetSampler() const
-	{
-		return sampler;
-	}
-#endif
-
 	void		AllocImage( const idImageOpts& imgOpts, textureFilter_t filter, textureRepeat_t repeat );
 
 	// Deletes the texture object, but leaves the structure so it can be reloaded
@@ -465,39 +444,12 @@ private:
 
 	static const uint32 TEXTURE_NOT_LOADED = 0xFFFFFFFF;
 
-#if defined( USE_VULKAN )
-	void				CreateSampler();
-	// SRS - added method to set image layout
-	void                SetImageLayout( VkImage image, VkImageSubresourceRange subresourceRange, VkImageLayout oldImageLayout, VkImageLayout newImageLayout );
-	// SRS End
-
-	bool				bIsSwapChainImage;
-	VkFormat			internalFormat;
-	VkImage				image;
-	VkImageView			view;
-	VkImageLayout		layout;
-	VkSampler			sampler;
-
-#if defined( USE_AMD_ALLOCATOR )
-	VmaAllocation		allocation;
-	static idList< VmaAllocation >		allocationGarbage[ NUM_FRAME_DATA ];
-#else
-	vulkanAllocation_t	allocation;
-	static idList< vulkanAllocation_t > allocationGarbage[ NUM_FRAME_DATA ];
-#endif
-
-	static int						garbageIndex;
-	static idList< VkImage >		imageGarbage[ NUM_FRAME_DATA ];
-	static idList< VkImageView >	viewGarbage[ NUM_FRAME_DATA ];
-	static idList< VkSampler >		samplerGarbage[ NUM_FRAME_DATA ];
-#else
 	GLuint				texnum;				// gl texture binding
 
 	// we could derive these in subImageUpload each time if necessary
 	GLuint				internalFormat;
 	GLuint				dataFormat;
 	GLuint				dataType;
-#endif
 };
 
 // data is RGBA
