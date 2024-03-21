@@ -191,8 +191,6 @@ idCommonLocal::idCommonLocal() :
 	renderWorld = NULL;
 	soundWorld = NULL;
 	menuSoundWorld = NULL;
-	readDemo = NULL;
-	writeDemo = NULL;
 
 	gameFrame = 0;
 	gameTimeResidual = 0;
@@ -1513,12 +1511,6 @@ void idCommonLocal::Shutdown()
 	// shutdown the script debugger
 	// DebuggerServerShutdown();
 
-	if( aviCaptureMode )
-	{
-		printf( "EndAVICapture();\n" );
-		EndAVICapture();
-	}
-
 	printf( "Stop();\n" );
 	Stop();
 
@@ -1793,8 +1785,7 @@ idCommonLocal::ProcessEvent
 bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 {
 	// hitting escape anywhere brings up the menu
-	// SRS - allow escape during demo playback to cancel
-	if( game && ( game->IsInGame() || readDemo ) )
+	if( game && game->IsInGame() )
 	{
 		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) )
 		{
@@ -1806,7 +1797,6 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 			{
 				if( !game->Shell_IsActive() )
 				{
-
 					// menus / etc
 					if( MenuEvent( event ) )
 					{
@@ -1815,15 +1805,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 
 					console->Close();
 
-					// SRS - cancel demo playback and return to the main menu
-					if( readDemo )
-					{
-						LeaveGame();
-					}
-					else
-					{
-						StartMenu();
-					}
+					StartMenu();
 					return true;
 				}
 				else
