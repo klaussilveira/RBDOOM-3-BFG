@@ -10,7 +10,7 @@ if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6)
 endif()
 	
 option(STANDALONE
-		"Skip DOOM-3-BFG base/ folder and use assets/ instead" OFF)
+		"Skip DOOM-3-BFG base/ folder and use content/ instead" OFF)
 
 option(DOOM_CLASSIC
 		"Build with Doom 1 & 2" ON)
@@ -21,14 +21,8 @@ option(FORCE_COLOR_OUTPUT
 option(COMPILE_COMMANDS
 		"Generate compile_commands.json" OFF)
 
-option(USE_MFC_TOOLS
-		"Compile the legacy MFC based tools (unsupported)" OFF)
-
 option(USE_PRECOMPILED_HEADERS
 		"Use precompiled headers during build" ON)
-		
-option(SDL2
-		"Use SDL2 instead of SDL1.2" ON)
 		
 option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
@@ -38,9 +32,6 @@ option(FFMPEG
 
 option(BINKDEC
 		"Use included libbinkdec to render Bink videos" OFF)
-		
-option(USE_VULKAN
-		"Use Vulkan instead of OpenGL" OFF)
 
 option(SPIRV_SHADERC
 		"Compile SPIR-V shader byte code using shaderc instead of using Glslang directly" OFF)
@@ -52,22 +43,22 @@ option(ONATIVE
 		"Optimize for the host CPU" OFF)
 		
 option(WINDOWS10
-		"Build for Windows 10+" OFF)
+		"Build for Windows 10+" ON)
 		
 option(USE_SYSTEM_ZLIB
-                "Use the system zlib instead of the bundled one" OFF)
+         "Use the system zlib instead of the bundled one" OFF)
 
 option(USE_SYSTEM_LIBPNG
-                "Use the system libpng instead of the bundled one" OFF)
+         "Use the system libpng instead of the bundled one" OFF)
 
 option(USE_SYSTEM_LIBJPEG
-                "Use the system libjpeg instead of the bundled one" OFF)
+         "Use the system libjpeg instead of the bundled one" OFF)
 
 option(USE_SYSTEM_LIBGLEW
-                "Use the system libglew instead of the bundled one" OFF)
+         "Use the system libglew instead of the bundled one" OFF)
 
 option(USE_SYSTEM_RAPIDJSON
-                "Use the system rapidjson instead of the bundled one" OFF)
+         "Use the system rapidjson instead of the bundled one" OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
@@ -295,15 +286,6 @@ elseif(MSVC)
 	if(NOT CMAKE_CL_64)
 		add_definitions(-D_USE_32BIT_TIME_T)
 	endif()
-					
-	if(USE_MFC_TOOLS)
-		add_definitions(-D_AFXDLL)
-		
-		# 0: Use Standard Windows Libraries
-		# 1: Use MFC in a Static Library
-		# 2: Use MFC in a Shared DLL 
-		set(CMAKE_MFC_FLAG 2)
-	endif()
 
 endif()
 
@@ -384,7 +366,7 @@ endmacro()
 	endif()
 
 if(USE_SYSTEM_RAPIDJSON)
-find_package(rapidjson REQUIRED)
+	find_package(rapidjson REQUIRED)
 endif(USE_SYSTEM_RAPIDJSON)
 
 if (RAPIDJSON_FOUND)
@@ -989,13 +971,6 @@ set(WIN32_RESOURCES
 
 
 
-#if(USE_MFC_TOOLS)
-	list(APPEND WIN32_RESOURCES sys/win32/rc/doom.rc)
-#else()
-#	list(APPEND WIN32_RESOURCES sys/win32/rc/doom_nomfc.rc)
-#endif()
-
-
 file(GLOB POSIX_INCLUDES sys/posix/*.h)
 file(GLOB POSIX_SOURCES sys/posix/*.cpp)
 
@@ -1383,31 +1358,12 @@ if(MSVC)
 		include_directories(${DirectX_INCLUDE_DIR})
 	endif()
 	
-	if(USE_VULKAN)
-		list(APPEND RBDOOM3_INCLUDES ${RENDERER_VULKAN_INCLUDES})
-		list(APPEND RBDOOM3_SOURCES ${RENDERER_VULKAN_SOURCES})
+	list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
+	list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
 		
-		set(Vulkan_LIBRARIES 
-			${Vulkan_LIBRARY})
-
-		if(SPIRV_SHADERC)
-			list(APPEND Vulkan_LIBRARIES shaderc_combined)
-		else()
-			list(APPEND Vulkan_LIBRARIES glslang SPIRV)
-
-			if(ENABLE_GLSLANG_BINARIES)
-				list(APPEND Vulkan_LIBRARIES glslang-default-resource-limits)
-			endif()
-		endif()
-		
-	else()
-		list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
-		list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
-		
-		set(OpenGL_LIBRARIES
-			opengl32
-			glu32)
-	endif()
+	set(OpenGL_LIBRARIES
+		opengl32
+		glu32)
 	
 	if(OPENAL)
 		add_definitions(-DUSE_OPENAL)
@@ -1474,34 +1430,6 @@ if(MSVC)
 				swscale
 				swresample)
 		
-	endif()
-	
-	if(USE_MFC_TOOLS)
-		
-		include_directories(libs/atlmfc/include)
-		if(CMAKE_CL_64)
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/atlmfc/lib/amd64)
-		else()
-			link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/atlmfc/lib)
-		endif()
-		
-		add_definitions(-DUSE_MFC_TOOLS)
-		
-		list(APPEND RBDOOM3_SOURCES
-			${TOOLS_COMAFX_INCLUDES} ${TOOLS_COMAFX_SOURCES}
-			${TOOLS_COMMON_INCLUDES} ${TOOLS_COMMON_SOURCES}
-			${TOOLS_COMMON_PROPTREE_INCLUDES} ${TOOLS_COMMON_PROPTREE_SOURCES}
-			
-			${EDITOR_AF_INCLUDES} ${EDITOR_AF_SOURCES}
-			${EDITOR_DEBUGGER_INCLUDES} ${EDITOR_DEBUGGER_SOURCES}
-			${EDITOR_DECL_INCLUDES} ${EDITOR_DECL_SOURCES}
-			${EDITOR_GUIED_INCLUDES} ${EDITOR_GUIED_SOURCES}
-			${EDITOR_MATERIALEDITOR_INCLUDES} ${EDITOR_MATERIALEDITOR_SOURCES}
-			${EDITOR_PARTICLE_INCLUDES} ${EDITOR_PARTICLE_SOURCES}
-			${EDITOR_PDA_INCLUDES} ${EDITOR_PDA_SOURCES}
-			${EDITOR_RADIANT_INCLUDES} ${EDITOR_RADIANT_SOURCES}
-			${EDITOR_SCRIPT_INCLUDES} ${EDITOR_SCRIPT_SOURCES}
-			${EDITOR_SOUND_INCLUDES} ${EDITOR_SOUND_SOURCES})
 	endif()
 	
 	list(APPEND RBDOOM3_INCLUDES
@@ -1612,15 +1540,9 @@ else()
 			link_directories(${FFMPEG_LIBRARIES_DIRS})
 		endif()
 
-		if(SDL2)
-			find_package(SDL2 REQUIRED)
-			include_directories(${SDL2_INCLUDE_DIRS})
-			set(SDLx_LIBRARY ${SDL2_LIBRARIES})
-		else()
-			find_package(SDL REQUIRED)
-			include_directories(${SDL_INCLUDE_DIR})
-			set(SDLx_LIBRARY ${SDL_LIBRARY})
-		endif()
+		find_package(SDL2 REQUIRED)
+		include_directories(${SDL2_INCLUDE_DIRS})
+		set(SDLx_LIBRARY ${SDL2_LIBRARIES})
 
 		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 			list(REMOVE_ITEM POSIX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/posix/platform_linux.cpp)
