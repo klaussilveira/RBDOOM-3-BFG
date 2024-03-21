@@ -359,91 +359,6 @@ macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
 endmacro()
 
-if(USE_VULKAN)
-
-	# RB: moved this above the general Vulkan part so glslang does not include Vulkan SDK headers
-	# which causes all kinds of weird segmentation faults because struct sizes don't match
- 
-    # SRS - Set default VULKAN_SDK location if environment variable not defined on OSX
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT DEFINED ENV{VULKAN_SDK})
-        if(NOT USE_MoltenVK)
-            # SRS - Vulkan SDK installer copies standard vulkan headers and libs to /usr/local on OSX
-            set(ENV{VULKAN_SDK} /usr/local)
-        else()
-            message(FATAL_ERROR "Must define VULKAN_SDK location if USE_MoltenVK option enabled!")
-        endif()
-    endif()
-
-	if(SPIRV_SHADERC)
-		add_definitions(-DSPIRV_SHADERC)
-
-		# SRS - Add case for UNIX/OSX
-		if(CMAKE_CL_64 OR UNIX)
-			link_directories($ENV{VULKAN_SDK}/Lib)
-		else()
-			link_directories($ENV{VULKAN_SDK}/Lib32)
-		endif()
-
-	else()
-		# override Glslang build options
-		
-		# options required by November 2018 release
-		SET_OPTION(ENABLE_SPVREMAPPER ON)
-		SET_OPTION(ENABLE_GLSLANG_BINARIES OFF)
-		SET_OPTION(ENABLE_HLSL OFF)
-		SET_OPTION(ENABLE_OPT ON)
-		SET_OPTION(SPIRV_SKIP_EXECUTABLES ON)
-		
-		# options required by July 2020 release
-		SET_OPTION(ENABLE_PCH OFF)
-		SET_OPTION(ENABLE_CTEST OFF)
-		SET_OPTION(BUILD_EXTERNAL OFF)
-		SET_OPTION(SKIP_GLSLANG_INSTALL ON)
-
-		#add_definitions(-DGLSLANG_MINOR_VERSION=13)
-	
-		set(GLSLANG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/glslang)
-		add_subdirectory(${GLSLANG_DIR})
-	
-		include_directories(${GLSLANG_DIR})
-		
-		#link_directories($ENV{VULKAN_SDK}/Lib)
-	endif()
-
-	# Use FindVulkan module added with CMAKE 3.7
-	if(NOT CMAKE_VERSION VERSION_LESS 3.7.0)
-		message( STATUS "Using module to find Vulkan" )
-		find_package(Vulkan)
-	endif()
-
-	if(NOT Vulkan_FOUND)
-		message(FATAL_ERROR "Could not find Vulkan library!")
-	else()
-        add_definitions(-DUSE_VULKAN)
-        include_directories($ENV{VULKAN_SDK}/include)
-
-		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-            # SRS - Enable Beta extensions for VULKAN_SDK portability subset features on OSX
-            add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
-            # SRS - Optionally use MoltenVK headers/library for runtime config functions on OSX
-            if(USE_MoltenVK)
-                add_definitions(-DUSE_MoltenVK)
-                include_directories($ENV{VULKAN_SDK}/../MoltenVK/include)
-                set(Vulkan_LIBRARY $ENV{VULKAN_SDK}/../MoltenVK/dylib/macOS/libMoltenVK.dylib CACHE FILEPATH "Path to MoltenVK library." FORCE)
-            endif()
-		endif()
-		message(STATUS "Using Vulkan: " ${Vulkan_LIBRARY})
-	endif()
-	
-	# Eric: For use with SDL2/Vulkan
-	if(UNIX)
-        # SRS - For UNIX-like target OSs use the generic SDL Vulkan platform
-        add_definitions(-DVULKAN_USE_PLATFORM_SDL)
-	elseif(WIN32)
-		add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
-	endif()
-
-else()
 
 	if(USE_SYSTEM_LIBGLEW)
 		find_package(GLEW)
@@ -467,7 +382,6 @@ else()
 		endif()
 		
 	endif()
-endif()
 
 if(USE_SYSTEM_RAPIDJSON)
 find_package(rapidjson REQUIRED)
