@@ -631,7 +631,6 @@ int R_CalculateUsedAtlasPixels( int dimensions )
 }
 
 // SP begin
-
 byte* R_GenerateCubeMapSideFromSingleImage( byte* data, int srcWidth, int srcHeight, int size, int side )
 {
 	size_t x = 0, y = 0;
@@ -701,5 +700,4 @@ byte* R_GenerateCubeMapSideFromSingleImage( byte* data, int srcWidth, int srcHei
 
 	return out;
 }
-
 // SP end

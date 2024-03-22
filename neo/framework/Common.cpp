@@ -353,20 +353,7 @@ idCommonLocal::InitTool
 */
 void idCommonLocal::InitTool( const toolFlag_t tool, const idDict* dict, idEntity* entity )
 {
-#if defined(USE_MFC_TOOLS)
-	if( tool & EDITOR_SOUND )
-	{
-		//SoundEditorInit( dict ); // TODO: implement this somewhere
-	}
-	else if( tool & EDITOR_PARTICLE )
-	{
-		//ParticleEditorInit( dict );
-	}
-	else if( tool & EDITOR_AF )
-	{
-		//AFEditorInit( dict );
-	}
-#else
+#if 0
 	if( tool & EDITOR_LIGHT )
 	{
 		ImGuiTools::LightEditorInit( dict, entity );
@@ -856,6 +843,16 @@ CONSOLE_COMMAND( reloadLanguage, "reload language dict", NULL )
 
 /*
 =================
+Com_StartBuild_f
+=================
+*/
+CONSOLE_COMMAND( startBuild, "prepares to make a build", NULL )
+{
+	//globalImages->StartBuild();
+}
+
+/*
+=================
 Com_FinishBuild_f
 =================
 */
@@ -865,6 +862,7 @@ CONSOLE_COMMAND( finishBuild, "finishes the build process", NULL )
 	{
 		game->CacheDictionaryMedia( NULL );
 	}
+	//globalImages->FinishBuild( ( args.Argc() > 1 ) );
 }
 
 /*

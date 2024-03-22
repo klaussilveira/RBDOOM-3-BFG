@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2021 Robert Beckebans
 Copyright (C) 2021 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -747,6 +748,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		return true;
 	}
 
+	// SP begin
 	if( !token.Icmp( "combineRgba" ) )
 	{
 		byte* pic2 = nullptr;
@@ -796,6 +798,7 @@ static bool R_ParseImageProgram_r( idLexer& src, byte** pic, int* width, int* he
 		MatchAndAppendToken( src, ")" );
 		return true;
 	}
+	// SP end
 
 	// if we are just parsing instead of loading or checking,
 	// don't do the R_LoadImage

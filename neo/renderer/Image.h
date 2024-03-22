@@ -224,7 +224,6 @@ typedef enum
 	TD_LOOKUP_TABLE_RGBA,	// RGBA lookup table
 	TD_COVERAGE,			// coverage map for fill depth pass when YCoCG is used
 	TD_DEPTH,				// depth buffer copy for motion blur
-	// RB begin
 	TD_SPECULAR_PBR_RMAO,	// may be compressed, and always zeros the alpha channel, linear RGB R = roughness, G = metal, B = ambient occlusion
 	TD_SPECULAR_PBR_RMAOD,	// may be compressed, alpha channel contains displacement map
 	TD_HIGHQUALITY_CUBE,	// motorsep - Uncompressed cubemap texture (RGB colorspace)
@@ -235,7 +234,6 @@ typedef enum
 	TD_RGBA32F,
 	TD_R32F,
 	TD_R11G11B10F,			// memory efficient HDR RGB format with only 32bpp
-	// RB end
 	TD_R8F,					// Stephen: Added for ambient occlusion render target.
 	TD_DEPTH_STENCIL,       // depth buffer and stencil buffer
 } textureUsage_t;

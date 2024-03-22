@@ -814,30 +814,6 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	if( pic == NULL || opts.textureType == TT_2D_MULTISAMPLE )
 	{
 		AllocImage();
-
-		// RB: shouldn't be needed as the Vulkan backend is not feature complete yet
-		// I just make sure r_useSSAO is 0
-#if 0 //defined(USE_VULKAN)
-		// SRS - update layout of Ambient Occlusion image otherwise get Vulkan validation layer errors with SSAO enabled
-		if( imgName == "_ao0" || imgName == "_ao1" )
-		{
-			VkImageSubresourceRange subresourceRange;
-			if( internalFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || opts.format == FMT_DEPTH )
-			{
-				subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			}
-			else
-			{
-				subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			}
-			subresourceRange.baseMipLevel = 0;
-			subresourceRange.levelCount = opts.numLevels;
-			subresourceRange.baseArrayLayer = 0;
-			subresourceRange.layerCount = 1;
-
-			SetImageLayout( image, subresourceRange, VK_IMAGE_LAYOUT_UNDEFINED, layout );
-		}
-#endif
 	}
 	else
 	{
