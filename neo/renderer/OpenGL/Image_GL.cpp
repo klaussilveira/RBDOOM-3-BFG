@@ -102,10 +102,10 @@ void idImage::Bind()
 		ActuallyLoadImage( true );
 	}
 
-	const int texUnit = tr.backend.GetCurrentTextureUnit();
+	const int texUnit = tr.backEnd.GetCurrentTextureUnit();
 
 	// RB: added support for more types
-	tmu_t* tmu = &tr.backend.glState.tmu[texUnit];
+	tmu_t* tmu = &tr.backEnd.glState.tmu[texUnit];
 	// bind the texture
 	if( opts.textureType == TT_2D )
 	{
@@ -268,7 +268,7 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight )
 	glTexParameterf( target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameterf( target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
-	tr.backend.pc.c_copyFrameBuffer++;
+	tr.backEnd.pc.c_copyFrameBuffer++;
 }
 
 /*
@@ -284,7 +284,7 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
 	opts.height = imageHeight;
 	glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, x, y, imageWidth, imageHeight, 0 );
 
-	tr.backend.pc.c_copyFrameBuffer++;
+	tr.backEnd.pc.c_copyFrameBuffer++;
 }
 
 /*
@@ -875,9 +875,9 @@ void idImage::PurgeImage()
 	// clear all the current binding caches, so the next bind will do a real one
 	for( int i = 0; i < MAX_MULTITEXTURE_UNITS; i++ )
 	{
-		tr.backend.glState.tmu[i].current2DMap = TEXTURE_NOT_LOADED;
-		tr.backend.glState.tmu[i].current2DArray = TEXTURE_NOT_LOADED;
-		tr.backend.glState.tmu[i].currentCubeMap = TEXTURE_NOT_LOADED;
+		tr.backEnd.glState.tmu[i].current2DMap = TEXTURE_NOT_LOADED;
+		tr.backEnd.glState.tmu[i].current2DArray = TEXTURE_NOT_LOADED;
+		tr.backEnd.glState.tmu[i].currentCubeMap = TEXTURE_NOT_LOADED;
 	}
 
 	// reset for reloading images

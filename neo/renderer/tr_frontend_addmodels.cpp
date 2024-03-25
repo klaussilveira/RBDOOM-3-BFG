@@ -1433,7 +1433,7 @@ void R_AddModels()
 			}
 
 			int end = Sys_Microseconds();
-			tr.backend.pc.cpuShadowMicroSec += end - start;
+			tr.backEnd.pc.cpuShadowMicroSec += end - start;
 		}
 	}
 

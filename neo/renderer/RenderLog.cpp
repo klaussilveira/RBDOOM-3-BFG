@@ -301,13 +301,13 @@ void idRenderLog::OpenMainBlock( renderLogMainBlock_t block )
 		}
 
 #else
-		if( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 ] == 0 )
+		if( tr.backEnd.glState.renderLogMainBlockTimeQueryIds[ tr.backEnd.glState.frameParity ][ mainBlock * 2 ] == 0 )
 		{
-			glCreateQueries( GL_TIMESTAMP, 2, &tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 ] );
+			glCreateQueries( GL_TIMESTAMP, 2, &tr.backEnd.glState.renderLogMainBlockTimeQueryIds[ tr.backEnd.glState.frameParity ][ mainBlock * 2 ] );
 		}
 
-		glQueryCounter( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 + 0 ], GL_TIMESTAMP );
-		tr.backend.glState.renderLogMainBlockTimeQueryIssued[ tr.backend.glState.frameParity ][ mainBlock * 2 + 0 ]++;
+		glQueryCounter( tr.backEnd.glState.renderLogMainBlockTimeQueryIds[ tr.backEnd.glState.frameParity ][ mainBlock * 2 + 0 ], GL_TIMESTAMP );
+		tr.backEnd.glState.renderLogMainBlockTimeQueryIssued[ tr.backEnd.glState.frameParity ][ mainBlock * 2 + 0 ]++;
 #endif
 	}
 }
@@ -332,8 +332,8 @@ void idRenderLog::CloseMainBlock()
 		}
 
 #else
-		glQueryCounter( tr.backend.glState.renderLogMainBlockTimeQueryIds[ tr.backend.glState.frameParity ][ mainBlock * 2 + 1 ], GL_TIMESTAMP );
-		tr.backend.glState.renderLogMainBlockTimeQueryIssued[ tr.backend.glState.frameParity ][ mainBlock * 2 + 1 ]++;
+		glQueryCounter( tr.backEnd.glState.renderLogMainBlockTimeQueryIds[ tr.backEnd.glState.frameParity ][ mainBlock * 2 + 1 ], GL_TIMESTAMP );
+		tr.backEnd.glState.renderLogMainBlockTimeQueryIssued[ tr.backEnd.glState.frameParity ][ mainBlock * 2 + 1 ]++;
 #endif
 	}
 }

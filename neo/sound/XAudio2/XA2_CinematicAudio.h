@@ -21,11 +21,11 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-#include <precompiled.h>
-#include "../CinematicAudio.h"
-#include <xaudio2.h>
 #ifndef __CINEMATIC_AUDIO_XA2_H__
 #define __CINEMATIC_AUDIO_XA2_H__
+
+#include "../CinematicAudio.h"
+#include <xaudio2.h>
 
 class CinematicAudio_XAudio2: public CinematicAudio
 {

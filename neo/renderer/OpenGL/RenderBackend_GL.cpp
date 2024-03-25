@@ -2441,7 +2441,7 @@ void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )
 #undef OFFSETOF
 
 #endif
-	tr.backend.glState.vertexLayout = LAYOUT_DRAW_IMGUI_VERT;
+	tr.backEnd.glState.vertexLayout = LAYOUT_DRAW_IMGUI_VERT;
 
 	for( int n = 0; n < draw_data->CmdListsCount; n++ )
 	{

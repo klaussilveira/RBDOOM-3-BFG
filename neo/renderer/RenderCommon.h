@@ -964,7 +964,7 @@ public:
 	idList<calcEnvprobeParms_t*>		envprobeJobs;
 	idList<calcLightGridPointParms_t*>	lightGridJobs;
 
-	idRenderBackend			backend;
+	idRenderBackend			backEnd;
 
 private:
 	bool					bInitialized;

@@ -342,28 +342,28 @@ macro(SET_OPTION option value)
 endmacro()
 
 
-	if(USE_SYSTEM_LIBGLEW)
-		find_package(GLEW)
-	endif()
+if(USE_SYSTEM_LIBGLEW)
+	find_package(GLEW)
+endif()
 
-	if(GLEW_FOUND)
-		include_directories(${GLEW_INCLUDE_DIRS})
-		set(GLEW_LIBRARY ${GLEW_LIBRARIES})
+if (GLEW_FOUND)
+	include_directories(${GLEW_INCLUDE_DIRS})
+	set(GLEW_LIBRARY ${GLEW_LIBRARIES})
+else()
+	include_directories("libs/glew/include")
+	set(GLEW_LIBRARY "" )
+	add_definitions(-DGLEW_STATIC)
+	
+	set(GLEW_INCLUDES libs/glew/include/GL/glew.h)
+	set(GLEW_SOURCES libs/glew/src/glew.c)
+
+	if(WIN32)
+		set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
 	else()
-		include_directories("libs/glew/include")
-		set(GLEW_LIBRARY "" )
-		add_definitions(-DGLEW_STATIC)
-		
-		set(GLEW_INCLUDES libs/glew/include/GL/glew.h)
-		set(GLEW_SOURCES libs/glew/src/glew.c)
-
-		if(WIN32)
-			set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
-		else()
-			set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
-		endif()
-		
+		set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
 	endif()
+	
+endif()
 
 if(USE_SYSTEM_RAPIDJSON)
 	find_package(rapidjson REQUIRED)
@@ -411,9 +411,6 @@ file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
 
 file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
 file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
-
-file(GLOB RENDERER_VULKAN_INCLUDES renderer/Vulkan/*.h)
-file(GLOB RENDERER_VULKAN_SOURCES renderer/Vulkan/*.cpp)
 
 file(GLOB SHADERS ../base/renderprogs/*.hlsl ../base/renderprogs/*.inc )
 file(GLOB SHADERS_BUILTIN ../base/renderprogs/builtin/*.hlsl )
@@ -1027,9 +1024,6 @@ source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSH
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
 
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_INCLUDES})
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_SOURCES})
-
 source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
 
 source_group("renderer\\Shaders" FILES ${SHADERS})
@@ -1579,31 +1573,11 @@ else()
 			endif()
 		endif()
 		
-		if(USE_VULKAN)
-            list(APPEND RBDOOM3_INCLUDES ${RENDERER_VULKAN_INCLUDES})
-            list(APPEND RBDOOM3_SOURCES ${RENDERER_VULKAN_SOURCES})
-            
-            set(Vulkan_LIBRARIES 
-            	${Vulkan_LIBRARY})
+		find_package(OpenGL REQUIRED)
+		include_directories(${OPENGL_INCLUDE_DIRS})
 
-			# SRS - Added UNIX/OSX support for shaderc
-			if(SPIRV_SHADERC)
-				list(APPEND Vulkan_LIBRARIES shaderc_combined)
-			else()
-				list(APPEND Vulkan_LIBRARIES glslang SPIRV)
-
-                if(ENABLE_GLSLANG_BINARIES)
-                    list(APPEND Vulkan_LIBRARIES glslang-default-resource-limits)
-                endif()
-            endif()
-
-        else()
-			find_package(OpenGL REQUIRED)
-			include_directories(${OPENGL_INCLUDE_DIRS})
-
-            list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
-            list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
-        endif()
+        list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
+        list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
 			
 	endif()
 
@@ -1683,7 +1657,7 @@ else()
 		
 		# make sure precompiled header is deleted after executable is compiled
 		add_dependencies(rm_precomp_header RBDoom3BFG)
-	endif()	
+	endif()
 
 	if(NOT WIN32)
 		if(NOT "${CMAKE_SYSTEM}" MATCHES "Darwin")
