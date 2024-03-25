@@ -964,13 +964,12 @@ public:
 	idList<calcEnvprobeParms_t*>		envprobeJobs;
 	idList<calcLightGridPointParms_t*>	lightGridJobs;
 
-	idRenderBackend			backEnd;
-
 private:
 	bool					bInitialized;
 };
 
 extern idRenderSystemLocal	tr;
+extern idRenderBackend		backEnd;
 extern glconfig_t			glConfig;		// outside of TR since it shouldn't be cleared during ref re-init
 
 //

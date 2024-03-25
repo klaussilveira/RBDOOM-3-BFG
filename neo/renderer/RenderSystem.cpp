@@ -36,6 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../imgui/BFGimgui.h"
 
 idRenderSystemLocal	tr;
+idRenderBackend		backEnd;
 idRenderSystem* renderSystem = &tr;
 
 /*
