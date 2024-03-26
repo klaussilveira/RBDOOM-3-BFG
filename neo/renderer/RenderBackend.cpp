@@ -898,17 +898,10 @@ const int INTERACTION_TEXUNIT_PROJECTION	= 4;	// RB: also SSAO render target
 const int INTERACTION_TEXUNIT_SHADOWMAPS	= 5;
 const int INTERACTION_TEXUNIT_JITTER		= 6;
 
-#if defined( USE_VULKAN )
-	const int INTERACTION_TEXUNIT_AMBIENT_CUBE1 = 5;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE1 = 6;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE2 = 7;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE3 = 8;
-#else
-	const int INTERACTION_TEXUNIT_AMBIENT_CUBE1 = 7;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE1 = 8;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE2 = 9;
-	const int INTERACTION_TEXUNIT_SPECULAR_CUBE3 = 10;
-#endif
+const int INTERACTION_TEXUNIT_AMBIENT_CUBE1 = 7;
+const int INTERACTION_TEXUNIT_SPECULAR_CUBE1 = 8;
+const int INTERACTION_TEXUNIT_SPECULAR_CUBE2 = 9;
+const int INTERACTION_TEXUNIT_SPECULAR_CUBE3 = 10;
 
 /*
 ==================
@@ -3106,7 +3099,6 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 	globalFramebuffers.shadowFBO[vLight->shadowLOD]->Check();
 
 	GL_ViewportAndScissor( 0, 0, shadowMapResolutions[vLight->shadowLOD], shadowMapResolutions[vLight->shadowLOD] );
-
 
 	glClear( GL_DEPTH_BUFFER_BIT );
 #endif
@@ -5689,12 +5681,8 @@ void idRenderBackend::MotionBlur()
 	// we can avoid blurring them
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
 
-// FIXME
-#if !defined(USE_VULKAN)
 	glClearColor( 0, 0, 0, 1 );
 	glClear( GL_COLOR_BUFFER_BIT );
-
-#endif
 
 	GL_Color( 0, 0, 0, 0 );
 	GL_SelectTexture( 0 );

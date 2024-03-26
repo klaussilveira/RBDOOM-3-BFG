@@ -775,11 +775,10 @@ const idMaterial* R_RemapShaderBySkin( const idMaterial* shader, const idDeclSki
 
 enum vertexLayoutType_t
 {
-	LAYOUT_UNKNOWN = 0,	// RB: TODO -1
+	LAYOUT_UNKNOWN = 0,
 	LAYOUT_DRAW_VERT,
 	LAYOUT_DRAW_SHADOW_VERT,
 	LAYOUT_DRAW_SHADOW_VERT_SKINNED,
-	LAYOUT_DRAW_IMGUI_VERT,
 	NUM_VERTEX_LAYOUTS
 };
 
