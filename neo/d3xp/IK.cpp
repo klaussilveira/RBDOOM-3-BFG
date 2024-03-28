@@ -237,6 +237,7 @@ float idIK::GetBoneAxis( const idVec3& startPos, const idVec3& endPos, const idV
 	float length;
 	axis[0] = endPos - startPos;
 	length = axis[0].Normalize();
+
 	axis[1] = dir - axis[0] * dir * axis[0];
 	axis[1].Normalize();
 	axis[2].Cross( axis[1], axis[0] );

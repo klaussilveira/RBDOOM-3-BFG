@@ -519,7 +519,7 @@ public:
 	void						GetOrigin( int currentTime, idVec3& pos ) const;
 	bool						GetBounds( int currentTime, idBounds& bounds );
 
-	idAnimBlend*					CurrentAnim( int channelNum );
+	idAnimBlend*				CurrentAnim( int channelNum );
 	void						Clear( int channelNum, int currentTime, int cleartime );
 	void						SetFrame( int channelNum, int animnum, int frame, int currenttime, int blendtime );
 	void						CycleAnim( int channelNum, int animnum, int currenttime, int blendtime );

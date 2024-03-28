@@ -326,7 +326,6 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 
 	if( waitForBinding )
 	{
-
 		if( sev->evType == SE_KEY && sev->evValue2 == 1 )
 		{
 

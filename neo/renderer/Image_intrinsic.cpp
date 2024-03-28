@@ -1055,13 +1055,8 @@ void idImageManager::CreateIntrinsicImages()
 	hellLoadingIconImage = ImageFromFile( "textures/loadingicon3", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
 
 	// RB begin
-#if 0
-	defaultUACIrradianceCube = ImageFromFile( "env/UAC5_amb", TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
-	defaultUACRadianceCube = ImageFromFile( "env/UAC5_spec", TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
-#else
 	defaultUACIrradianceCube = ImageFromFunction( "_defaultUACIrradiance", R_CreateEnvprobeImage_UAC_lobby_irradiance );
 	defaultUACRadianceCube = ImageFromFunction( "_defaultUACRadiance", R_CreateEnvprobeImage_UAC_lobby_radiance );
-#endif
 	// RB end
 
 	release_assert( loadingIconImage->referencedOutsideLevelLoad );

@@ -12554,7 +12554,6 @@ idPlayer::GetControllerShake
 */
 void idPlayer::GetControllerShake( int& highMagnitude, int& lowMagnitude ) const
 {
-
 	if( gameLocal.inCinematic )
 	{
 		// no controller shake during cinematics

@@ -72,8 +72,7 @@ public:
 	void					AttachImageDepth( int target, idImage* image );
 	void					AttachImageDepthLayer( idImage* image, int layer );
 
-	// check for OpenGL errors
-	void					Check();
+
 	uint32_t				GetFramebuffer() const
 	{
 		return frameBuffer;
@@ -99,6 +98,9 @@ public:
 		width = width_;
 		height = height_;
 	}
+
+	// check for OpenGL errors
+	void					Check();
 
 private:
 	idStr					fboName;

@@ -440,7 +440,6 @@ void idMenuScreen_Shell_Bindings::SetBinding( int keyNum )
 	UpdateBindingDisplay();
 	ToggleWait( false );
 	Update();
-
 }
 
 /*

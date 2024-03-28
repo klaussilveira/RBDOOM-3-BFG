@@ -32,7 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "../RenderCommon.h"
 #include "../Framebuffer.h"
 
-#if !defined(USE_VULKAN)
 
 static void R_ListFramebuffers_f( const idCmdArgs& args )
 {
@@ -356,8 +355,6 @@ void Framebuffer::Shutdown()
 
 void Framebuffer::Bind()
 {
-	RENDERLOG_PRINTF( "Framebuffer::Bind( %s )\n", fboName.c_str() );
-
 	if( backEnd.glState.currentFramebuffer != this )
 	{
 		glBindFramebuffer( GL_FRAMEBUFFER, frameBuffer );
@@ -583,5 +580,3 @@ void Framebuffer::Check()
 
 	glBindFramebuffer( GL_FRAMEBUFFER, prev );
 }
-
-#endif // #if !defined(USE_VULKAN)

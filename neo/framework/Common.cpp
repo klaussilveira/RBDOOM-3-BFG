@@ -1263,13 +1263,11 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// exec the startup scripts
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
 
-#ifdef CONFIG_FILE
 		// skip the config file if "safe" is on the command line
 		if( !SafeMode() && !g_demoMode.GetBool() )
 		{
 			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec " CONFIG_FILE "\n" );
 		}
-#endif
 
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec autoexec.cfg\n" );
 
