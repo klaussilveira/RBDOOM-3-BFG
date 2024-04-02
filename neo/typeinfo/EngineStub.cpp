@@ -453,7 +453,14 @@ public:
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
 	virtual void idCommon::UpdateScreen( bool, bool ) { }
 	void idCommon::InitTool( const toolFlag_t, const idDict*, idEntity* ) { }
-
+	idDemoFile* idCommon::ReadDemo()
+	{
+		return NULL;
+	}
+	idDemoFile* idCommon::WriteDemo()
+	{
+		return NULL;
+	}
 	//virtual currentGame_t		GetCurrentGame() const {
 	//	return DOOM_CLASSIC;
 	//};
