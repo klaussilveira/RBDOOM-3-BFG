@@ -7,9 +7,9 @@
 
 	This file has been generated with the Type Info Generator v1.1 (c) 2004 id Software
 
-	960 constants
+	962 constants
 	93 enums
-	475 classes/structs/unions
+	473 classes/structs/unions
 	3 templates
 	8 max inheritance level for 'iceMonsterZombieSawyer'
 
@@ -797,12 +797,14 @@ static constantInfo_t constantInfo[] = {
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_FRAMERATE", "2" },
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_VSYNC", "3" },
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_ANTIALIASING", "4" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_POSTFX", "5" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_SSAO", "6" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_AMBIENT_BRIGHTNESS", "7" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_BRIGHTNESS", "8" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_VOLUME", "9" },
-	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::MAX_SYSTEM_FIELDS", "10" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_RENDERMODE", "5" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_AMBIENT_BRIGHTNESS", "6" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_SSAO", "7" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_FILMIC_POSTFX", "8" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_CRT_POSTFX", "9" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_BRIGHTNESS", "10" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_VOLUME", "11" },
+	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::MAX_SYSTEM_FIELDS", "12" },
 	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_ENABLE", "0" },
 	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_SEPERATION", "1" },
 	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_SWAP_EYES", "2" },
@@ -2007,12 +2009,14 @@ static enumValueInfo_t idMenuScreen_Shell_SystemOptions_idMenuDataSource_SystemS
 	{ "SYSTEM_FIELD_FRAMERATE", 2 },
 	{ "SYSTEM_FIELD_VSYNC", 3 },
 	{ "SYSTEM_FIELD_ANTIALIASING", 4 },
-	{ "SYSTEM_FIELD_POSTFX", 5 },
-	{ "SYSTEM_FIELD_SSAO", 6 },
-	{ "SYSTEM_FIELD_AMBIENT_BRIGHTNESS", 7 },
-	{ "SYSTEM_FIELD_BRIGHTNESS", 8 },
-	{ "SYSTEM_FIELD_VOLUME", 9 },
-	{ "MAX_SYSTEM_FIELDS", 10 },
+	{ "SYSTEM_FIELD_RENDERMODE", 5 },
+	{ "SYSTEM_FIELD_AMBIENT_BRIGHTNESS", 6 },
+	{ "SYSTEM_FIELD_SSAO", 7 },
+	{ "SYSTEM_FIELD_FILMIC_POSTFX", 8 },
+	{ "SYSTEM_FIELD_CRT_POSTFX", 9 },
+	{ "SYSTEM_FIELD_BRIGHTNESS", 10 },
+	{ "SYSTEM_FIELD_VOLUME", 11 },
+	{ "MAX_SYSTEM_FIELDS", 12 },
 	{ NULL, 0 }
 };
 
@@ -6870,26 +6874,6 @@ static classVariableInfo_t idMenuScreen_Shell_Pause_typeInfo[] = {
 	{ NULL, 0 }
 };
 
-static classVariableInfo_t idMenuScreen_Shell_PressStart_typeInfo[] = {
-	{ ": idMenuWidget_Button *", "startButton", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->startButton), sizeof( ((idMenuScreen_Shell_PressStart *)0)->startButton ) },
-	{ "idMenuWidget_DynamicList *", "options", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->options), sizeof( ((idMenuScreen_Shell_PressStart *)0)->options ) },
-	{ "idMenuWidget_Carousel *", "itemList", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->itemList), sizeof( ((idMenuScreen_Shell_PressStart *)0)->itemList ) },
-	{ "const idMaterial *", "doomCover", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->doomCover), sizeof( ((idMenuScreen_Shell_PressStart *)0)->doomCover ) },
-	{ "const idMaterial *", "doom2Cover", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->doom2Cover), sizeof( ((idMenuScreen_Shell_PressStart *)0)->doom2Cover ) },
-	{ "const idMaterial *", "doom3Cover", (intptr_t)(&((idMenuScreen_Shell_PressStart *)0)->doom3Cover), sizeof( ((idMenuScreen_Shell_PressStart *)0)->doom3Cover ) },
-	{ NULL, 0 }
-};
-
-static classVariableInfo_t idMenuScreen_Shell_GameSelect_typeInfo[] = {
-	{ ": idMenuWidget_Button *", "startButton", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->startButton), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->startButton ) },
-	{ "idMenuWidget_DynamicList *", "options", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->options), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->options ) },
-	{ "idMenuWidget_Carousel *", "itemList", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->itemList), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->itemList ) },
-	{ "const idMaterial *", "doomCover", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->doomCover), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->doomCover ) },
-	{ "const idMaterial *", "doom2Cover", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->doom2Cover), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->doom2Cover ) },
-	{ "const idMaterial *", "doom3Cover", (intptr_t)(&((idMenuScreen_Shell_GameSelect *)0)->doom3Cover), sizeof( ((idMenuScreen_Shell_GameSelect *)0)->doom3Cover ) },
-	{ NULL, 0 }
-};
-
 static classVariableInfo_t idMenuScreen_Shell_Singleplayer_typeInfo[] = {
 	{ ": bool", "canContinue", (intptr_t)(&((idMenuScreen_Shell_Singleplayer *)0)->canContinue), sizeof( ((idMenuScreen_Shell_Singleplayer *)0)->canContinue ) },
 	{ "idMenuWidget_DynamicList *", "options", (intptr_t)(&((idMenuScreen_Shell_Singleplayer *)0)->options), sizeof( ((idMenuScreen_Shell_Singleplayer *)0)->options ) },
@@ -7097,9 +7081,11 @@ static classVariableInfo_t idMenuScreen_Shell_SystemOptions_idMenuDataSource_Sys
 	{ "int", "originalVsync", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalVsync), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalVsync ) },
 	{ "float", "originalBrightness", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalBrightness), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalBrightness ) },
 	{ "float", "originalVolume", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalVolume), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalVolume ) },
+	{ "int", "originalRenderMode", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalRenderMode), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalRenderMode ) },
+	{ "float", "originalAmbientBrightness", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalAmbientBrightness), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalAmbientBrightness ) },
 	{ "int", "originalSSAO", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalSSAO), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalSSAO ) },
 	{ "int", "originalPostProcessing", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalPostProcessing), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalPostProcessing ) },
-	{ "float", "originalAmbientBrightness", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalAmbientBrightness), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalAmbientBrightness ) },
+	{ "int", "originalCRTPostFX", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalCRTPostFX), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->originalCRTPostFX ) },
 	{ "idList < vidMode_t >", "modeList", (intptr_t)(&((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->modeList), sizeof( ((idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings *)0)->modeList ) },
 	{ NULL, 0 }
 };
@@ -7833,8 +7819,6 @@ static classTypeInfo_t classTypeInfo[] = {
 	{ "idMenuScreen_PDA_Inventory", "idMenuScreen", sizeof(idMenuScreen_PDA_Inventory), idMenuScreen_PDA_Inventory_typeInfo },
 	{ "idMenuScreen_Shell_Root", "idMenuScreen", sizeof(idMenuScreen_Shell_Root), idMenuScreen_Shell_Root_typeInfo },
 	{ "idMenuScreen_Shell_Pause", "idMenuScreen", sizeof(idMenuScreen_Shell_Pause), idMenuScreen_Shell_Pause_typeInfo },
-	{ "idMenuScreen_Shell_PressStart", "idMenuScreen", sizeof(idMenuScreen_Shell_PressStart), idMenuScreen_Shell_PressStart_typeInfo },
-	{ "idMenuScreen_Shell_GameSelect", "idMenuScreen", sizeof(idMenuScreen_Shell_GameSelect), idMenuScreen_Shell_GameSelect_typeInfo },
 	{ "idMenuScreen_Shell_Singleplayer", "idMenuScreen", sizeof(idMenuScreen_Shell_Singleplayer), idMenuScreen_Shell_Singleplayer_typeInfo },
 	{ "idMenuScreen_Shell_Settings", "idMenuScreen", sizeof(idMenuScreen_Shell_Settings), idMenuScreen_Shell_Settings_typeInfo },
 	{ "creditInfo_t", "", sizeof(creditInfo_t), creditInfo_t_typeInfo },
