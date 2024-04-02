@@ -545,14 +545,7 @@ public:
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
 	virtual void				UpdateScreen( bool, bool ) { }
 	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) { }
-	idDemoFile* 				ReadDemo()
-	{
-		return NULL;
-	}
-	idDemoFile* 				WriteDemo()
-	{
-		return NULL;
-	}
+
 	//virtual currentGame_t		GetCurrentGame() const {
 	//	return DOOM_CLASSIC;
 	//};

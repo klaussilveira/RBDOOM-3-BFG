@@ -3158,6 +3158,7 @@ void idFileSystemLocal::Init()
 	// try to start up normally
 	Startup();
 
+#ifndef __TYPEINFOGEN__
 	// if we can't find default.cfg, assume that the paths are
 	// busted and error out now, rather than getting an unreadable
 	// graphics screen when the font fails to load
@@ -3166,6 +3167,7 @@ void idFileSystemLocal::Init()
 	{
 		common->FatalError( "Couldn't load default.cfg" );
 	}
+#endif
 }
 
 /*
@@ -3180,6 +3182,7 @@ void idFileSystemLocal::Restart()
 
 	Startup();
 
+#ifndef __TYPEINFOGEN__
 	// if we can't find default.cfg, assume that the paths are
 	// busted and error out now, rather than getting an unreadable
 	// graphics screen when the font fails to load
@@ -3187,6 +3190,7 @@ void idFileSystemLocal::Restart()
 	{
 		common->FatalError( "Couldn't load default.cfg" );
 	}
+#endif
 }
 
 /*

@@ -906,7 +906,7 @@ private:
 #include "../monsters/Monster_zombie_security_pistol.h"
 #include "../monsters/Monster_zombie_commando_tentacle.h"
 #include "../monsters/monster_zombie_commando_cgun.h"
-#include "../monsters/monster_turret.h"
+#include "../monsters/Monster_turret.h"
 
 #include "../bots/Bot.h"
 
