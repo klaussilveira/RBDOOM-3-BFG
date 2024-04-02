@@ -782,7 +782,6 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// set the time for shader effects in 2D rendering
 	frameShaderTime = Sys_Milliseconds() * 0.001;
 
-	// RB: TODO RC_SET_BUFFER is not handled in OpenGL
 	setBufferCommand_t* cmd2 = ( setBufferCommand_t* )R_GetCommandBuffer( sizeof( *cmd2 ) );
 	cmd2->commandId = RC_SET_BUFFER;
 	cmd2->buffer = 0;
@@ -790,37 +789,6 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// the old command buffer can now be rendered, while the new one can
 	// be built in parallel
 	return commandBufferHead;
-}
-
-/*
-=====================
-idRenderSystemLocal::WriteDemoPics
-=====================
-*/
-void idRenderSystemLocal::WriteDemoPics()
-{
-	common->WriteDemo()->WriteInt( DS_RENDER );
-	common->WriteDemo()->WriteInt( DC_GUI_MODEL );
-}
-
-/*
-=====================
-idRenderSystemLocal::WriteEndFrame
-=====================
-*/
-void idRenderSystemLocal::WriteEndFrame()
-{
-	common->WriteDemo()->WriteInt( DS_RENDER );
-	common->WriteDemo()->WriteInt( DC_END_FRAME );
-}
-
-/*
-=====================
-idRenderSystemLocal::DrawDemoPics
-=====================
-*/
-void idRenderSystemLocal::DrawDemoPics()
-{
 }
 
 /*
@@ -876,19 +844,6 @@ void idRenderSystemLocal::CropRenderSize( int width, int height )
 		common->Error( "CropRenderSize: bad sizes" );
 	}
 
-	if( common->WriteDemo() )
-	{
-		common->WriteDemo()->WriteInt( DS_RENDER );
-		common->WriteDemo()->WriteInt( DC_CROP_RENDER );
-		common->WriteDemo()->WriteInt( width );
-		common->WriteDemo()->WriteInt( height );
-
-		if( r_showDemo.GetBool() )
-		{
-			common->Printf( "write DC_CROP_RENDER\n" );
-		}
-	}
-
 	idScreenRect& previous = renderCrops[currentRenderCrop];
 
 	currentRenderCrop++;
@@ -921,19 +876,6 @@ void idRenderSystemLocal::CropRenderSize( int x, int y, int width, int height, b
 	if( width < 1 || height < 1 )
 	{
 		common->Error( "CropRenderSize: bad sizes" );
-	}
-
-	if( common->WriteDemo() )
-	{
-		common->WriteDemo()->WriteInt( DS_RENDER );
-		common->WriteDemo()->WriteInt( DC_CROP_RENDER );
-		common->WriteDemo()->WriteInt( width );
-		common->WriteDemo()->WriteInt( height );
-
-		if( r_showDemo.GetBool() )
-		{
-			common->Printf( "write DC_CROP_RENDER\n" );
-		}
 	}
 
 	idScreenRect& previous = renderCrops[currentRenderCrop];
@@ -980,17 +922,6 @@ void idRenderSystemLocal::UnCrop()
 	guiModel->Clear();
 
 	currentRenderCrop--;
-
-	if( common->WriteDemo() )
-	{
-		common->WriteDemo()->WriteInt( DS_RENDER );
-		common->WriteDemo()->WriteInt( DC_UNCROP_RENDER );
-
-		if( r_showDemo.GetBool() )
-		{
-			common->Printf( "write DC_UNCROP\n" );
-		}
-	}
 }
 
 /*
@@ -1007,17 +938,6 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
 
-	if( common->WriteDemo() )
-	{
-		common->WriteDemo()->WriteInt( DS_RENDER );
-		common->WriteDemo()->WriteInt( DC_CAPTURE_RENDER );
-		common->WriteDemo()->WriteHashString( imageName );
-
-		if( r_showDemo.GetBool() )
-		{
-			common->Printf( "write DC_CAPTURE_RENDER: %s\n", imageName );
-		}
-	}
 	idImage* image = globalImages->GetImage( imageName );
 	if( image == NULL )
 	{
@@ -1036,53 +956,6 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 	cmd->clearColorAfterCopy = clearColorAfterCopy;
 
 	guiModel->Clear();
-}
-
-/*
-==============
-idRenderSystemLocal::CaptureRenderToFile
-==============
-*/
-void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlpha )
-{
-	if( !IsInitialized() )
-	{
-		return;
-	}
-
-	idScreenRect& rc = renderCrops[currentRenderCrop];
-
-	guiModel->EmitFullScreen();
-	guiModel->Clear();
-
-	RenderCommandBuffers( frameData->cmdHead );
-
-	// TODO implement for NVRHI
-
-#if !defined( USE_VULKAN ) && !defined( USE_NVRHI )
-	glReadBuffer( GL_BACK );
-
-	// include extra space for OpenGL padding to word boundaries
-	int	c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
-	byte* data = ( byte* )R_StaticAlloc( c * 3 );
-
-	glReadPixels( rc.x1, rc.y1, rc.GetWidth(), rc.GetHeight(), GL_RGB, GL_UNSIGNED_BYTE, data );
-
-	byte* data2 = ( byte* )R_StaticAlloc( c * 4 );
-
-	for( int i = 0 ; i < c ; i++ )
-	{
-		data2[ i * 4 ] = data[ i * 3 ];
-		data2[ i * 4 + 1 ] = data[ i * 3 + 1 ];
-		data2[ i * 4 + 2 ] = data[ i * 3 + 2 ];
-		data2[ i * 4 + 3 ] = 0xff;
-	}
-
-	R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
-
-	R_StaticFree( data );
-	R_StaticFree( data2 );
-#endif
 }
 
 
@@ -1152,4 +1025,20 @@ bool idRenderSystemLocal::UploadImage( const char* imageName, const byte* data, 
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
 	return true;
+}
+
+
+// RB
+void idRenderSystemLocal::DrawCRTPostFX()
+{
+	if( !IsInitialized() )
+	{
+		return;
+	}
+
+	guiModel->EmitFullScreen();
+	guiModel->Clear();
+
+	crtPostProcessCommand_t* cmd = ( crtPostProcessCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
+	cmd->commandId = RC_CRT_POST_PROCESS;
 }

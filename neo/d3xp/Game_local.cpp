@@ -2739,8 +2739,6 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 
 			SelectTimeGroup( false );
 
-			DemoWriteGameInfo();
-
 #ifdef GAME_DLL
 			// allow changing SIMD usage on the fly
 			if( com_forceGenericSIMD.IsModified() )
@@ -6063,9 +6061,11 @@ void idGameLocal::Shell_SyncWithSession()
 	}
 	switch( session->GetState() )
 	{
+#if defined( USE_DOOMCLASSIC)
 		case idSession::PRESS_START:
 			shellHandler->SetShellState( SHELL_STATE_PRESS_START );
 			break;
+#endif
 		case idSession::INGAME:
 			shellHandler->SetShellState( SHELL_STATE_PAUSED );
 			break;
@@ -6156,17 +6156,6 @@ void idGameLocal::Shell_UpdateLeaderboard( const idLeaderboardCallback* callback
 
 /*
 ========================
-idGameLocal::StartDemoPlayback
-========================
-*/
-void idGameLocal::StartDemoPlayback( idRenderWorld* renderworld )
-{
-	gameRenderWorld = renderworld;
-	smokeParticles->Init();
-}
-
-/*
-========================
 idGameLocal::SimulateProjectiles
 ========================
 */
@@ -6205,67 +6194,7 @@ bool idGameLocal::SimulateProjectiles()
 	return moreProjectiles;
 }
 
-/*
-===============
-idGameLocal::DemoWriteGameInfo
-===============
-*/
-void idGameLocal::DemoWriteGameInfo()
-{
-	if( common->WriteDemo() != NULL )
-	{
-		common->WriteDemo()->WriteInt( DS_GAME );
-		common->WriteDemo()->WriteInt( GCMD_GAMETIME );
 
-		common->WriteDemo()->WriteInt( previousTime );
-		common->WriteDemo()->WriteInt( time );
-		common->WriteDemo()->WriteInt( framenum );
-
-		common->WriteDemo()->WriteInt( fast.previousTime );
-		common->WriteDemo()->WriteInt( fast.time );
-		common->WriteDemo()->WriteInt( fast.realClientTime );
-
-		common->WriteDemo()->WriteInt( slow.previousTime );
-		common->WriteDemo()->WriteInt( slow.time );
-		common->WriteDemo()->WriteInt( slow.realClientTime );
-	}
-}
-
-bool idGameLocal::ProcessDemoCommand( idDemoFile* readDemo )
-{
-	gameDemoCommand_t cmd = GCMD_UNKNOWN;
-
-	if( !readDemo->ReadInt( ( int& )cmd ) )
-	{
-		return false;
-	}
-
-	switch( cmd )
-	{
-		case GCMD_GAMETIME:
-		{
-			readDemo->ReadInt( previousTime );
-			readDemo->ReadInt( time );
-			readDemo->ReadInt( framenum );
-
-			readDemo->ReadInt( fast.previousTime );
-			readDemo->ReadInt( fast.time );
-			readDemo->ReadInt( fast.realClientTime );
-
-			readDemo->ReadInt( slow.previousTime );
-			readDemo->ReadInt( slow.time );
-			readDemo->ReadInt( slow.realClientTime );
-			break;
-		}
-		default:
-		{
-			common->Error( "Bad demo game command '%d' in demo stream", cmd );
-			break;
-		}
-	}
-
-	return true;
-}
 
 // jmarshall
 /*

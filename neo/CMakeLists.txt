@@ -35,9 +35,6 @@ option(FFMPEG
 option(BINKDEC
 		"Use included libbinkdec to render Bink videos" OFF)
 
-option(SPIRV_SHADERC
-		"Compile SPIR-V shader byte code using shaderc instead of using Glslang directly" OFF)
-
 option(USE_MoltenVK
 		"Link directly to MoltenVK library instead of Vulkan loader on macOS" OFF)
 
@@ -66,10 +63,13 @@ option(USE_VULKAN
 		"Use Vulkan" ON)
 
 option(USE_VMA
-		"Use VMA allocator instead of the NVRHI builtin one" ON)
+		"Use AMD's Vulkan Memory Allocator instead of the NVRHI builtin one" ON)
 
 option(OPTICK
 		"Enable profiling with Optick" OFF)
+
+option(RETAIL
+		"Strip certain developer features and cheats from shipping builds" OFF)
 
 set(NVRHI_INSTALL OFF)
 
@@ -115,27 +115,14 @@ if(COMPILE_COMMANDS)
 	set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
-if (FORCE_COLOR_OUTPUT)
-	if (CMAKE_COMPILER_IS_GNUCC)
-		add_compile_options(-fdiagnostics-color=always)
-	elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
-		add_compile_options(-fcolor-diagnostics)
-	endif ()
+# Enforced colored output
+if (CMAKE_COMPILER_IS_GNUCC)
+	add_compile_options(-fdiagnostics-color=always)
+elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	add_compile_options(-fcolor-diagnostics)
 endif ()
 
-if(MSVC)
-	#message(STATUS CMAKE_ROOT: ${CMAKE_ROOT})
-	
-	#if(CMAKE_CL_64)
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win64)
-	#else()
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win32)
-	#endif()
-	
-	#message(STATUS EXECUTABLE_OUTPUT_PATH: ${EXECUTABLE_OUTPUT_PATH})
-	#message(STATUS PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})
-	#message(STATUS CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR})
-else()
+if(NOT MSVC)
 	message(STATUS CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE})
 endif()
 
@@ -179,7 +166,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	#endif()
 	
 	add_compile_options(-Wno-pragmas -Wno-unused-variable -Wno-switch -Wno-unused-value -Winvalid-pch -Wno-multichar -Wno-inconsistent-missing-override)
-    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		# add clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
 		# SRS - Add -Wno-expansion-to-defined, Wno-nullability-completeness and -Wno-shorten-64-to-32 to list of warning settings
@@ -243,47 +230,23 @@ elseif(MSVC)
 	# Omit Frame Pointers
 	# "/Oy",
 	
-	# if(MSVC_VERSION EQUAL 1700)
-		# #message(STATUS "$ENV{LIBPATH}")
-		
-		# find_path(Windows_winmd_DIR NAMES Windows.winmd
-			# HINTS
-			# C:/Program Files (x86)/Windows Kits/8.0/References/CommonConfiguration/Neutral
-			# PATH_SUFFIXES "Neutral")
-			
-		# message(STATUS "${Windows_winmd_DIR}")
-		
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"C:\Program Files (x86)\Windows Kits\8.0\References\CommonConfiguration\Neutral\"")
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"$ENV{LIBPATH}\" ")
-		# set(WINRT_OPTIONS "/ZW /D USE_WINRT")
 	
-		# set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
+	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
+	set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
-	# else()
-		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
-		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
-		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
-		
-		# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
-		# libs for newer compilers
-		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
-	# endif()
+	# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
+	# libs for newer compilers
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
 
 	add_definitions(-DWIN32 
 					-DNOMINMAX
@@ -297,7 +260,7 @@ elseif(MSVC)
 	if( WINDOWS10 ) # Windows RT
 		add_definitions(-DUSE_WINRT)
 	endif()
-					
+
 	if(NOT CMAKE_CL_64)
 		add_definitions(-D_USE_32BIT_TIME_T)
 	endif()
@@ -312,6 +275,16 @@ if(STANDALONE)
 	add_definitions(-DSTANDALONE)
 
 	set(DOOM_CLASSIC OFF)
+endif()
+
+if(RETAIL)
+	add_definitions(-DID_RETAIL)
+endif()
+
+# SRS - on Apple set find_package() to prefer dylibs over macOS frameworks and xcframeworks
+#     - required for cmake >= 3.29 and MoltenVK, also prefers openal-soft over Apple OpenAL
+if(APPLE)
+	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
 
 # SRS - set libjpeg as first include path to prioritize bundled format_message() fix
@@ -396,8 +369,9 @@ if(USE_VULKAN)
 	else()
 		include_directories(${Vulkan_INCLUDE_DIRS})
 
-		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_SPIRV_EXECUTABLE)
-			set(DXC_SPIRV_EXECUTABLE ${Vulkan_dxc_EXECUTABLE})
+		# SRS - ShaderMake uses DXC_CUSTOM_PATH as fallback if dxc for SPIRV not found by other means
+		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_CUSTOM_PATH)
+			set(DXC_CUSTOM_PATH ${Vulkan_dxc_EXECUTABLE})
 		endif()
 
         if(APPLE)
@@ -429,6 +403,8 @@ if(USE_VULKAN)
 	if(USE_VMA)
 		add_definitions(-DUSE_AMD_ALLOCATOR)
 		include_directories("libs/vma/include")
+		file(GLOB VMA_INCLUDES libs/vma/include/*.h)
+		source_group("libs\\vma" FILES ${VMA_INCLUDES})
 	endif()
 
 endif()
@@ -441,20 +417,16 @@ set(NVRHI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/nvrhi)
 add_subdirectory(${NVRHI_DIR})
 add_definitions(-DUSE_NVRHI)
 
-if(USE_DX11)
-	find_package(FXC REQUIRED)
-endif()
+set(SHADERMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/ShaderMake)
+add_subdirectory(${SHADERMAKE_DIR})
 
 if(USE_DX12)
-	find_package(DXCdxil REQUIRED)
+	# SRS - ShaderMake now finds dxc for DXIL when required
 	set(USE_DXIL_ON_DX12 TRUE CACHE BOOL "Use DXC to compile DXIL shaders on DX12 - otherwise FXC and DXBC")
 endif()
 
-if(USE_VULKAN)
-	find_package(DXCspirv REQUIRED)
-endif()
-
 include_directories(${NVRHI_DIR}/include)
+include_directories(${SHADERMAKE_DIR}/include)
 
 include_directories("libs/optick")
 
@@ -493,12 +465,6 @@ file(GLOB RENDERER_PASSES_INCLUDES renderer/Passes/*.h)
 file(GLOB RENDERER_PASSES_SOURCES renderer/Passes/*.cpp)
 
 file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
-
-file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
-file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
-
-file(GLOB RENDERER_VULKAN_INCLUDES renderer/Vulkan/*.h)
-file(GLOB RENDERER_VULKAN_SOURCES renderer/Vulkan/*.cpp)
 
 file(GLOB RENDERER_NVRHI_INCLUDES renderer/NVRHI/*.h)
 file(GLOB RENDERER_NVRHI_SOURCES renderer/NVRHI/*.cpp)
@@ -1106,14 +1072,8 @@ source_group("renderer\\Passes" FILES ${RENDERER_PASSES_SOURCES})
 source_group("renderer\\DXT" FILES ${RENDERER_DXT_INCLUDES})
 source_group("renderer\\DXT" FILES ${RENDERER_DXT_SOURCES})
 
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
-
 source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_INCLUDES})
 source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_SOURCES})
-
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_INCLUDES})
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_SOURCES})
 
 source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
 
@@ -1325,6 +1285,7 @@ set(RBDOOM3_INCLUDES
 			#${FREETYPE_SOURCES}
 			${SOUND_INCLUDES}
 			${OGGVORBIS_INCLUDES}
+			${VMA_INCLUDES}
 			${OPTICK_INCLUDES}
 			${UI_INCLUDES}
 			${SWF_INCLUDES}
@@ -1454,11 +1415,6 @@ if(MSVC)
 	if(USE_DX12)
 		list(APPEND RBDOOM3_INCLUDES ${RENDERER_NVRHI_INCLUDES})
 		list(APPEND RBDOOM3_SOURCES ${RENDERER_NVRHI_SOURCES})
-
-		# RB: TODO REMOVE
-		set(OpenGL_LIBRARIES
-			opengl32
-			glu32)
 	endif()
 	
 	if(OPENAL)
@@ -1545,12 +1501,8 @@ if(MSVC)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES d3xp/gamesys/Class.cpp)
-		if(USE_VULKAN)
-			list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		endif()
 	
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES d3xp/gamesys/Class.cpp)
 		#foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 		#	message(STATUS "-include precompiled.h for ${src_file}")
 		#endforeach()
@@ -1611,7 +1563,6 @@ if(MSVC)
 		winmm
 		wsock32.lib
 		${Vulkan_LIBRARIES}
-		${OpenGL_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
@@ -1704,10 +1655,6 @@ else()
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		if(USE_VULKAN)
-			list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		endif()
 
 		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
@@ -1779,8 +1726,8 @@ else()
 
 		# add macOS bundle properties to executable
 		set(MACOSX_BUNDLE_BUNDLE_NAME RBDoom-3-BFG)
-		set(MACOSX_BUNDLE_BUNDLE_VERSION 1.5.0)
-		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.5.0)
+		set(MACOSX_BUNDLE_BUNDLE_VERSION 1.6.0)
+		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.6.0)
 		set(MACOSX_BUNDLE_ICON_FILE Doom3BFG.icns)
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
@@ -1815,7 +1762,8 @@ else()
 		# delete precompiled header file after executable is compiled: IDE build case (e.g. Xcode)
 		else()
 			add_custom_command(TARGET DoomIcedHellfire POST_BUILD
-					COMMAND ${remove_command} "idlib/precompiled.h.gch"
+					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
+					COMMAND ${remove_command} "idlib/precompiled.h*.gch*"
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 					COMMENT "remove idlib/precompiled.h.gch"
 			)
@@ -1840,7 +1788,6 @@ else()
 		target_link_libraries(DoomIcedHellfire
 			idlib
 			${Vulkan_LIBRARY}
-			#${OPENGL_LIBRARIES}
 			pthread
 			${RT_LIBRARY}
 			${SDLx_LIBRARY}
@@ -1896,7 +1843,9 @@ endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(DoomIcedHellfire nvrhi)
+target_link_libraries(DoomIcedHellfire ShaderMakeBlob)
 
 add_subdirectory(shaders)
+add_dependencies(Shaders ShaderMake)
 add_dependencies(DoomIcedHellfire Shaders)
 
