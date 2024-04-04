@@ -6098,10 +6098,10 @@ static classVariableInfo_t iceMonsterZombieCommandoChaingun_typeInfo[] = {
 };
 
 static classVariableInfo_t iceMonster_Turret_typeInfo[] = {
-	{ "boolean", "fire", (intptr_t)(&((iceMonster_Turret *)0)->fire), sizeof( ((iceMonster_Turret *)0)->fire ) },
-	{ "boolean", "attack_monsters", (intptr_t)(&((iceMonster_Turret *)0)->attack_monsters), sizeof( ((iceMonster_Turret *)0)->attack_monsters ) },
+	{ "bool", "fire", (intptr_t)(&((iceMonster_Turret *)0)->fire), sizeof( ((iceMonster_Turret *)0)->fire ) },
+	{ "bool", "attack_monsters", (intptr_t)(&((iceMonster_Turret *)0)->attack_monsters), sizeof( ((iceMonster_Turret *)0)->attack_monsters ) },
 	{ "idEntity", "light", (intptr_t)(&((iceMonster_Turret *)0)->light), sizeof( ((iceMonster_Turret *)0)->light ) },
-	{ "boolean", "light_is_on", (intptr_t)(&((iceMonster_Turret *)0)->light_is_on), sizeof( ((iceMonster_Turret *)0)->light_is_on ) },
+	{ "bool", "light_is_on", (intptr_t)(&((iceMonster_Turret *)0)->light_is_on), sizeof( ((iceMonster_Turret *)0)->light_is_on ) },
 	{ "float", "attackTime", (intptr_t)(&((iceMonster_Turret *)0)->attackTime), sizeof( ((iceMonster_Turret *)0)->attackTime ) },
 	{ "int", "barrelCount", (intptr_t)(&((iceMonster_Turret *)0)->barrelCount), sizeof( ((iceMonster_Turret *)0)->barrelCount ) },
 	{ "int", "currentBarrel", (intptr_t)(&((iceMonster_Turret *)0)->currentBarrel), sizeof( ((iceMonster_Turret *)0)->currentBarrel ) },
