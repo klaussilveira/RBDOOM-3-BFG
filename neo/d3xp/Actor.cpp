@@ -3107,7 +3107,7 @@ void idActor::Event_StopAnim( int channel, int frames )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_StopAnim Unknown anim group" );
 			break;
 	}
 }
@@ -3202,7 +3202,7 @@ void idActor::Event_PlayAnim( int channel, const char* animname )
 			break;
 
 		default :
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_PlayAnim Unknown anim group" );
 			break;
 	}
 	idThread::ReturnInt( 1 );
@@ -3290,7 +3290,7 @@ void idActor::Event_PlayCycle( int channel, const char* animname )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Even_PlayCycle Unknown anim group" );
 	}
 
 	idThread::ReturnInt( true );
@@ -3332,7 +3332,7 @@ void idActor::Event_IdleAnim( int channel, const char* animname )
 				break;
 
 			default:
-				gameLocal.Error( "Unknown anim group" );
+				gameLocal.Error( "Event_IdleAnim Unknown anim group" );
 		}
 
 		idThread::ReturnInt( false );
@@ -3423,7 +3423,7 @@ void idActor::Event_IdleAnim( int channel, const char* animname )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_IdleAnim Unknown anim group" );
 	}
 
 	idThread::ReturnInt( true );
@@ -3485,7 +3485,7 @@ void idActor::Event_SetSyncedAnimWeight( int channel, int anim, float weight )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_SetSyncedAnimWeight: Unknown anim group" );
 	}
 }
 
@@ -3525,7 +3525,7 @@ void idActor::Event_OverrideAnim( int channel )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_OverrideAnim: Unknown anim group" );
 			break;
 	}
 }
@@ -3552,7 +3552,7 @@ void idActor::Event_EnableAnim( int channel, int blendFrames )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_EnableAnim: Unknown anim group" );
 			break;
 	}
 }
@@ -3582,7 +3582,7 @@ void idActor::Event_SetBlendFrames( int channel, int blendFrames )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_SetBlendFrames: Unknown anim group" );
 			break;
 	}
 }
@@ -3609,7 +3609,7 @@ void idActor::Event_GetBlendFrames( int channel )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_GetBlendFrames: Unknown anim group" );
 			break;
 	}
 }
@@ -3690,7 +3690,7 @@ void idActor::Event_AnimDone( int channel, int blendFrames )
 			break;
 
 		default:
-			gameLocal.Error( "Unknown anim group" );
+			gameLocal.Error( "Event_AnimDone: Unknown anim group" );
 	}
 }
 

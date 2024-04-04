@@ -39,7 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #define DEFINE_CLASS( x )					virtual const char * Name() const { return #x; }
-#define MAX_SAVEGAMES						16
+#define MAX_SAVEGAMES						48
 #define MAX_FILES_WITHIN_SAVEGAME			10
 
 #define MIN_SAVEGAME_SIZE_BYTES				( 4 * 1024 * 1024 )

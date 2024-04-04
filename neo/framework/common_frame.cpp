@@ -817,7 +817,7 @@ void idCommonLocal::Frame()
 		// foresthale 2014-05-12: also check com_editors as many of them are not particularly thread-safe (editLights for example)
 		// SRS - if com_editors is active make sure com_smp != -1, otherwise skip and call SwapCommandBuffers_FinishRendering later
 		frameTiming.startRenderTime = Sys_Microseconds();
-		if( com_smp.GetInteger() == 0 || ( com_smp.GetInteger() > 0 && com_editors != 0 ) )
+		if( !com_smp.GetBool() && com_editors != 0 )
 		{
 			// in non-smp mode, run the commands we just generated, instead of
 			// frame-delayed ones from a background thread
@@ -836,12 +836,6 @@ void idCommonLocal::Frame()
 		}
 		frameTiming.finishRenderTime = Sys_Microseconds();
 
-		// SRS - If in Doom 3 mode (com_smp = -1), must sync after RenderCommandBuffers() otherwise get artifacts due to improper command buffer swap timing
-		if( com_smp.GetInteger() < 0 )
-		{
-			// RB: this is the same as Doom 3 renderSystem->EndFrame()
-			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
-		}
 		// SRS - Use finishSyncTime_EndFrame to record timing after sync for com_smp = -1, and just before gameThread.WaitForThread() for com_smp = 1
 		frameTiming.finishSyncTime_EndFrame = Sys_Microseconds();
 

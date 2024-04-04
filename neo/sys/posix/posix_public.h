@@ -31,8 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <signal.h>
 
-extern glconfig_t glConfig;
-
 void		Posix_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr );
 const char*	Posix_Cwd();
 
