@@ -158,6 +158,8 @@ struct globalFramebuffers_t
 	Framebuffer*				smaaBlendFBO;
 	Framebuffer*				guiRenderTargetFBO;
 	Framebuffer*				accumFBO;
+	Framebuffer*				vrPDAFBO;
+	Framebuffer*				vrHUDFBO;
 };
 
 extern globalFramebuffers_t globalFramebuffers;

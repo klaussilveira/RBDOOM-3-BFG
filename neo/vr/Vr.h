@@ -129,6 +129,7 @@ public:
 	void				MotionControlGetTouchController( int hand, idVec3& position, idQuat& rotation );
 	void				MotionControllerSetHapticOpenVR( int hand, unsigned short value );
 
+	idVec2i				GetEyeResolution() const;
 	void				CalcAimMove( float& yawDelta, float& pitchDelta );
 
 	int					GetCurrentFlashMode();
@@ -167,6 +168,10 @@ private:
 	idMat4				m_mat4eyePosRight;
 
 	bool				hmdPositionTracked;
+
+	uint32_t			hmdWidth;
+	uint32_t			hmdHeight;
+	int					hmdHz;
 public:
 
 	//------------------
@@ -231,15 +236,10 @@ public:
 
 	float				angles[3];
 
-	uint32_t			hmdWidth;
-	uint32_t			hmdHeight;
-	int					hmdHz;
 
-	bool				useFBO;
-	int					primaryFBOWidth;
-	int					primaryFBOHeight;
 
-	//int					VR_AAmode;
+	//int				primaryFBOWidth;
+	//int				primaryFBOHeight;
 
 	int					VR_USE_MOTION_CONTROLS;
 

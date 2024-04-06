@@ -210,6 +210,14 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->accumImage->texture ) );
 
+	globalFramebuffers.vrPDAFBO = new Framebuffer( "_vrPDA",
+			nvrhi::FramebufferDesc()
+			.addColorAttachment( globalImages->vrPDAImage->texture ) );
+
+	globalFramebuffers.vrHUDFBO = new Framebuffer( "_vrHUD",
+			nvrhi::FramebufferDesc()
+			.addColorAttachment( globalImages->vrHUDImage->texture ) );
+
 	Framebuffer::Unbind();
 }
 
@@ -243,6 +251,8 @@ void Framebuffer::ReloadImages()
 	}
 	globalImages->guiEdit->Reload( false, tr.backend.commandList );
 	globalImages->accumImage->Reload( false, tr.backend.commandList );
+	globalImages->vrPDAImage->Reload( false, tr.backend.commandList );
+	globalImages->vrHUDImage->Reload( false, tr.backend.commandList );
 	tr.backend.commandList->close();
 	deviceManager->GetDevice()->executeCommandList( tr.backend.commandList );
 }

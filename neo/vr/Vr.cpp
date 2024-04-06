@@ -264,7 +264,6 @@ iVr::iVr()
 	wasLoaded = false;
 	shouldRecenter = false;
 
-	useFBO = false;
 	VR_USE_MOTION_CONTROLS = 0;
 
 	scanningPDA = false;
@@ -332,7 +331,7 @@ iVr::iVr()
 
 	hmdBodyTranslation = vec3_zero;
 
-	VR_AAmode = 0;
+	//VR_AAmode = 0;
 
 	independentWeaponYaw = 0;
 	independentWeaponPitch = 0;
@@ -342,8 +341,8 @@ iVr::iVr()
 	hmdWidth = 0;
 	hmdHeight = 0;
 
-	primaryFBOWidth = 0;
-	primaryFBOHeight = 0;
+	//primaryFBOWidth = 0;
+	//primaryFBOHeight = 0;
 	hmdHz = 90;
 
 	hmdFovX = 0.0f;
@@ -552,7 +551,7 @@ void iVr::HMDInit()
 {
 	isActive = false;
 
-	if( !OpenVRInit() )
+	if( !vr_enable.GetBool() || !OpenVRInit() )
 	{
 		common->Printf( "No HMD detected.\n VR Disabled\n" );
 		return;
@@ -614,6 +613,18 @@ idMat4 iVr::GetHMDMatrixPoseEye( vr::Hmd_Eye nEye )
 	return matrixObj.Inverse();
 }
 
+idVec2i iVr::GetEyeResolution() const
+{
+	uint32_t			hmdWidth;
+	uint32_t			hmdHeight;
+
+	m_pHMD->GetRecommendedRenderTargetSize( &hmdWidth, &hmdHeight );
+
+	idVec2i res( hmdWidth * vr_pixelDensity.GetFloat(), hmdHeight * vr_pixelDensity.GetFloat() );
+
+	return res;
+}
+
 /*
 ==============
 iVr::HMDInitializeDistortion
@@ -654,14 +665,10 @@ void iVr::HMDInitializeDistortion()
 	isActive = true;
 	common->Printf( "VR Mode ENABLED.\n" );
 
-	bool fboCreated = false;
+	int primaryFBOWidth = hmdEye[0].renderTargetRes.x;
+	int primaryFBOHeight = hmdEye[0].renderTargetRes.y;
 
-	ovrSizei rendertarget;
-
-	primaryFBOWidth = hmdEye[0].renderTargetRes.x;
-	primaryFBOHeight = hmdEye[0].renderTargetRes.y;
-
-	if( !fboCreated )
+	//if( !fboCreated )
 	{
 		// create the FBOs
 		common->Printf( "Generating FBOs.\n" );
@@ -714,6 +721,7 @@ void iVr::HMDInitializeDistortion()
 		}
 		*/
 
+		/*
 		if( !fboCreated )
 		{
 			// either AA disabled or AA buffer creation failed. Try creating unaliased FBOs.
@@ -740,33 +748,18 @@ void iVr::HMDInitializeDistortion()
 				fboCreated = false;
 			}
 		}
-
+		*/
 	}
 
-	if( !useFBO )    // not using FBO's, will render to default framebuffer (screen)
-	{
-		primaryFBOWidth = renderSystem->GetNativeWidth() / 2;
-		primaryFBOHeight = renderSystem->GetNativeHeight();
-		rendertarget.w = primaryFBOWidth;
-		rendertarget.h = primaryFBOHeight;
-
-		for( int eye = 0; eye < 2; eye++ )
-		{
-			hmdEye[eye].renderTargetRes.x = primaryFBOWidth;
-			hmdEye[eye].renderTargetRes.y = primaryFBOHeight;
-		}
-
-	}
-
-	globalImages->hudImage->Resize( primaryFBOWidth, primaryFBOHeight );
-	globalImages->pdaImage->Resize( primaryFBOWidth, primaryFBOHeight );
+	//globalImages->hudImage->Resize( primaryFBOWidth, primaryFBOHeight );
+	//globalImages->pdaImage->Resize( primaryFBOWidth, primaryFBOHeight );
 	//globalImages->skyBoxFront->Resize( primaryFBOWidth, primaryFBOHeight );
 	//globalImages->skyBoxSides->Resize( primaryFBOWidth, primaryFBOHeight );
 	//globalImages->currentRenderImage->Resize( primaryFBOWidth, primaryFBOHeight );
 	//globalImages->currentDepthImage->Resize( primaryFBOWidth, primaryFBOHeight );
 
-	common->Printf( "pdaImage size %d %d\n", globalImages->pdaImage->GetUploadWidth(), globalImages->pdaImage->GetUploadHeight() );
-	common->Printf( "Hudimage size %d %d\n", globalImages->hudImage->GetUploadWidth(), globalImages->hudImage->GetUploadHeight() );
+	//common->Printf( "pdaImage size %d %d\n", globalImages->pdaImage->GetUploadWidth(), globalImages->pdaImage->GetUploadHeight() );
+	//common->Printf( "Hudimage size %d %d\n", globalImages->hudImage->GetUploadWidth(), globalImages->hudImage->GetUploadHeight() );
 
 	{
 		float combinedTanHalfFovHorizontal = std::max( std::max( hmdEye[0].projectionOpenVR.projLeft, hmdEye[0].projectionOpenVR.projRight ), std::max( hmdEye[1].projectionOpenVR.projLeft, hmdEye[1].projectionOpenVR.projRight ) );
@@ -792,7 +785,7 @@ void iVr::HMDInitializeDistortion()
 		}
 
 		//textures[0].handle = (unsigned int*)globalImages->skyBoxFront->texnum;
-		textures[0].handle = ( unsigned int* )globalImages->pdaImage->texnum;
+		textures[0].handle = ( unsigned int* )globalImages->blackImage->GetTextureID();
 
 		static vr::EVRCompositorError error = vr::VRCompositor()->SetSkyboxOverride( textures, 1 );
 
@@ -805,15 +798,12 @@ void iVr::HMDInitializeDistortion()
 		common->Printf( "Finished setting skybox\n" );
 	}
 
-	globalFramebuffers.primaryFBO->Bind();
+	//globalFramebuffers.primaryFBO->Bind();
 
-
-	{
-		// make sure vsync is off.
-		wglSwapIntervalEXT( 0 );
-		r_swapInterval.SetInteger( 0 );
-		r_swapInterval.SetModified();
-	}
+	// make sure vsync is off.
+	//wglSwapIntervalEXT( 0 );
+	//	r_swapInterval.SetInteger( 0 );
+	//	r_swapInterval.SetModified();
 
 	{
 		do

@@ -40,6 +40,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Voice.h"
 
+iVoice::iVoice()
+{
+	maxVolume = currentVolume = 0.0f;
+}
+
 #if 0
 
 #ifdef _WIN32
@@ -136,16 +141,6 @@ void __stdcall SpeechCallback( WPARAM wParam, LPARAM lParam )
 #endif
 
 
-
-/*
-==============
-iVoice::iVoice()
-==============
-*/
-iVoice::iVoice()
-{
-	maxVolume = currentVolume = 0.0f;
-}
 
 static bool in_phrase = false, spoke = false, listening = true;
 static bool heard[J_SAY_MAX - J_SAY_MIN + 1] = {};

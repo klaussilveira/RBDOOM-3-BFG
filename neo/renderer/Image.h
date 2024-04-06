@@ -649,6 +649,9 @@ public:
 	idImage*			brdfLutImage;
 	idImage*			defaultUACIrradianceCube;
 	idImage*			defaultUACRadianceCube;
+
+	idImage*			vrPDAImage;						// copy target of LDR FBO for displaying menus and PDA onto the PDA model
+	idImage*			vrHUDImage;						// copy target of LDR FBO for displaying onto the 3D HUD model
 	// RB end
 	idImage* 			scratchImage;
 	idImage* 			scratchImage2;

@@ -43,6 +43,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Image_env_UAC_lobby_amb.h"
 #include "Image_env_UAC_lobby_spec.h"
 
+
 #define	DEFAULT_SIZE	16
 
 /*
@@ -1021,6 +1022,13 @@ static void R_CreateEnvprobeImage_UAC_lobby_radiance( idImage* image, nvrhi::ICo
 	image->GenerateImage( ( byte* )IMAGE_ENV_UAC_LOBBY_SPEC_H_Bytes, IMAGE_ENV_UAC_LOBBY_SPEC_H_TEX_WIDTH, IMAGE_ENV_UAC_LOBBY_SPEC_H_TEX_HEIGHT, TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, commandList, false, false, 1, CF_2D_PACKED_MIPCHAIN );
 }
 
+static void R_VR_StereoImage( idImage* image, nvrhi::ICommandList* commandList )
+{
+	//idVec2i eyeResolution = vrSystem->GetEyeResolution();
+
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_RGBA, nullptr, true, false, 1 );
+}
+
 // RB end
 
 static void R_GuiEditFunction( idImage* image, nvrhi::ICommandList* commandList )
@@ -1115,6 +1123,13 @@ void idImageManager::CreateIntrinsicImages()
 	chromeSpecImage = ImageFromFunction( "_chromeSpec", R_ChromeSpecImage );
 	plasticSpecImage = ImageFromFunction( "_plasticSpec", R_PlasticSpecImage );
 	brdfLutImage = ImageFromFunction( "_brdfLut", R_CreateBrdfLutImage );
+
+	defaultUACIrradianceCube = ImageFromFunction( "_defaultUACIrradiance", R_CreateEnvprobeImage_UAC_lobby_irradiance );
+	defaultUACRadianceCube = ImageFromFunction( "_defaultUACRadiance", R_CreateEnvprobeImage_UAC_lobby_radiance );
+
+	// RB: skip mip mapping for the initial implementation
+	vrPDAImage = ImageFromFunction( " _pdaImage", R_LdrNativeImage );
+	vrHUDImage = ImageFromFunction( " _hudImage", R_LdrNativeImage );
 	// RB end
 
 	// scratchImage is used for screen wipes/doublevision etc..
@@ -1131,16 +1146,6 @@ void idImageManager::CreateIntrinsicImages()
 
 	loadingIconImage = ImageFromFile( "textures/loadingicon2", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
 	hellLoadingIconImage = ImageFromFile( "textures/loadingicon3", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
-
-	// RB begin
-#if 0
-	defaultUACIrradianceCube = ImageFromFile( "env/UAC5_amb", TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
-	defaultUACRadianceCube = ImageFromFile( "env/UAC5_spec", TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
-#else
-	defaultUACIrradianceCube = ImageFromFunction( "_defaultUACIrradiance", R_CreateEnvprobeImage_UAC_lobby_irradiance );
-	defaultUACRadianceCube = ImageFromFunction( "_defaultUACRadiance", R_CreateEnvprobeImage_UAC_lobby_radiance );
-#endif
-	// RB end
 
 	guiEdit = ImageFromFunction( "_guiEdit", R_GuiEditFunction );
 	guiEditDepthStencilImage = ImageFromFunction( "_guiEditDepthStencil", R_GuiEditDepthStencilFunction );

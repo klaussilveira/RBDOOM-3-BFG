@@ -6054,6 +6054,14 @@ void idRenderBackend::CopyRender( const void* data )
 		{
 			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
 		}
+		else if( cmd->image == globalImages->vrPDAImage )
+		{
+			framebuffer = globalFramebuffers.vrPDAFBO->GetApiObject();
+		}
+		else if( cmd->image == globalImages->vrHUDImage )
+		{
+			framebuffer = globalFramebuffers.vrHUDFBO->GetApiObject();
+		}
 		blitParms.targetFramebuffer = framebuffer;
 		blitParms.targetViewport = nvrhi::Viewport( cmd->imageWidth, cmd->imageHeight );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );

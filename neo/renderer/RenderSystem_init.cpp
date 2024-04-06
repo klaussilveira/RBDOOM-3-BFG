@@ -37,6 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "RenderCommon.h"
 
 #include "sys/DeviceManager.h"
+#include "../vr/Vr.h"
 
 // RB begin
 #if defined(_WIN32)
@@ -392,7 +393,34 @@ void R_SetNewMode( const bool fullInit )
 
 		glimpParms_t	parms;
 
-		if( r_fullscreen.GetInteger() <= 0 )
+		// Koz
+		// Create a window for the SteamVR desktop texture
+		if( vrSystem->HasHMD() )
+		{
+			// force a windowed mode
+			r_fullscreen.SetInteger( 0 );
+
+			// RB: use full target resolution for the moment
+			// so window management, device manager and Steam VR talk the same resolution
+			idVec2i resolution = vrSystem->GetEyeResolution();
+			r_windowWidth.SetInteger( resolution.x );
+			r_windowHeight.SetInteger( resolution.y );
+
+			//r_windowWidth.SetInteger( vrSystem->hmdWidth / 2 );
+			//r_windowHeight.SetInteger( vrSystem->hmdHeight / 2 );
+
+			// force Vsync off for hmd
+			r_swapInterval.SetInteger( 0 );
+
+			parms.x = r_windowX.GetInteger();
+			parms.y = r_windowY.GetInteger();
+			parms.width = r_windowWidth.GetInteger();
+			parms.height = r_windowHeight.GetInteger();
+			parms.fullScreen = r_fullscreen.GetInteger();
+			parms.displayHz = 0;		// ignored
+		}
+		// Koz end
+		else if( r_fullscreen.GetInteger() <= 0 )
 		{
 			// use explicit position / size for window
 			parms.x = r_windowX.GetInteger();
@@ -2428,6 +2456,7 @@ int idRenderSystemLocal::GetWidth() const
 	{
 		return glConfig.nativeScreenWidth >> 1;
 	}
+
 	return glConfig.nativeScreenWidth;
 }
 
@@ -2442,16 +2471,19 @@ int idRenderSystemLocal::GetHeight() const
 	{
 		return 720;
 	}
+
 	extern idCVar stereoRender_warp;
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE && stereoRender_warp.GetBool() )
 	{
 		// for the Rift, render a square aspect view that will be symetric for the optics
 		return glConfig.nativeScreenWidth >> 1;
 	}
+
 	if( glConfig.stereo3Dmode == STEREO3D_INTERLACED || glConfig.stereo3Dmode == STEREO3D_TOP_AND_BOTTOM_COMPRESSED )
 	{
 		return glConfig.nativeScreenHeight >> 1;
 	}
+
 	return glConfig.nativeScreenHeight;
 }
 
