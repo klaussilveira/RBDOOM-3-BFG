@@ -52,6 +52,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
 
+#include <vr/Vr.h>
+
 
 
 /*
@@ -748,7 +750,8 @@ bool DeviceManager::CreateWindowDeviceAndSwapChain( const glimpParms_t& parms, c
 	// SRS - if in windowed mode, start with centered on primary display, afterwards use r_windowX / r_windowY
 	if( parms.fullScreen == 0 )
 	{
-		if( !GetCenteredWindowDimensions( x, y, w, h ) )
+		// RB: don't crop the window when we need a resolution that is bigger than the screen
+		if( !vrSystem->IsActive() && !GetCenteredWindowDimensions( x, y, w, h ) )
 		{
 			return false;
 		}
