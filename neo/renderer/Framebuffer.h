@@ -34,6 +34,7 @@ static const int MAX_SHADOWMAP_RESOLUTIONS = 5;
 static const int MAX_BLOOM_BUFFERS = 2;
 static const int MAX_GLOW_BUFFERS = 2;
 static const int MAX_SSAO_BUFFERS = 2;
+static const int MAX_STEREO_BUFFERS = 2;
 static const int MAX_HIERARCHICAL_ZBUFFERS = 6; // native resolution + 5 MIP LEVELS
 
 static const int ENVPROBE_CAPTURE_SIZE = 256;
@@ -160,6 +161,7 @@ struct globalFramebuffers_t
 	Framebuffer*				accumFBO;
 	Framebuffer*				vrPDAFBO;
 	Framebuffer*				vrHUDFBO;
+	Framebuffer*				vrStereoFBO[MAX_STEREO_BUFFERS];
 };
 
 extern globalFramebuffers_t globalFramebuffers;

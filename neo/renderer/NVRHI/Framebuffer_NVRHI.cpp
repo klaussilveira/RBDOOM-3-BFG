@@ -218,6 +218,16 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->vrHUDImage->texture ) );
 
+	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	{
+		for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+		{
+			globalFramebuffers.vrStereoFBO[i] = new Framebuffer( va( "_stereoRender%i", i ),
+					nvrhi::FramebufferDesc()
+					.addColorAttachment( globalImages->stereoRenderImages[i]->texture ) );
+		}
+	}
+
 	Framebuffer::Unbind();
 }
 
@@ -253,6 +263,15 @@ void Framebuffer::ReloadImages()
 	globalImages->accumImage->Reload( false, tr.backend.commandList );
 	globalImages->vrPDAImage->Reload( false, tr.backend.commandList );
 	globalImages->vrHUDImage->Reload( false, tr.backend.commandList );
+
+	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	{
+		for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+		{
+			globalImages->stereoRenderImages[i]->Reload( false, tr.backend.commandList );
+		}
+	}
+
 	tr.backend.commandList->close();
 	deviceManager->GetDevice()->executeCommandList( tr.backend.commandList );
 }

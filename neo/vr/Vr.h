@@ -103,7 +103,7 @@ public:
 
 	void				HMDInitializeDistortion();
 	void				HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idVec3& bodyPositionDelta, idVec3& absolutePosition, bool resetTrackingOffset );
-	void				HMDRender( idImage* leftCurrent, idImage* rightCurrent );
+	//void				HMDRender( idImage* leftCurrent, idImage* rightCurrent );
 	void				HMDTrackStatic( bool is3D );
 	void				HUDRender( idImage* image0, idImage* image1 );
 	void				HMDResetTrackingOriginOffset();

@@ -306,59 +306,7 @@ void iVr::HUDRender( idImage* image0, idImage* image1 )
 
 
 
-/*
-====================
-iVr::HMDRender
 
-Draw the pre rendered eye textures to the back buffer.
-Apply FXAA if enabled.
-Apply HMD distortion correction.
-
-eye textures: idImage leftCurrent, rightCurrent
-====================
-*/
-
-void iVr::HMDRender( idImage* leftCurrent, idImage* rightCurrent )
-{
-	// TODO
-#if 0
-
-	{
-		// make sure vsync is off.
-		wglSwapIntervalEXT( 0 );
-		r_swapInterval.SetInteger( 0 );
-		r_swapInterval.SetModified();
-	}
-
-
-	// final eye textures now in finalEyeImage[0,1]
-	{
-		vr::Texture_t leftEyeTexture = { ( void* )( size_t )leftCurrent->GetTexNum(), vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
-
-		vr::Texture_t rightEyeTexture = { ( void* )( size_t )rightCurrent->GetTexNum(), vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-		vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
-
-		// Blit mirror texture to back buffer
-		//renderProgManager.BindShader_PostProcess(); // pass thru shader
-
-		renderProgManager.BindShader_Texture();
-		backEnd.GL_Color( 1, 1, 1, 1 );
-
-		glBindFramebuffer( GL_READ_FRAMEBUFFER, 0 );
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
-		backEnd.GL_ViewportAndScissor( 0, 0, hmdWidth / 2, hmdHeight / 2 );
-		backEnd.GL_SelectTexture( 0 );
-		rightCurrent->Bind();
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-		backEnd.DrawElementsWithCounters( &backEnd.unitSquareSurface ); // draw it
-		renderProgManager.Unbind();
-
-		globalFramebuffers.primaryFBO->Bind();
-	}
-#endif
-}
 
 /*
 ====================
@@ -388,6 +336,7 @@ void iVr::HMDTrackStatic( bool is3D )
 			HUDRender( hmdCurrentRender[0], hmdCurrentRender[0] ); // if not 3d just use left eye twice.
 		}
 
-		HMDRender( hmdEyeImage[0], hmdEyeImage[1] );
+		// TODO
+		//HMDRender( hmdEyeImage[0], hmdEyeImage[1] );
 	}
 }

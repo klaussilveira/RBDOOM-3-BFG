@@ -43,6 +43,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Image_env_UAC_lobby_amb.h"
 #include "Image_env_UAC_lobby_spec.h"
 
+#include <vr/Vr.h>
+
 
 #define	DEFAULT_SIZE	16
 
@@ -1026,7 +1028,7 @@ static void R_VR_StereoImage( idImage* image, nvrhi::ICommandList* commandList )
 {
 	//idVec2i eyeResolution = vrSystem->GetEyeResolution();
 
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_RGBA, nullptr, true, false, 1 );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA, nullptr, true, false, 1 );
 }
 
 // RB end
@@ -1128,8 +1130,14 @@ void idImageManager::CreateIntrinsicImages()
 	defaultUACRadianceCube = ImageFromFunction( "_defaultUACRadiance", R_CreateEnvprobeImage_UAC_lobby_radiance );
 
 	// RB: skip mip mapping for the initial implementation
-	vrPDAImage = ImageFromFunction( " _pdaImage", R_LdrNativeImage );
-	vrHUDImage = ImageFromFunction( " _hudImage", R_LdrNativeImage );
+	vrPDAImage = ImageFromFunction( "_pdaImage", R_LdrNativeImage );
+	vrHUDImage = ImageFromFunction( "_hudImage", R_LdrNativeImage );
+
+	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	{
+		stereoRenderImages[0] = ImageFromFunction( "_stereoRender0", R_VR_StereoImage );
+		stereoRenderImages[1] = ImageFromFunction( "_stereoRender1", R_VR_StereoImage );
+	}
 	// RB end
 
 	// scratchImage is used for screen wipes/doublevision etc..

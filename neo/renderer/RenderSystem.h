@@ -45,21 +45,12 @@ enum stereo3DMode_t
 
 	// half-resolution, non-square pixel views
 	STEREO3D_SIDE_BY_SIDE_COMPRESSED,
-	STEREO3D_TOP_AND_BOTTOM_COMPRESSED,
 
 	// two full resolution views side by side, as for a dual cable display
 	STEREO3D_SIDE_BY_SIDE,
 
-	STEREO3D_INTERLACED,
-
-	// OpenGL quad buffer
-	STEREO3D_QUAD_BUFFER,
-
-	// two full resolution views stacked with a 30 pixel guard band
-	// On the PC this can be configured as a custom video timing, but
-	// it definitely isn't a consumer level task.  The quad_buffer
-	// support can handle 720P-3D with apropriate driver support.
-	STEREO3D_HDMI_720
+	// OpenVR headset
+	STEREO3D_HMD,
 };
 
 typedef enum

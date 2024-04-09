@@ -216,6 +216,9 @@ private:
 	void				GL_StartFrame();
 	void				GL_EndFrame();
 
+	// OpenVR
+	void				HMD_SubmitStereoRenders();
+
 public:
 	uint64				GL_GetCurrentState() const;
 	idVec2				GetCurrentPixelOffset() const;

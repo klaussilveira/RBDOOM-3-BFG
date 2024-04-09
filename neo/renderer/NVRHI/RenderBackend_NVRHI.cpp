@@ -45,6 +45,7 @@ If you have questions concerning this license or the applicable additional terms
 
 extern DeviceManager* deviceManager;
 extern idCVar r_graphicsAPI;
+extern idCVar r_useNewSsaoPass;
 
 idCVar r_drawFlickerBox( "r_drawFlickerBox", "0", CVAR_RENDERER | CVAR_BOOL, "visual test for dropping frames" );
 idCVar stereoRender_warp( "stereoRender_warp", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use the optical warping renderprog instead of stereoDeGhost" );
@@ -1771,6 +1772,53 @@ void idRenderBackend::GL_StartFrame()
 
 	renderLog.StartFrame( commandList );
 	renderLog.OpenMainBlock( MRB_GPU_TIME );
+
+	// -------------------------
+	// make sure textures and render passes are initialized
+
+	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
+	globalImages->LoadDeferredImages( commandList );
+
+	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
+	{
+		ssaoPass = new SsaoPass(
+			deviceManager->GetDevice(),
+			&commonPasses, globalImages->currentDepthImage->GetTextureHandle(),
+			globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(),
+			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
+	}
+
+	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
+	{
+		if( hiZGenPass )
+		{
+			delete hiZGenPass;
+		}
+
+		hiZGenPass = new MipMapGenPass( deviceManager->GetDevice(), globalImages->hierarchicalZbufferImage->GetTextureHandle() );
+	}
+
+	if( !toneMapPass )
+	{
+		TonemapPass::CreateParameters createParms;
+		toneMapPass = new TonemapPass();
+		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
+	}
+
+	if( !taaPass )
+	{
+		TemporalAntiAliasingPass::CreateParameters taaParams;
+		taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
+		taaParams.motionVectors = globalImages->taaMotionVectorsImage->GetTextureHandle();
+		taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
+		taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
+		taaParams.feedback1 = globalImages->taaFeedback1Image->GetTextureHandle();
+		taaParams.feedback2 = globalImages->taaFeedback2Image->GetTextureHandle();
+		taaParams.motionVectorStencilMask = 0; //0x01;
+		taaParams.useCatmullRomFilter = true;
+		taaPass = new TemporalAntiAliasingPass();
+		taaPass->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
+	}
 }
 
 /*
@@ -1800,23 +1848,55 @@ void idRenderBackend::GL_EndFrame()
 	// SRS - execute after EndFrame() to avoid need for barrier command list on Vulkan
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
-	// RB: for testing.
 	if( vrSystem->IsActive() )
 	{
-		vr::D3D12TextureData_t d3d12LeftEyeTexture;
+#if 0
+		if( vrSystem->playerDead || ( game->Shell_IsActive() && !vrSystem->PDAforced && !vrSystem->PDAforcetoggle ) || ( !vrSystem->PDAforced && common->Dialog().IsDialogActive() )
+				|| vrSystem->isLoading || vrSystem->showingIntroVideo || session->GetState() == idSession::LOADING || ( game->CheckInCinematic() && vr_cinematics.GetInteger() == 2 ) )
+		{
+			vrSystem->HMDTrackStatic( !vrSystem->isLoading && !vrSystem->showingIntroVideo && session->GetState() != idSession::LOADING );
 
-		nvrhi::ITexture* nativeTexture = globalImages->ldrImage->GetTextureHandle();
-		d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
-		d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
-		d3d12LeftEyeTexture.m_nNodeMask = 0;
-
-		vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
-		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
-		vr::VRCompositor()->Submit( vr::Eye_Right, &leftEyeTexture );
+		}
+		else
+#endif
+		{
+			HMD_SubmitStereoRenders();
+		}
 	}
 
 	// update jitter for perspective matrix
 	taaPass->AdvanceFrame();
+}
+
+
+/*
+==================
+idRenderBackend::HMD_SubmitStereoRenders
+==================
+*/
+void idRenderBackend::HMD_SubmitStereoRenders()
+{
+	vr::D3D12TextureData_t d3d12LeftEyeTexture;
+
+	nvrhi::ITexture* nativeTexture = globalImages->stereoRenderImages[0]->GetTextureHandle();
+	d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+	d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+	d3d12LeftEyeTexture.m_nNodeMask = 0;
+
+	vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+
+
+	vr::D3D12TextureData_t d3d12RightEyeTexture;
+
+	nativeTexture = globalImages->stereoRenderImages[1]->GetTextureHandle();
+	d3d12RightEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+	d3d12RightEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+	d3d12RightEyeTexture.m_nNodeMask = 0;
+
+	vr::Texture_t rightEyeTexture = { ( void* )& d3d12RightEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+
+	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
 }
 
 /*
@@ -2255,6 +2335,184 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 */
 void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
+	GL_StartFrame();
+
+	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
+	globalImages->LoadDeferredImages( commandList );
+
+	uint64 backEndStartTime = Sys_Microseconds();
+
+	// In stereoRender mode, the front end has generated two RC_DRAW_VIEW commands
+	// with slightly different origins for each eye.
+
+	// TODO: only do the copy after the final view has been rendered, not mirror subviews?
+
+	// Render the 3D draw views from the screen origin so all the screen relative
+	// texture mapping works properly, then copy the portion we are going to use
+	// off to a texture.
+	bool foundEye[2] = { false, false };
+
+	for( int stereoEye = 1; stereoEye >= -1; stereoEye -= 2 )
+	{
+		// set up the target texture we will draw to
+		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+		// Set the back end into a known default state to fix any stale render state issues
+		GL_SetDefaultState();
+
+		renderProgManager.Unbind();
+		renderProgManager.ZeroUniforms();
+
+		for( const emptyCommand_t* cmds = allCmds; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
+		{
+			switch( cmds->commandId )
+			{
+				case RC_NOP:
+					break;
+
+				case RC_DRAW_VIEW_GUI:
+				case RC_DRAW_VIEW_3D:
+				{
+					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
+					const viewDef_t&			eyeViewDef = *dsc->viewDef;
+
+					if( eyeViewDef.renderView.viewEyeBuffer && eyeViewDef.renderView.viewEyeBuffer != stereoEye )
+					{
+						// this is the render view for the other eye
+						continue;
+					}
+
+					foundEye[ targetEye ] = true;
+					DrawView( dsc, stereoEye );
+					if( cmds->commandId == RC_DRAW_VIEW_GUI )
+					{
+					}
+				}
+				break;
+
+				case RC_SET_BUFFER:
+					SetBuffer( cmds );
+					break;
+
+				case RC_COPY_RENDER:
+					CopyRender( cmds );
+					break;
+
+				case RC_POST_PROCESS:
+				{
+					postProcessCommand_t* cmd = ( postProcessCommand_t* )cmds;
+					if( cmd->viewDef->renderView.viewEyeBuffer != stereoEye )
+					{
+						break;
+					}
+					PostProcess( cmds );
+				}
+				break;
+
+				default:
+					common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+					break;
+			}
+		}
+
+		// copy to the target
+		//stereoRenderImages[ targetEye ]->CopyFramebuffer( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+		{
+			OPTICK_GPU_EVENT( "Blit_StereoImage" );
+
+			// copy LDR result to DX12 / Vulkan swapchain image
+
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = globalFramebuffers.vrStereoFBO[ targetEye ]->GetApiObject();
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
+
+		vrSystem->hmdCurrentRender[ targetEye ] = globalImages->stereoRenderImages[ targetEye ];
+	}
+
+	// perform the final compositing / warping / deghosting to the actual framebuffer(s)
+	assert( foundEye[0] && foundEye[1] );
+
+	GL_SetDefaultState();
+
+	RB_SetMVP( renderMatrix_identity );
+
+	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
+
+	// We just want to do a quad pass - so make sure we disable any texgen and
+	// set the texture matrix to the identity so we don't get anomalies from
+	// any stale uniform data being present from a previous draw call
+	const float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+	const float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+	// disable any texgen
+	const float texGenEnabled[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+
+	renderProgManager.BindShader_Texture();
+	GL_Color( 1, 1, 1, 1 );
+
+
+	//common->Printf( "SREBEC Rendering frame %d\n", idLib::frameNumber );
+	switch( renderSystem->GetStereo3DMode() )
+	{
+		case STEREO3D_SIDE_BY_SIDE:
+
+		// a non-warped side-by-side-uncompressed (dual input cable) is rendered
+		// just like STEREO3D_SIDE_BY_SIDE_COMPRESSED, so fall through.
+		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
+			GL_SelectTexture( 0 );
+			globalImages->stereoRenderImages[0]->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->stereoRenderImages[1]->Bind();
+			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			GL_SelectTexture( 0 );
+			globalImages->stereoRenderImages[1]->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->stereoRenderImages[0]->Bind();
+			GL_ViewportAndScissor( renderSystem->GetWidth(), 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			DrawElementsWithCounters( &unitSquareSurface );
+			break;
+
+		default:
+		case STEREO3D_HMD:
+			/*
+			// Koz begin
+			// This is the rift.
+			if( vrSystem->IsActive() )
+			{
+				if( vrSystem->playerDead || ( game->Shell_IsActive() && !vrSystem->PDAforced && !vrSystem->PDAforcetoggle ) || ( !vrSystem->PDAforced && common->Dialog().IsDialogActive() )
+						|| vrSystem->isLoading || vrSystem->showingIntroVideo || session->GetState() == idSession::LOADING || ( game->CheckInCinematic() && vr_cinematics.GetInteger() == 2 ) )
+				{
+					vrSystem->HMDTrackStatic( !vrSystem->isLoading && !vrSystem->showingIntroVideo && session->GetState() != idSession::LOADING );
+
+				}
+				else
+				{
+					vrSystem->HMDRender( stereoRenderImages[0], stereoRenderImages[1] );
+				}
+
+				// Koz GL_CheckErrors();
+
+			}
+			*/
+			break;
+			// Koz end
+	}
+
+	DrawFlickerBox();
+
+	// SRS - capture backend timing before GL_EndFrame() since it can block when r_mvkSynchronousQueueSubmits is enabled on macOS/MoltenVK
+	uint64 backEndFinishTime = Sys_Microseconds();
+	pc.cpuTotalMicroSec = backEndFinishTime - backEndStartTime;
+
+	GL_EndFrame();
 }
 
 void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )

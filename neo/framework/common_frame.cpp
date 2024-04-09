@@ -380,13 +380,29 @@ void idCommonLocal::Draw()
 		// draw the wipe material on top of this if it hasn't completed yet
 		DrawWipeModel();
 
-		Dialog().Render( loadGUI != NULL );
+		if( !vrSystem->IsActive() )
+		{
+			Dialog().Render( loadGUI != NULL );
 
-		// draw the half console / notify console on top of everything
-		console->Draw( false );
+			// draw the half console / notify console on top of everything
+			console->Draw( false );
 
-		// old CRT TV simulation has to be last or it breaks the immersion
-		renderSystem->DrawCRTPostFX();
+			// old CRT TV simulation has to be last or it breaks the immersion
+			renderSystem->DrawCRTPostFX();
+		}
+		else
+		{
+			if( !vrSystem->PDAforced && !vrSystem->PDAforcetoggle )
+			{
+				Dialog().Render( loadGUI != NULL );
+
+				if( game->Shell_IsActive() )
+				{
+					console->Draw( false );
+				}
+			}
+
+		}
 	}
 }
 

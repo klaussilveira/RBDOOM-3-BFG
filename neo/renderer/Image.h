@@ -652,6 +652,7 @@ public:
 
 	idImage*			vrPDAImage;						// copy target of LDR FBO for displaying menus and PDA onto the PDA model
 	idImage*			vrHUDImage;						// copy target of LDR FBO for displaying onto the 3D HUD model
+	idImage*			stereoRenderImages[2];
 	// RB end
 	idImage* 			scratchImage;
 	idImage* 			scratchImage2;
