@@ -118,6 +118,11 @@ public:
 		return nvrhi::GraphicsAPI::VULKAN;
 	}
 
+	int GetGraphicsFamilyIndex() const override
+	{
+		return m_GraphicsQueueFamily;
+	}
+
 protected:
 	bool CreateDeviceAndSwapChain() override;
 	void DestroyDeviceAndSwapChain() override;

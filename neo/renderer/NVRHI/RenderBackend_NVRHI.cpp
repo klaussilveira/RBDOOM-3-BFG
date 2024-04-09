@@ -40,6 +40,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "nvrhi/utils.h"
 #include <sys/DeviceManager.h>
+
+#include "../vr/Vr.h"
+
 extern DeviceManager* deviceManager;
 extern idCVar r_graphicsAPI;
 
@@ -1796,6 +1799,21 @@ void idRenderBackend::GL_EndFrame()
 
 	// SRS - execute after EndFrame() to avoid need for barrier command list on Vulkan
 	deviceManager->GetDevice()->executeCommandList( commandList );
+
+	// RB: for testing. 
+	if( vrSystem->IsActive() )
+	{
+		vr::D3D12TextureData_t d3d12LeftEyeTexture;
+
+		nvrhi::ITexture* nativeTexture = globalImages->ldrImage->GetTextureHandle();
+		d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		d3d12LeftEyeTexture.m_nNodeMask = 0;
+
+		vr::Texture_t leftEyeTexture = { ( void * ) &d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+		vr::VRCompositor()->Submit( vr::Eye_Right, &leftEyeTexture );
+	}
 
 	// update jitter for perspective matrix
 	taaPass->AdvanceFrame();

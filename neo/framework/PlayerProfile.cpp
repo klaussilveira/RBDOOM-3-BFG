@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "PlayerProfile.h"
 
+#include "vr/Vr.h"
+
 // After releasing a version to the market, here are limitations for compatibility:
 //	- the major version should not ever change
 //	- always add new items to the bottom of the save/load routine
@@ -152,6 +154,7 @@ bool idPlayerProfile::Serialize( idSerializer& ser )
 	idDict cvarDict;
 	cvarSystem->MoveCVarsToDict( CVAR_ARCHIVE, cvarDict );
 	cvarDict.Serialize( ser );
+#if 0
 	if( ser.IsReading() )
 	{
 		// Never sync these cvars with Steam because they require an engine or video restart
@@ -160,9 +163,10 @@ bool idPlayerProfile::Serialize( idSerializer& ser )
 		cvarDict.Delete( "r_multisamples" );
 		cvarDict.Delete( "r_antiAliasing" );
 		cvarDict.Delete( "com_engineHz" );
-		cvarSystem->SetCVarsFromDict( cvarDict );
+		//cvarSystem->SetCVarsFromDict( cvarDict ); //Carl: This makes the .cfg files useless, so comment it out.
 		common->StartupVariable( NULL );
 	}
+#endif
 
 	// The dlcReleaseVersion is used to determine that new content is available
 	ser.SerializePacked( dlcReleaseVersion );
@@ -197,7 +201,9 @@ bool idPlayerProfile::Serialize( idSerializer& ser )
 			{
 				idStr bind;
 				ser.SerializeString( bind );
+#if 0
 				idKeyInput::SetBinding( i, bind.c_str() );
+#endif
 			}
 		}
 	}
@@ -421,7 +427,6 @@ idPlayerProfile::ExecConfig
 */
 void idPlayerProfile::ExecConfig( bool save, bool forceDefault )
 {
-
 	int flags = 0;
 	if( !save )
 	{
@@ -445,6 +450,19 @@ void idPlayerProfile::ExecConfig( bool save, bool forceDefault )
 		cmdSystem->AppendCommandText( "exec joy_360_0.cfg\n" );
 	}
 
+	if( vrSystem->IsActive() )
+	{
+		if( vrSystem->HasHMD() )
+		{
+			cmdSystem->AppendCommandText( "exec vr_openvr_default.cfg\n" );
+		}
+
+		if( vrSystem->HasHMD() )
+		{
+			cmdSystem->AppendCommandText( "exec vr_openvr.cfg\n" );
+		}
+
+	}
 	cmdSystem->ExecuteCommandBuffer();
 
 	if( !save )

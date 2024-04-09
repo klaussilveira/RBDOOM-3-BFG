@@ -801,41 +801,70 @@ void iVr::HMDInitializeDistortion()
 		*/
 
 
-		vr::D3D12TextureData_t d3d12BlackSkyboxTexture;// = {}; // = { globalImages->blackImage->GetTextureID(), m_pCommandQueue.Get(), 0 };
-
 		nvrhi::IDevice* device = deviceManager->GetDevice();
 		nvrhi::CommandListHandle commandList = device->createCommandList();
 		commandList->open();
 
 		//nvrhi::CommandListHandle commandList = tr.backend.GL_GetCommandList();
 
-		nvrhi::ITexture* nativeTexture = globalImages->blackImage->GetTextureHandle();
-		d3d12BlackSkyboxTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
-		d3d12BlackSkyboxTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
-		//d3d12BlackSkyboxTexture.m_pCommandQueue = device->getNativeQueue(nvrhi::ObjectTypes::D3D12_CommandQueue, commandList->get );//commandList->getNativeObject(nvrhi::ObjectTypes::D3D12_CommandQueue);
-		d3d12BlackSkyboxTexture.m_nNodeMask = 0;
+		
 
+		vr::EVRCompositorError compositeError = vr::VRCompositorError_None;
 
-
-		//vr::Texture_t skyboxTexture = { ( void * ) &d3d12BlackSkyboxTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
-
-		vr::Texture_t skyboxTextures[6] = {};
-		for( int i = 0; i < 6; i++ )
+		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
-			skyboxTextures[i].handle = ( void* ) &d3d12BlackSkyboxTexture;
-			skyboxTextures[i].eType = vr::TextureType_DirectX12;
-			skyboxTextures[i].eColorSpace = vr::ColorSpace_Auto;
+			// FIXME this crashes although it shouldn't
+#if 0
+			vr::VRVulkanTextureData_t vulkanData;
+			nvrhi::ITexture* nativeTexture = globalImages->blackImage->GetTextureHandle();
+
+			vulkanData.m_nImage = ( uint64_t ) (void*)nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+			vulkanData.m_pDevice = ( VkDevice_T * ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
+			vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T * ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
+			vulkanData.m_pInstance = ( VkInstance_T *) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
+			vulkanData.m_pQueue = ( VkQueue_T * ) commandList->getNativeObject( nvrhi::ObjectTypes::VK_CommandBuffer );
+			vulkanData.m_nQueueFamilyIndex = deviceManager->GetGraphicsFamilyIndex();
+
+			vulkanData.m_nWidth = globalImages->blackImage->GetUploadWidth();
+			vulkanData.m_nHeight = globalImages->blackImage->GetUploadHeight();
+			vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+			vulkanData.m_nSampleCount = 1;
+
+			vr::Texture_t skyboxTexture = { ( void * ) &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+
+			compositeError = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTexture, 1 );
+#endif
 		}
+		else
+		{
+			vr::D3D12TextureData_t d3d12BlackSkyboxTexture;
+#if 1
+			nvrhi::ITexture* nativeTexture = globalImages->blackImage->GetTextureHandle();
+			d3d12BlackSkyboxTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+			d3d12BlackSkyboxTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+			d3d12BlackSkyboxTexture.m_nNodeMask = 0;
 
+			vr::Texture_t skyboxTexture = { ( void * ) &d3d12BlackSkyboxTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
 
+			compositeError = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTexture, 1 );
+#else
+			vr::Texture_t skyboxTextures[6] = {};
+			for( int i = 0; i < 6; i++ )
+			{
+				skyboxTextures[i].handle = ( void* ) &d3d12BlackSkyboxTexture;
+				skyboxTextures[i].eType = vr::TextureType_DirectX12;
+				skyboxTextures[i].eColorSpace = vr::ColorSpace_Auto;
+			}
 
-		static vr::EVRCompositorError error = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTextures, 6 );
+			compositeError = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTextures, 6 );
+#endif
+		}
 
 		commandList->close();
 		deviceManager->GetDevice()->executeCommandList( commandList );
 
-		common->Printf( "Compositor error = %d\n", error );
-		if( ( int )error != vr::VRCompositorError_None )
+		common->Printf( "Compositor error = %d\n", compositeError );
+		if( ( int )compositeError != vr::VRCompositorError_None )
 		{
 			//gameLocal.Error( "Failed to set skybox override with error: %d\n", error );
 		}
