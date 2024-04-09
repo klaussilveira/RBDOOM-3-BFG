@@ -36,6 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "ConsoleHistory.h"
 
 #include "../sound/sound.h"
+#include "../vr/Vr.h"
 
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
@@ -203,7 +204,6 @@ idCommonLocal::idCommonLocal() :
 	gameTimeResidual = 0;
 	syncNextGameFrame = true;
 	mapSpawned = false;
-	timeDemo = TD_NO;
 
 	nextSnapshotSendTime = 0;
 	nextUsercmdSendTime = 0;
@@ -267,7 +267,12 @@ void idCommonLocal::ParseCommandLine( int argc, const char* const* argv )
 	// API says no program path
 	for( i = 0; i < argc; i++ )
 	{
-		if( idStr::Icmp( argv[ i ], "+connect_lobby" ) == 0 )
+		// Koz fixme enable VR support here.
+		if( idStr::Icmp( argv[ i ], "-vr" ) == 0 )
+		{
+			vr_enable.SetBool( true );
+		}
+		else if( idStr::Icmp( argv[ i ], "+connect_lobby" ) == 0 )
 		{
 			// Handle Steam bootable invites.
 
@@ -448,7 +453,16 @@ void idCommonLocal::WriteConfiguration()
 	bool developer = com_developer.GetBool();
 	com_developer.SetBool( false );
 
-	WriteConfigToFile( CONFIG_FILE );
+	// Koz begin
+	if( vrSystem->IsActive() )
+	{
+		WriteConfigToFile( "vr_openvr.cfg" );
+	}
+	else
+	{
+		WriteConfigToFile( CONFIG_FILE );
+	}
+	// Koz end
 
 	// restore the developer cvar
 	com_developer.SetBool( developer );
@@ -869,11 +883,6 @@ idCommonLocal::RenderSplash
 */
 void idCommonLocal::RenderSplash()
 {
-	//const emptyCommand_t* renderCommands = NULL;
-
-	// RB: this is the same as Doom 3 renderSystem->BeginFrame()
-	//renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
-
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -899,8 +908,6 @@ void idCommonLocal::RenderSplash()
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
 	renderSystem->RenderCommandBuffers( cmd );
 
-	// RB: this is the same as Doom 3 renderSystem->EndFrame()
-	//renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 }
 
 /*
@@ -988,28 +995,31 @@ void idCommonLocal::RenderBink( const char* path )
 			}
 		}
 
-		int numJoystickEvents = Sys_PollJoystickInputEvents( 0 );
-		if( numJoystickEvents > 0 )
+		for( int eachJ = 0; eachJ < MAX_INPUT_DEVICES; eachJ ++ )
 		{
-			for( int i = 0; i < numJoystickEvents; i++ )
+			int numJoystickEvents = Sys_PollJoystickInputEvents( eachJ );
+			if( numJoystickEvents > 0 )
 			{
-				int action;
-				int value;
-
-				if( Sys_ReturnJoystickInputEvent( i, action, value ) )
+				for( int i = 0; i < numJoystickEvents; i++ )
 				{
-					if( action >= J_ACTION1 && action <= J_ACTION_MAX )
+					int action;
+					int value;
+
+					if( Sys_ReturnJoystickInputEvent( i, action, value ) )
 					{
-						if( value != 0 )
+						if( action >= J_ACTION1 && action <= J_ACTION_MAX )
 						{
-							escapeEvent = true;
-							break;
+							if( value != 0 )
+							{
+								escapeEvent = true;
+								break;
+							}
 						}
 					}
 				}
-			}
 
-			Sys_EndJoystickInputEvents();
+				Sys_EndJoystickInputEvents();
+			}
 		}
 
 		if( escapeEvent )
@@ -1265,16 +1275,33 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// init the parallel job manager
 		parallelJobManager->Init();
 
+		// Carl: init the Virtual Reality head tracking, detect any connected HMDs, and read display parameters
+		// this needs to happen before the cfg files are loaded.
+		vrSystem->HMDInit();
+		vrSystem->showingIntroVideo = true;
+
 		// exec the startup scripts
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
 
-#ifdef CONFIG_FILE
+		// Koz begin
+		if( vrSystem->HasHMD() )
+		{
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec vr_openvr_default.cfg\n" );
+		}
+
 		// skip the config file if "safe" is on the command line
 		if( !SafeMode() && !g_demoMode.GetBool() )
 		{
-			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec " CONFIG_FILE "\n" );
+			if( vrSystem->HasHMD() )
+			{
+				cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec vr_openvr.cfg\n" );
+			}
+			else
+			{
+				cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec " CONFIG_FILE "\n" );
+			}
 		}
-#endif
+		// Koz end
 
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec autoexec.cfg\n" );
 
@@ -1291,6 +1318,12 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		renderSystem->InitBackend();
 
 		// Support up to 2 digits after the decimal point
+		if( vrSystem->IsActive() )
+		{
+			cvarSystem->SetCVarString( "r_swapInterval", "0" );
+			cvarSystem->SetCVarInteger( "com_engineHz", vrSystem->GetHz() );
+		}
+
 		com_engineHz_denominator = 100LL * com_engineHz.GetFloat();
 		com_engineHz_latched = com_engineHz.GetFloat();
 
@@ -1299,6 +1332,10 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 
 		// initialize the renderSystem data structures
 		renderSystem->Init();
+
+#ifdef _WIN32
+		//vrVoice->VoiceInit();
+#endif
 
 		whiteMaterial = declManager->FindMaterial( "_white" );
 
@@ -1321,9 +1358,30 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// SP: Load in the splash screen images.
 		globalImages->LoadDeferredImages();
 
+		// RB: now that we have actually loaded the images we can override the default skybox
+		if( vrSystem->HasHMD() )
+		{
+			vrSystem->HMDInitializeDistortion();
+		}
+
 		const int legalMinTime = 4000;
 		const bool showVideo = ( !com_skipIntroVideos.GetBool() && fileSystem->UsingResourceFiles() );
 		const bool showSplash = true;
+
+		if( vrSystem->IsActive() )
+		{
+			if( vr_controllerStandard.GetInteger() == 1 )
+			{
+				common->Printf( "vr_controllerStandard has disabled motion controls\n" );
+				vrSystem->VR_USE_MOTION_CONTROLS = false;
+			}
+
+			vrSystem->HMDResetTrackingOriginOffset();
+			vrSystem->FrameStart();
+		}
+
+		vrSystem->renderingSplash = true;
+
 		if( showVideo )
 		{
 			RenderBink( "video\\loadvideo.bik" );
@@ -1417,16 +1475,125 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 
 		AddStartupCommands();
 
+		// Koz moved static binds here to ensure all previous commands in the command buffer
+		// have been fully executed. Some of the .cfg files perform unbindall, which
+		// was wiping out these binds due to the way the commands queue.
+
+		// Carl talking should always be bound to _talk
+		cmdSystem->AppendCommandText( "bind TALK _talk\n" );
+		cmdSystem->AppendCommandText( "bind SAY_PAUSE _pause\n" );
+		cmdSystem->AppendCommandText( "bind SAY_RESUME _resume\n" );
+		cmdSystem->AppendCommandText( "bind SAY_EXIT _impulse40\n" );
+		cmdSystem->AppendCommandText( "bind SAY_MENU _impulse40\n" );
+		//	cmdSystem->AppendCommandText("bind SAY_CANCEL _impulse\n");
+		cmdSystem->AppendCommandText( "bind SAY_RELOAD _impulse13\n" );
+		cmdSystem->AppendCommandText( "bind SAY_PDA _impulse19\n" );
+		//cmdSystem->AppendCommandText("bind SAY_FIST _impulse1\n");
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "bind SAY_FIST _impulse26\n" );
+		cmdSystem->AppendCommandText( "bind SAY_CHAINSAW _impulse27\n" );
+		cmdSystem->AppendCommandText( "bind SAY_FLASHLIGHT _impulse16\n" );
+		cmdSystem->AppendCommandText( "bind SAY_GRABBER _impulse1\n" );
+		cmdSystem->AppendCommandText( "bind SAY_PISTOL _impulse2\n" );
+		cmdSystem->AppendCommandText( "bind SAY_SHOTGUN _impulse11\n" );
+		cmdSystem->AppendCommandText( "bind SAY_SUPER_SHOTGUN _impulse4\n" );
+		cmdSystem->AppendCommandText( "bind SAY_MACHINE_GUN _impulse5\n" );
+		cmdSystem->AppendCommandText( "bind SAY_CHAIN_GUN _impulse6\n" );
+		cmdSystem->AppendCommandText( "bind SAY_ROCKET_LAUNCHER _impulse9\n" );
+		cmdSystem->AppendCommandText( "bind SAY_GRENADES _impulse7\n" );
+		cmdSystem->AppendCommandText( "bind SAY_PLASMA_GUN _impulse8\n" );
+		cmdSystem->AppendCommandText( "bind SAY_BFG _impulse10\n" );
+		cmdSystem->AppendCommandText( "bind SAY_SOUL_CUBE _soulcube\n" );
+		cmdSystem->AppendCommandText( "bind SAY_ARTIFACT _artifact\n" );
+		cmdSystem->AppendCommandText( "bind SAY_RESET_VIEW _impulse32\n" );
 		StartMenu( true );
+
+
 // SRS - changed ifndef to ifdef since legalMinTime should apply to retail builds, not dev builds
-#ifdef ID_RETAIL
+#if 1 //def ID_RETAIL
 		while( Sys_Milliseconds() - legalStartTime < legalMinTime )
 		{
+			if( vrSystem->IsActive() )
+			{
+				if( vrSystem->HasHMD() )
+				{
+					idLib::frameNumber++;
+					vrSystem->FrameStart();
+				}
+			}
+			else
+			{
+				Sys_Sleep( 10 );
+			}
+
 			RenderSplash();
 			Sys_GenerateEvents();
-			Sys_Sleep( 10 );
 		};
 #endif
+		vrSystem->HMDResetTrackingOriginOffset();
+
+		//splashScreen = declManager->FindMaterial( "guis/lookforward" );
+
+		if( vrSystem->IsActive() )
+		{
+			int centered = 0;
+
+			while( centered == 0 )
+			{
+				if( vrSystem->HasHMD() )
+				{
+					idLib::frameNumber++;
+					vrSystem->FrameStart();
+				}
+				RenderSplash();
+				Sys_GenerateEvents();
+
+				// queue system events ready for polling
+				Sys_GetEvent();
+
+				// RB: allow to escape video by pressing anything
+				int numKeyEvents = Sys_PollKeyboardInputEvents();
+
+				if( numKeyEvents > 0 )
+				{
+					//common->Printf( "Bailed from keyevent\n" );
+					centered++;
+				}
+
+				for( int eachJ = 0; eachJ < MAX_INPUT_DEVICES; eachJ++ )
+				{
+					int numJoystickEvents = Sys_PollJoystickInputEvents( eachJ );
+					if( numJoystickEvents > 0 )
+					{
+						for( int i = 0; i < numJoystickEvents; i++ )
+						{
+							int action;
+							int value;
+
+							if( Sys_ReturnJoystickInputEvent( i, action, value ) )
+							{
+								if( action >= J_ACTION1 && action <= J_ACTION_MAX )
+								{
+									if( value != 0 )
+									{
+										centered++;
+										break;
+									}
+								}
+							}
+						}
+
+						Sys_EndJoystickInputEvents();
+					}
+				}
+			}
+		}
+
+		if( vrSystem->IsActive() )
+		{
+			vrSystem->HMDResetTrackingOriginOffset();
+		}
+
+		vrSystem->renderingSplash = false;
 
 		// print all warnings queued during initialization
 		PrintWarnings();
@@ -1575,6 +1742,10 @@ void idCommonLocal::Shutdown()
 	// SRS - Note this also shuts down all cinematic resources, including cinematic audio voices
 	printf( "declManager->Shutdown();\n" );
 	declManager->Shutdown();
+
+	// shutdown the VR system
+	printf( "vrSystem->Shutdown();\n" );
+	vrSystem->HMDShutdown();
 
 	// shut down the renderSystem
 	// SRS - Note this also shuts down any testVideo resources, including cinematic audio voices
@@ -1790,17 +1961,40 @@ idCommonLocal::ProcessEvent
 bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 {
 	// hitting escape anywhere brings up the menu
+
+	// Koz HACK
+	// not enough buttons on the SteamVR controller and still want to be able to bail out of cinematics, so the PDA button will nuke a cinematic
+	if( vrSystem->IsActive() )
+	{
+		static bool send1 = false;
+		if( game->CheckInCinematic() && !send1 )
+		{
+			if( ButtonState( UB_IMPULSE19 ) )
+			{
+#ifdef _WIN32
+				void Sys_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr, int inputDeviceNum );
+				Sys_QueEvent( SE_KEY, K_ESCAPE, 1, 0, NULL, 0 );
+				send1 = true;
+#endif
+			}
+		}
+		else
+		{
+			send1 = false;
+		}
+	}
+
 	if( game && game->IsInGame() )
 	{
-		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) )
+		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 || event->evValue == K_SAY_CANCEL || event->evValue == K_SAY_RESUME ) )
 		{
-			if( game->CheckInCinematic() == true )
+			if( game->CheckInCinematic() )
 			{
 				game->SkipCinematicScene();
 			}
 			else
 			{
-				if( !game->Shell_IsActive() )
+				if( !game->Shell_IsActive() && event->evValue != K_SAY_CANCEL && event->evValue != K_SAY_RESUME )
 				{
 					// menus / etc
 					if( MenuEvent( event ) )

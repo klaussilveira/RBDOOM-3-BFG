@@ -99,6 +99,7 @@ void VR_QuatToRotation( idQuat q, float ( &out )[4][4] )
 	out[3][3] = 1;
 }
 
+/*
 static void VR_MakeStereoRenderImage( idImage* image )
 {
 	idImageOpts	opts;
@@ -108,6 +109,7 @@ static void VR_MakeStereoRenderImage( idImage* image )
 	opts.format = FMT_RGBA8;
 	image->AllocImage( opts, TF_LINEAR, TR_CLAMP );
 }
+*/
 
 /*
 ====================
@@ -368,7 +370,7 @@ last fullscreen texture then force a buffer swap.
 
 void iVr::HMDTrackStatic( bool is3D )
 {
-	if( vrSystem->IsActive() )
+	if( IsActive() )
 	{
 		//common->Printf( "HmdTrackStatic called idFrame #%d\n", idLib::frameNumber);
 		if( hmdCurrentRender[0] == NULL || hmdCurrentRender[1] == NULL )

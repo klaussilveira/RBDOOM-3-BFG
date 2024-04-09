@@ -44,6 +44,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../renderer/Framebuffer.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 // *** Oculus HMD Variables
 
 idCVar vr_pixelDensity( "vr_pixelDensity", "1.25", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "" );
@@ -125,9 +128,6 @@ idCVar vr_talkMode( "vr_talkMode", "2", CVAR_INTEGER | CVAR_GAME | CVAR_ARCHIVE,
 idCVar vr_tweakTalkCursor( "vr_tweakTalkCursor", "25", CVAR_FLOAT | CVAR_GAME | CVAR_ARCHIVE, "Tweak talk cursor y pos in VR. % val", 0, 99 );
 
 idCVar vr_wristStatMon( "vr_wristStatMon", "1", CVAR_INTEGER | CVAR_ARCHIVE, "Use wrist status monitor. 0 = Disable 1 = Right Wrist 2 = Left Wrist " );
-
-// Koz display windows monitor name in the resolution selection menu, helpful to ID which is the rift if using extended mode
-idCVar vr_listMonitorName( "vr_listMonitorName", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "List monitor name with resolution." );
 
 idCVar vr_disableWeaponAnimation( "vr_disableWeaponAnimation", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "Disable weapon animations in VR. ( 1 = disabled )" );
 idCVar vr_headKick( "vr_headKick", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "Damage can 'kick' the players view. 0 = Disabled in VR." );
@@ -571,8 +571,11 @@ iVr::HMDShutdown
 */
 void iVr::HMDShutdown()
 {
-	vr::VR_Shutdown();
-	m_pHMD = NULL;
+	if( m_pHMD )
+	{
+		vr::VR_Shutdown();
+		m_pHMD = NULL;
+	}
 }
 
 idMat4 iVr::GetHMDMatrixProjectionEye( vr::Hmd_Eye nEye )
@@ -773,30 +776,73 @@ void iVr::HMDInitializeDistortion()
 		common->Printf( "Init Hmd FOV x,y = %f , %f. Aspect = %f\n", hmdFovX, hmdFovY, hmdAspect );
 	}
 
+#if 1
 	{
 		// override the default steam skybox, initially just set to black.  UpdateScreen can copy static images to skyBoxFront during level loads/saves
 
+		/*
 		static vr::Texture_t* textures = new vr::Texture_t[6];
 		for( int i = 0; i < 6; i++ )
 		{
-			textures[i].handle = ( unsigned int* )globalImages->blackImage->GetImGuiTextureID();
-			textures[i].eType = vr::TextureType_OpenGL;
+			textures[i].handle = globalImages->blackImage->GetTextureID();
+			if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+			{
+				textures[i].eType = vr::TextureType_Vulkan;
+			}
+			else
+			{
+				textures[i].eType = vr::TextureType_DirectX12;
+			}
 			textures[i].eColorSpace = vr::ColorSpace_Auto;
 		}
 
 		//textures[0].handle = (unsigned int*)globalImages->skyBoxFront->texnum;
-		textures[0].handle = ( unsigned int* )globalImages->blackImage->GetTextureID();
+		//textures[0].handle = globalImages->blackImage->GetTextureID();
+		*/
 
-		static vr::EVRCompositorError error = vr::VRCompositor()->SetSkyboxOverride( textures, 1 );
+
+		vr::D3D12TextureData_t d3d12BlackSkyboxTexture;// = {}; // = { globalImages->blackImage->GetTextureID(), m_pCommandQueue.Get(), 0 };
+
+		nvrhi::IDevice* device = deviceManager->GetDevice();
+		nvrhi::CommandListHandle commandList = device->createCommandList();
+		commandList->open();
+
+		//nvrhi::CommandListHandle commandList = tr.backend.GL_GetCommandList();
+
+		nvrhi::ITexture* nativeTexture = globalImages->blackImage->GetTextureHandle();
+		d3d12BlackSkyboxTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12BlackSkyboxTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		//d3d12BlackSkyboxTexture.m_pCommandQueue = device->getNativeQueue(nvrhi::ObjectTypes::D3D12_CommandQueue, commandList->get );//commandList->getNativeObject(nvrhi::ObjectTypes::D3D12_CommandQueue);
+		d3d12BlackSkyboxTexture.m_nNodeMask = 0;
+
+
+
+		//vr::Texture_t skyboxTexture = { ( void * ) &d3d12BlackSkyboxTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+
+		vr::Texture_t skyboxTextures[6] = {};
+		for( int i = 0; i < 6; i++ )
+		{
+			skyboxTextures[i].handle = ( void* ) &d3d12BlackSkyboxTexture;
+			skyboxTextures[i].eType = vr::TextureType_DirectX12;
+			skyboxTextures[i].eColorSpace = vr::ColorSpace_Auto;
+		}
+
+
+
+		static vr::EVRCompositorError error = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTextures, 6 );
+
+		commandList->close();
+		deviceManager->GetDevice()->executeCommandList( commandList );
 
 		common->Printf( "Compositor error = %d\n", error );
 		if( ( int )error != vr::VRCompositorError_None )
 		{
-			gameLocal.Error( "Failed to set skybox override with error: %d\n", error );
+			//gameLocal.Error( "Failed to set skybox override with error: %d\n", error );
 		}
 
 		common->Printf( "Finished setting skybox\n" );
 	}
+#endif
 
 	//globalFramebuffers.primaryFBO->Bind();
 
@@ -812,7 +858,7 @@ void iVr::HMDInitializeDistortion()
 		}
 		while( !m_rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid );
 
-		//Seems to take a few frames before a vaild yaw is returned, so zero the current tracked player position by pulling multiple poses;
+		// Seems to take a few frames before a vaild yaw is returned, so zero the current tracked player position by pulling multiple poses;
 		for( int t = 0; t < 20; t++ )
 		{
 			HMDResetTrackingOriginOffset();
@@ -846,15 +892,15 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	static idVec3 currentNeckPosition = vec3_zero;
 	static idVec3 lastNeckPosition = vec3_zero;
 
-	static idVec3 currentChestPosition = vec3_zero;
-	static idVec3 lastChestPosition = vec3_zero;
+	//static idVec3 currentChestPosition = vec3_zero;
+	//static idVec3 lastChestPosition = vec3_zero;
 
-	static float chestLength = 0;
-	static bool chestInitialized = false;
+	//static float chestLength = 0;
+	//static bool chestInitialized = false;
 
-	idVec3 neckToChestVec = vec3_zero;
-	idMat3 neckToChestMat = mat3_identity;
-	idAngles neckToChestAng = ang_zero;
+	//idVec3 neckToChestVec = vec3_zero;
+	//idMat3 neckToChestMat = mat3_identity;
+	//idAngles neckToChestAng = ang_zero;
 
 	static idVec3 lastHeadPositionDelta = vec3_zero;
 	static idVec3 lastBodyPositionDelta = vec3_zero;
@@ -1104,12 +1150,13 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	lastBodyPositionDelta = bodyPositionDelta;
 
 	lastNeckPosition = currentNeckPosition;
-	lastChestPosition = currentChestPosition;
+	//lastChestPosition = currentChestPosition;
 
 	headPositionDelta = hmdPosition - currentNeckPosition; // use this to base movement on neck model
 	//headPositionDelta = hmdPosition - currentChestPosition;
 	headPositionDelta.z = hmdPosition.z;
 	//bodyPositionDelta.z = 0;
+
 	// how many game units the user has physically ducked in real life from their calibrated position
 	userDuckingAmount = ( trackingOriginHeight - trackingOriginOffset.z ) - hmdPosition.z;
 

@@ -96,20 +96,11 @@ class iVr
 public:
 	iVr();
 
-	bool				IsActive() const
-	{
-		return isActive;
-	}
-
-	bool				HasHMD() const
-	{
-		return ( m_pHMD != nullptr );
-	}
-
 	bool				OpenVRInit();
 
 	void				HMDInit();
 	void				HMDShutdown();
+
 	void				HMDInitializeDistortion();
 	void				HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idVec3& bodyPositionDelta, idVec3& absolutePosition, bool resetTrackingOffset );
 	void				HMDRender( idImage* leftCurrent, idImage* rightCurrent );
@@ -139,6 +130,21 @@ public:
 
 	void				SwapWeaponHand();
 
+	bool				IsActive() const
+	{
+		return isActive;
+	}
+
+	bool				HasHMD() const
+	{
+		return ( m_pHMD != nullptr );
+	}
+
+	int					GetHz() const
+	{
+		return hmdHz;
+	}
+
 private:
 	idMat4				GetHMDMatrixProjectionEye( vr::Hmd_Eye nEye );
 	idMat4				GetHMDMatrixPoseEye( vr::Hmd_Eye nEye );
@@ -147,7 +153,7 @@ private:
 
 	bool				isActive;
 
-	vr::IVRSystem*			m_pHMD;
+	vr::IVRSystem*			m_pHMD = nullptr;
 	vr::IVRCompositor*		m_pCompositor;
 	vr::IVRChaperone*		m_pChaperone;
 	vr::IVRRenderModels*		m_pRenderModels;
@@ -433,8 +439,6 @@ extern idCVar vr_voiceCommands;
 extern idCVar vr_voicePushToTalk;
 extern idCVar vr_voiceRepeat;
 extern idCVar vr_voiceMinVolume;
-
-extern idCVar vr_listMonitorName;
 
 extern idCVar vr_enable;
 extern idCVar vr_joystickMenuMapping;

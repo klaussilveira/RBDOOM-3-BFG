@@ -590,19 +590,6 @@ private:
 	double				gameTimeResidual;	// left over msec from the last game frame
 	bool				syncNextGameFrame;
 
-	enum timeDemo_t
-	{
-		TD_NO,
-		TD_YES,
-		TD_YES_THEN_QUIT
-	};
-	timeDemo_t			timeDemo;
-	int					timeDemoStartTime;
-	int					numDemoFrames;		// for timeDemo and demoShot
-	int                 numShotFrames;      // SRS - for demoShot playback timeout
-	int					demoTimeOffset;
-	renderView_t		currentDemoRenderView;
-
 	idStrList			mpGameModes;
 	idStrList			mpDisplayGameModes;
 	idList<mpMap_t>		mpGameMaps;
