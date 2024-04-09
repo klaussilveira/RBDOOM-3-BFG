@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include <vr/Vr.h>
+
 #include "Game_local.h"
 #include "../framework/Common_local.h"
 #include "PredictedValue_impl.h"
@@ -10160,16 +10162,23 @@ float idPlayer::DefaultFov() const
 {
 	float fov;
 
-	fov = g_fov.GetFloat();
-	if( common->IsMultiplayer() )
+	if( vrSystem->IsActive() )  // Koz fixme report HMD fov in VR.
 	{
-		if( fov < 80.0f )
+		fov = vrSystem->hmdFovX;
+	}
+	else
+	{
+		fov = g_fov.GetFloat();
+		if( common->IsMultiplayer() )
 		{
-			return 80.0f;
-		}
-		else if( fov > 120.0f )
-		{
-			return 120.0f;
+			if( fov < 80.0f )
+			{
+				return 80.0f;
+			}
+			else if( fov > 120.0f )
+			{
+				return 120.0f;
+			}
 		}
 	}
 
@@ -10197,7 +10206,10 @@ float idPlayer::CalcFov( bool honorZoom )
 		return influenceFov;
 	}
 
-	if( zoomFov.IsDone( gameLocal.time ) )
+	// Koz, no zoom in VR.
+
+	/*
+	if ( zoomFov.IsDone( gameLocal.time ) )
 	{
 		fov = ( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
 	}
@@ -10205,6 +10217,9 @@ float idPlayer::CalcFov( bool honorZoom )
 	{
 		fov = zoomFov.GetCurrentValue( gameLocal.time );
 	}
+	*/
+
+	fov = DefaultFov();
 
 	// bound normal viewsize
 	if( fov < 1 )

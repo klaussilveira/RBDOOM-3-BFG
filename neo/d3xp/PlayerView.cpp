@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include <vr/Vr.h>
+
 #include "Game_local.h"
 
 // _D3XP : rename all gameLocal.time to gameLocal.slow.time for merge!
@@ -718,10 +720,10 @@ stereoDistances_t	CaclulateStereoDistances(
 
 	stereoDistances_t	dists = {};
 
-	if( convergenceWorldUnits == 0.0f )
+	if( convergenceWorldUnits == 0.0f || vrSystem->IsActive() ) // Koz
 	{
 		// head mounted display mode
-		dists.worldSeparation = CentimetersToInches( interOcularCentimeters * 0.5 );
+		dists.worldSeparation = CentimetersToWorldUnits( interOcularCentimeters * 0.5 );
 		dists.screenSeparation = 0.0f;
 		return dists;
 	}
@@ -733,13 +735,31 @@ stereoDistances_t	CaclulateStereoDistances(
 	return dists;
 }
 
+
+float GetIPD()
+{
+	if( vrSystem->IsActive() && !vr_manualIPDEnable.GetInteger() && vr_useOculusProfile.GetInteger() )
+	{
+		return vr::VRSystem()->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_UserIpdMeters_Float ) * 100;
+	}
+
+	return vr_manualIPD.GetFloat() / 10;
+}
+
 float	GetScreenSeparationForGuis()
 {
-	const stereoDistances_t dists = CaclulateStereoDistances(
-										stereoRender_interOccularCentimeters.GetFloat(),
-										renderSystem->GetPhysicalScreenWidthInCentimeters(),
-										stereoRender_convergence.GetFloat(),
-										80.0f /* fov */ );
+	stereoDistances_t dists = CaclulateStereoDistances(
+								  //stereoRender_interOccularCentimeters.GetFloat(),
+								  GetIPD(),
+								  renderSystem->GetPhysicalScreenWidthInCentimeters(),
+								  stereoRender_convergence.GetFloat(),
+								  80.0f /* fov */ );
+
+	if( vrSystem->IsActive() )
+	{
+		extern idCVar vr_guiSeparation;
+		return vr_guiSeparation.GetFloat() * vr_scale.GetFloat();
+	}
 
 	return dists.screenSeparation;
 }
@@ -760,15 +780,24 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	renderView_t eyeView = *view;
 
 	const stereoDistances_t dists = CaclulateStereoDistances(
-										stereoRender_interOccularCentimeters.GetFloat(),
+										GetIPD(),
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
 										view->fov_x );
 
-	eyeView.vieworg += eye * dists.worldSeparation * eyeView.viewaxis[1];
+
+	eyeView.vieworg += ( eye * dists.worldSeparation ) * eyeView.viewaxis[1];
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 	eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
+
+	// Koz begin
+	if( vrSystem->IsActive() )
+	{
+		vrSystem->lastViewOrigin = eyeView.vieworg;
+		vrSystem->lastViewAxis = eyeView.viewaxis;
+	}
+	// Koz end
 
 	SingleView( &eyeView, hudManager );
 }
@@ -1034,7 +1063,6 @@ FullscreenFX_Helltime::Active
 */
 bool FullscreenFX_Helltime::Active()
 {
-
 	if( gameLocal.inCinematic || common->IsMultiplayer() )
 	{
 		return false;
@@ -1063,7 +1091,6 @@ FullscreenFX_Helltime::AccumPass
 */
 void FullscreenFX_Helltime::AccumPass( const renderView_t* view )
 {
-
 	int level = DetermineLevel();
 
 	// for testing

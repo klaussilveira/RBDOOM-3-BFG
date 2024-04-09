@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "RenderCommon.h"
+#include <vr/Vr.h>
 
 /*
 ==========================================================================================
@@ -409,67 +410,7 @@ idCVar r_centerX( "r_centerX", "0", CVAR_FLOAT, "projection matrix center adjust
 idCVar r_centerY( "r_centerY", "0", CVAR_FLOAT, "projection matrix center adjust" );
 idCVar r_centerScale( "r_centerScale", "1", CVAR_FLOAT, "projection matrix center adjust" );
 
-inline float sgn( float a )
-{
-	if( a > 0.0f )
-	{
-		return ( 1.0f );
-	}
-	if( a < 0.0f )
-	{
-		return ( -1.0f );
-	}
-	return ( 0.0f );
-}
 
-// clipPlane is a plane in camera space.
-void ModifyProjectionMatrix( viewDef_t* viewDef, const idPlane& clipPlane )
-{
-	static float s_flipMatrix[16] =
-	{
-		// convert from our coordinate system (looking down X)
-		// to OpenGL's coordinate system (looking down -Z)
-		0, 0, -1, 0,
-		-1, 0,  0, 0,
-		0, 1,  0, 0,
-		0, 0,  0, 1
-	};
-
-	idMat4 flipMatrix;
-	memcpy( &flipMatrix, &( s_flipMatrix[0] ), sizeof( float ) * 16 );
-
-	idVec4 vec = clipPlane.ToVec4();// * flipMatrix;
-	idPlane newPlane( vec[0], vec[1], vec[2], vec[3] );
-
-	// Calculate the clip-space corner point opposite the clipping plane
-	// as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and
-	// transform it into camera space by multiplying it
-	// by the inverse of the projection matrix
-
-	//idVec4 q;
-	//q.x = (sgn(newPlane[0]) + viewDef->projectionMatrix[8]) / viewDef->projectionMatrix[0];
-	//q.y = (sgn(newPlane[1]) + viewDef->projectionMatrix[9]) / viewDef->projectionMatrix[5];
-	//q.z = -1.0F;
-	//q.w = (1.0F + viewDef->projectionMatrix[10]) / viewDef->projectionMatrix[14];
-
-	idMat4 unprojection;
-	R_MatrixFullInverse( viewDef->projectionMatrix, ( float* )&unprojection );
-	idVec4 q = unprojection * idVec4( sgn( newPlane[0] ), sgn( newPlane[1] ), 1.0f, 1.0f );
-
-	// Calculate the scaled plane vector
-	idVec4 c = newPlane.ToVec4() * ( 2.0f / ( q * newPlane.ToVec4() ) );
-
-	float matrix[16];
-	std::memcpy( matrix, viewDef->projectionMatrix, sizeof( float ) * 16 );
-
-	// Replace the third row of the projection matrix
-	matrix[2] = c[0];
-	matrix[6] = c[1];
-	matrix[10] = c[2] + 1.0f;
-	matrix[14] = c[3];
-
-	memcpy( viewDef->projectionMatrix, matrix, sizeof( float ) * 16 );
-}
 
 void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 {
@@ -490,106 +431,141 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 		jittery = 0.0f;
 	}
 
-	//
-	// set up projection matrix
-	//
 	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
 
-	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
-	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+	if( vrSystem->IsActive() )
+	{
+		int pEye = viewDef->renderView.viewEyeBuffer == -1 ? 0 : 1;
+		float idx = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projRight - vrSystem->hmdEye[pEye].projectionOpenVR.projLeft );
+		float idy = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projDown - vrSystem->hmdEye[pEye].projectionOpenVR.projUp );
+		float sx = vrSystem->hmdEye[pEye].projectionOpenVR.projRight + vrSystem->hmdEye[pEye].projectionOpenVR.projLeft;
+		float sy = vrSystem->hmdEye[pEye].projectionOpenVR.projDown + vrSystem->hmdEye[pEye].projectionOpenVR.projUp;
 
-	// TODO integrate jitterx += viewDef->renderView.stereoScreenSeparation;
+		viewDef->projectionMatrix[0 * 4 + 0] = 2.0f * idx;
+		viewDef->projectionMatrix[1 * 4 + 0] = 0.0f;
+		viewDef->projectionMatrix[2 * 4 + 0] = sx * idx;
+		viewDef->projectionMatrix[3 * 4 + 0] = 0.0f;
 
-	// this mimics the logic in the Donut Feature Demo
-	const float xoffset = -2.0f * jitterx / ( 1.0f * viewWidth );
-	const float yoffset = -2.0f * jittery / ( 1.0f * viewHeight );
+		viewDef->projectionMatrix[0 * 4 + 1] = 0.0f;
+		viewDef->projectionMatrix[1 * 4 + 1] = 2.0f * idy;
+		viewDef->projectionMatrix[2 * 4 + 1] = sy * idy;	// normally 0
+		viewDef->projectionMatrix[3 * 4 + 1] = 0.0f;
 
-	float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
+		viewDef->projectionMatrix[0 * 4 + 2] = 0.0f;
+		viewDef->projectionMatrix[1 * 4 + 2] = 0.0f;
+		viewDef->projectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
+		viewDef->projectionMatrix[3 * 4 + 2] = -2.0f * zNear;
+
+		viewDef->projectionMatrix[0 * 4 + 3] = 0.0f;
+		viewDef->projectionMatrix[1 * 4 + 3] = 0.0f;
+		viewDef->projectionMatrix[2 * 4 + 3] = -1.0f;
+		viewDef->projectionMatrix[3 * 4 + 3] = 0.0f;
+
+	}
+	else
+	{
+		//
+		// set up projection matrix
+		//
+
+		const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
+		const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+
+		// TODO integrate jitterx += viewDef->renderView.stereoScreenSeparation;
+
+		// this mimics the logic in the Donut Feature Demo
+		const float xoffset = -2.0f * jitterx / ( 1.0f * viewWidth );
+		const float yoffset = -2.0f * jittery / ( 1.0f * viewHeight );
+
+		float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
 
 #if 1
 
-	float ymax = zNear * tan( viewDef->renderView.fov_y * idMath::PI / 360.0f );
-	float ymin = -ymax;
+		float ymax = zNear * tan( viewDef->renderView.fov_y * idMath::PI / 360.0f );
+		float ymin = -ymax;
 
-	float xmax = zNear * tan( viewDef->renderView.fov_x * idMath::PI / 360.0f );
-	float xmin = -xmax;
+		float xmax = zNear * tan( viewDef->renderView.fov_x * idMath::PI / 360.0f );
+		float xmin = -xmax;
 
-	const float width = xmax - xmin;
-	const float height = ymax - ymin;
+		const float width = xmax - xmin;
+		const float height = ymax - ymin;
 
-	projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
-	projectionMatrix[1 * 4 + 0] = 0.0f;
-	projectionMatrix[2 * 4 + 0] = xoffset;
-	projectionMatrix[3 * 4 + 0] = 0.0f;
+		projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
+		projectionMatrix[1 * 4 + 0] = 0.0f;
+		projectionMatrix[2 * 4 + 0] = xoffset;
+		projectionMatrix[3 * 4 + 0] = 0.0f;
 
-	projectionMatrix[0 * 4 + 1] = 0.0f;
-	projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
-	projectionMatrix[2 * 4 + 1] = yoffset;
-	projectionMatrix[3 * 4 + 1] = 0.0f;
+		projectionMatrix[0 * 4 + 1] = 0.0f;
+		projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
+		projectionMatrix[2 * 4 + 1] = yoffset;
+		projectionMatrix[3 * 4 + 1] = 0.0f;
 
-	// this is the far-plane-at-infinity formulation, and
-	// crunches the Z range slightly so w=0 vertexes do not
-	// rasterize right at the wraparound point
-	projectionMatrix[0 * 4 + 2] = 0.0f;
-	projectionMatrix[1 * 4 + 2] = 0.0f;
-	projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
+		// this is the far-plane-at-infinity formulation, and
+		// crunches the Z range slightly so w=0 vertexes do not
+		// rasterize right at the wraparound point
+		projectionMatrix[0 * 4 + 2] = 0.0f;
+		projectionMatrix[1 * 4 + 2] = 0.0f;
+		projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
 
-	// RB: was -2.0f * zNear
-	// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
-	projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
+		// RB: was -2.0f * zNear
+		// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
+		projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
 
-	projectionMatrix[0 * 4 + 3] = 0.0f;
-	projectionMatrix[1 * 4 + 3] = 0.0f;
-	projectionMatrix[2 * 4 + 3] = -1.0f;
-	projectionMatrix[3 * 4 + 3] = 0.0f;
+		projectionMatrix[0 * 4 + 3] = 0.0f;
+		projectionMatrix[1 * 4 + 3] = 0.0f;
+		projectionMatrix[2 * 4 + 3] = -1.0f;
+		projectionMatrix[3 * 4 + 3] = 0.0f;
 
 #else
 
-	// alternative far plane at infinity Z for better precision in the distance but still no reversed depth buffer
-	// see Foundations of Game Engine Development 2, chapter 6.3
+		// alternative far plane at infinity Z for better precision in the distance but still no reversed depth buffer
+		// see Foundations of Game Engine Development 2, chapter 6.3
 
-	float aspect = viewDef->renderView.fov_x / viewDef->renderView.fov_y;
+		float aspect = viewDef->renderView.fov_x / viewDef->renderView.fov_y;
 
-	float yScale = 1.0f / ( tanf( 0.5f * DEG2RAD( viewDef->renderView.fov_y ) ) );
-	float xScale = yScale / aspect;
+		float yScale = 1.0f / ( tanf( 0.5f * DEG2RAD( viewDef->renderView.fov_y ) ) );
+		float xScale = yScale / aspect;
 
-	const float epsilon = 1.9073486328125e-6F;	// 2^-19;
-	const float zFar = 160000;
+		const float epsilon = 1.9073486328125e-6F;	// 2^-19;
+		const float zFar = 160000;
 
-	//float k = zFar / ( zFar - zNear );
-	float k = 1.0f - epsilon;
+		//float k = zFar / ( zFar - zNear );
+		float k = 1.0f - epsilon;
 
-	projectionMatrix[0 * 4 + 0] = xScale;
-	projectionMatrix[1 * 4 + 0] = 0.0f;
-	projectionMatrix[2 * 4 + 0] = xoffset;
-	projectionMatrix[3 * 4 + 0] = 0.0f;
+		projectionMatrix[0 * 4 + 0] = xScale;
+		projectionMatrix[1 * 4 + 0] = 0.0f;
+		projectionMatrix[2 * 4 + 0] = xoffset;
+		projectionMatrix[3 * 4 + 0] = 0.0f;
 
-	projectionMatrix[0 * 4 + 1] = 0.0f;
-	projectionMatrix[1 * 4 + 1] = yScale;
-	projectionMatrix[2 * 4 + 1] = yoffset;
-	projectionMatrix[3 * 4 + 1] = 0.0f;
+		projectionMatrix[0 * 4 + 1] = 0.0f;
+		projectionMatrix[1 * 4 + 1] = yScale;
+		projectionMatrix[2 * 4 + 1] = yoffset;
+		projectionMatrix[3 * 4 + 1] = 0.0f;
 
-	projectionMatrix[0 * 4 + 2] = 0.0f;
-	projectionMatrix[1 * 4 + 2] = 0.0f;
+		projectionMatrix[0 * 4 + 2] = 0.0f;
+		projectionMatrix[1 * 4 + 2] = 0.0f;
 
-	// adjust value to prevent imprecision issues
-	projectionMatrix[2 * 4 + 2] = -k;
+		// adjust value to prevent imprecision issues
+		projectionMatrix[2 * 4 + 2] = -k;
 
-	// the clip space Z range has changed from [-1 .. 1] to [0 .. 1] for DX12 & Vulkan
-	projectionMatrix[3 * 4 + 2] = -k * zNear;
+		// the clip space Z range has changed from [-1 .. 1] to [0 .. 1] for DX12 & Vulkan
+		projectionMatrix[3 * 4 + 2] = -k * zNear;
 
-	projectionMatrix[0 * 4 + 3] = 0.0f;
-	projectionMatrix[1 * 4 + 3] = 0.0f;
-	projectionMatrix[2 * 4 + 3] = -1.0f;
-	projectionMatrix[3 * 4 + 3] = 0.0f;
+		projectionMatrix[0 * 4 + 3] = 0.0f;
+		projectionMatrix[1 * 4 + 3] = 0.0f;
+		projectionMatrix[2 * 4 + 3] = -1.0f;
+		projectionMatrix[3 * 4 + 3] = 0.0f;
 
 #endif
 
-	if( viewDef->renderView.flipProjection )
-	{
-		projectionMatrix[1 * 4 + 1] = -projectionMatrix[1 * 4 + 1];
-		projectionMatrix[1 * 4 + 3] = -projectionMatrix[1 * 4 + 3];
+		if( viewDef->renderView.flipProjection )
+		{
+			projectionMatrix[1 * 4 + 1] = -projectionMatrix[1 * 4 + 1];
+			projectionMatrix[1 * 4 + 3] = -projectionMatrix[1 * 4 + 3];
+		}
 	}
+
+
 
 	// SP Begin
 	if( viewDef->isObliqueProjection && doJitter )
@@ -711,6 +687,68 @@ void R_MatrixFullInverse( const float a[16], float r[16] )
 // RB end
 
 // SP begin
+inline float sgn( float a )
+{
+	if( a > 0.0f )
+	{
+		return ( 1.0f );
+	}
+	if( a < 0.0f )
+	{
+		return ( -1.0f );
+	}
+	return ( 0.0f );
+}
+
+// clipPlane is a plane in camera space.
+void ModifyProjectionMatrix( viewDef_t* viewDef, const idPlane& clipPlane )
+{
+	static float s_flipMatrix[16] =
+	{
+		// convert from our coordinate system (looking down X)
+		// to OpenGL's coordinate system (looking down -Z)
+		0, 0, -1, 0,
+		-1, 0,  0, 0,
+		0, 1,  0, 0,
+		0, 0,  0, 1
+	};
+
+	idMat4 flipMatrix;
+	memcpy( &flipMatrix, &( s_flipMatrix[0] ), sizeof( float ) * 16 );
+
+	idVec4 vec = clipPlane.ToVec4();// * flipMatrix;
+	idPlane newPlane( vec[0], vec[1], vec[2], vec[3] );
+
+	// Calculate the clip-space corner point opposite the clipping plane
+	// as (sgn(clipPlane.x), sgn(clipPlane.y), 1, 1) and
+	// transform it into camera space by multiplying it
+	// by the inverse of the projection matrix
+
+	//idVec4 q;
+	//q.x = (sgn(newPlane[0]) + viewDef->projectionMatrix[8]) / viewDef->projectionMatrix[0];
+	//q.y = (sgn(newPlane[1]) + viewDef->projectionMatrix[9]) / viewDef->projectionMatrix[5];
+	//q.z = -1.0F;
+	//q.w = (1.0F + viewDef->projectionMatrix[10]) / viewDef->projectionMatrix[14];
+
+	idMat4 unprojection;
+	R_MatrixFullInverse( viewDef->projectionMatrix, ( float* )&unprojection );
+	idVec4 q = unprojection * idVec4( sgn( newPlane[0] ), sgn( newPlane[1] ), 1.0f, 1.0f );
+
+	// Calculate the scaled plane vector
+	idVec4 c = newPlane.ToVec4() * ( 2.0f / ( q * newPlane.ToVec4() ) );
+
+	float matrix[16];
+	std::memcpy( matrix, viewDef->projectionMatrix, sizeof( float ) * 16 );
+
+	// Replace the third row of the projection matrix
+	matrix[2] = c[0];
+	matrix[6] = c[1];
+	matrix[10] = c[2] + 1.0f;
+	matrix[14] = c[3];
+
+	memcpy( viewDef->projectionMatrix, matrix, sizeof( float ) * 16 );
+}
+
 /*
 =====================
 R_ObliqueProjection - adjust near plane of previously set projection matrix to perform an oblique projection

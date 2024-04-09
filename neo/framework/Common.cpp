@@ -1529,6 +1529,8 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			Sys_GenerateEvents();
 		};
 #endif
+
+#if 0
 		vrSystem->HMDResetTrackingOriginOffset();
 
 		//splashScreen = declManager->FindMaterial( "guis/lookforward" );
@@ -1587,6 +1589,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 				}
 			}
 		}
+#endif
 
 		if( vrSystem->IsActive() )
 		{

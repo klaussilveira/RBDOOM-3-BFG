@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Game_local.h"
+#include "../vr/Vr.h"
 
 #ifdef GAME_DLL
 
@@ -3143,11 +3144,11 @@ void idGameLocal::CalcFov( float base_fov, float& fov_x, float& fov_y ) const
 {
 	const int width = renderSystem->GetWidth();
 	const int height = renderSystem->GetHeight();
-	if( width == height )
+
+	if( vrSystem->IsActive() )
 	{
-		// this is the Rift, so don't mess with our aspect ratio corrections
-		fov_x = base_fov;
-		fov_y = base_fov;
+		fov_x = vrSystem->hmdFovX;
+		fov_y = vrSystem->hmdFovY;
 		return;
 	}
 
@@ -5055,6 +5056,7 @@ bool idGameLocal::SkipCinematic()
 	{
 		skipCinematic = true;
 		cinematicMaxSkipTime = gameLocal.time + SEC2MS( g_cinematicMaxSkipTime.GetFloat() );
+
 		// SRS - Skip the remainder of the currently playing cinematic sound
 		soundSystem->GetPlayingSoundWorld()->Skip( cinematicMaxSkipTime );
 	}
