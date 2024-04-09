@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2012-2014 Robert Beckebans
+Copyright (C) 2012-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -1377,7 +1377,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			}
 
 			vrSystem->HMDResetTrackingOriginOffset();
-			vrSystem->FrameStart();
+			vrSystem->StartFrame();
 		}
 
 		vrSystem->renderingSplash = true;
@@ -1517,7 +1517,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 				if( vrSystem->HasHMD() )
 				{
 					idLib::frameNumber++;
-					vrSystem->FrameStart();
+					vrSystem->StartFrame();
 				}
 			}
 			else
@@ -1542,7 +1542,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 				if( vrSystem->HasHMD() )
 				{
 					idLib::frameNumber++;
-					vrSystem->FrameStart();
+					vrSystem->StartFrame();
 				}
 				RenderSplash();
 				Sys_GenerateEvents();

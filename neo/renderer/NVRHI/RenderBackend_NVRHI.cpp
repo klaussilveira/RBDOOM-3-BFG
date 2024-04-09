@@ -1800,7 +1800,7 @@ void idRenderBackend::GL_EndFrame()
 	// SRS - execute after EndFrame() to avoid need for barrier command list on Vulkan
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
-	// RB: for testing. 
+	// RB: for testing.
 	if( vrSystem->IsActive() )
 	{
 		vr::D3D12TextureData_t d3d12LeftEyeTexture;
@@ -1810,7 +1810,7 @@ void idRenderBackend::GL_EndFrame()
 		d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
 		d3d12LeftEyeTexture.m_nNodeMask = 0;
 
-		vr::Texture_t leftEyeTexture = { ( void * ) &d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+		vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
 		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
 		vr::VRCompositor()->Submit( vr::Eye_Right, &leftEyeTexture );
 	}
@@ -1833,10 +1833,6 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 	OPTICK_CATEGORY( "BlockingSwapBuffers", Optick::Category::Wait );
 	//OPTICK_TAG( "Waiting for swapIndex", swapIndex );
 
-	// SRS - device-level sync kills perf by serializing command queue processing (CPU) and rendering (GPU)
-	//	   - instead, use alternative sync method (based on command queue event queries) inside Present()
-	//deviceManager->GetDevice()->waitForIdle();
-
 	// Make sure that all frames have finished rendering
 	deviceManager->Present();
 
@@ -1848,6 +1844,13 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 	{
 		tr.InvalidateSwapBuffers();
+	}
+
+	// RB: it is suggested by the OpenVR samples to run vr::VRCompositor()->WaitGetPoses right after
+	// swapping the swapchain images
+	if( vrSystem->IsActive() )
+	{
+		vrSystem->StartFrame();
 	}
 }
 

@@ -108,7 +108,7 @@ public:
 	void				HUDRender( idImage* image0, idImage* image1 );
 	void				HMDResetTrackingOriginOffset();
 
-	void				FrameStart();
+	void				StartFrame();
 
 	//void				OpenVrGetRight( idVec3& position, idQuat& rotation );
 	//void				OpenVrGetLeft( idVec3& position, idQuat& rotation );
@@ -145,42 +145,10 @@ public:
 		return hmdHz;
 	}
 
-private:
-	idMat4				GetHMDMatrixProjectionEye( vr::Hmd_Eye nEye );
-	idMat4				GetHMDMatrixPoseEye( vr::Hmd_Eye nEye );
+	//---------------------------
+	// client VR code shared with the game code
 
-	void				SwapBinding( int Old, int New );
-
-	bool				isActive;
-
-	vr::IVRSystem*			m_pHMD = nullptr;
-	vr::IVRCompositor*		m_pCompositor;
-	vr::IVRChaperone*		m_pChaperone;
-	vr::IVRRenderModels*		m_pRenderModels;
-	vr::TrackedDevicePose_t	m_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-	vr::TrackedDevicePose_t	m1_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-
-	idStr				m_strDriver;
-	idStr				m_strDisplay;
-
-	char				m_rDevClassChar[vr::k_unMaxTrackedDeviceCount];
-	idMat4				m_rmat4DevicePose[vr::k_unMaxTrackedDeviceCount];
-	bool				m_rbShowTrackedDevice[vr::k_unMaxTrackedDeviceCount];
-
-
-	idMat4				m_mat4ProjectionLeft;
-	idMat4				m_mat4ProjectionRight;
-	idMat4				m_mat4eyePosLeft;
-	idMat4				m_mat4eyePosRight;
-
-	bool				hmdPositionTracked;
-
-	uint32_t			hmdWidth;
-	uint32_t			hmdHeight;
-	int					hmdHz;
-public:
-
-	//------------------
+	// TODO delete as many vars as possible and separate blocks in vars that are accessed by the game thread and main thread
 
 	int					currentFlashMode;
 
@@ -241,11 +209,6 @@ public:
 	idMat3				thirdPersonHudAxis;
 
 	float				angles[3];
-
-
-
-	//int				primaryFBOWidth;
-	//int				primaryFBOHeight;
 
 	int					VR_USE_MOTION_CONTROLS;
 
@@ -360,11 +323,40 @@ public:
 	idClipModel*		bodyClip;
 	idClipModel*		headClip;
 
-	//---------------------------
+
 private:
+	idMat4				GetHMDMatrixProjectionEye( vr::Hmd_Eye nEye );
+	idMat4				GetHMDMatrixPoseEye( vr::Hmd_Eye nEye );
+
+	void				SwapBinding( int Old, int New );
+
+	bool				isActive;
+
+	vr::IVRSystem*			m_pHMD = nullptr;
+	vr::IVRCompositor*		m_pCompositor;
+	vr::IVRChaperone*		m_pChaperone;
+	vr::IVRRenderModels*		m_pRenderModels;
+	vr::TrackedDevicePose_t	m_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+	vr::TrackedDevicePose_t	m1_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+
+	idStr				m_strDriver;
+	idStr				m_strDisplay;
+
+	char				m_rDevClassChar[vr::k_unMaxTrackedDeviceCount];
+	idMat4				m_rmat4DevicePose[vr::k_unMaxTrackedDeviceCount];
+	bool				m_rbShowTrackedDevice[vr::k_unMaxTrackedDeviceCount];
 
 
+	idMat4				m_mat4ProjectionLeft;
+	idMat4				m_mat4ProjectionRight;
+	idMat4				m_mat4eyePosLeft;
+	idMat4				m_mat4eyePosRight;
 
+	bool				hmdPositionTracked;
+
+	uint32_t			hmdWidth;
+	uint32_t			hmdHeight;
+	int					hmdHz;
 };
 
 extern idCVar vr_scale;

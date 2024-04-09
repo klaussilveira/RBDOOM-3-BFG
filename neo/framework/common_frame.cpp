@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2012-2016 Robert Beckebans
+Copyright (C) 2012-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Common_local.h"
 #include "../renderer/Image.h"
+#include <vr/Vr.h>
 
 // RB begin
 #if defined(USE_DOOMCLASSIC)
@@ -643,7 +644,6 @@ void idCommonLocal::Frame()
 		int numGameFrames = 0;
 
 		{
-
 			OPTICK_CATEGORY( "Wait for Frame", Optick::Category::Wait );
 
 			for( ;; )
@@ -771,19 +771,30 @@ void idCommonLocal::Frame()
 		//--------------------------------------------
 
 		// get the previous usercmd for bypassed head tracking transform
-		const usercmd_t	previousCmd = usercmdGen->GetCurrentUsercmd();
+		//const usercmd_t	previousCmd = usercmdGen->GetCurrentUsercmd();
 
 		// build a new usercmd
 		int deviceNum = session->GetSignInManager().GetMasterInputDevice();
-		usercmdGen->BuildCurrentUsercmd( deviceNum );
-		if( deviceNum == -1 )
+
+		if( vrSystem->IsActive() )
 		{
-			for( int i = 0; i < MAX_INPUT_DEVICES; i++ )
+			//Sys_PollJoystickInputEvents( 0 );
+			usercmdGen->BuildCurrentUsercmd( 0 );
+		}
+		else
+		{
+			usercmdGen->BuildCurrentUsercmd( deviceNum );
+
+			if( deviceNum == -1 )
 			{
-				Sys_PollJoystickInputEvents( i );
-				Sys_EndJoystickInputEvents();
+				for( int i = 0; i < MAX_INPUT_DEVICES; i++ )
+				{
+					Sys_PollJoystickInputEvents( i );
+					Sys_EndJoystickInputEvents();
+				}
 			}
 		}
+
 		if( pauseGame )
 		{
 			usercmdGen->Clear();

@@ -959,9 +959,6 @@ CONSOLE_COMMAND( bakeEnvironmentProbes, "Bake environment probes", NULL )
 	// make sure the game / draw thread has completed
 	commonLocal.WaitGameThread();
 
-	//glConfig.nativeScreenWidth = captureSize;
-	//glConfig.nativeScreenHeight = captureSize;
-
 	// disable scissor, so we don't need to adjust all those rects
 	r_useScissor.SetBool( false );
 

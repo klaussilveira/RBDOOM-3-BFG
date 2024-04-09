@@ -50,7 +50,7 @@ extern DeviceManager* deviceManager;
 // *** Oculus HMD Variables
 
 idCVar vr_pixelDensity( "vr_pixelDensity", "1.25", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "" );
-idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
+idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
 idCVar vr_scale( "vr_scale", "1.0", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "World scale. Everything virtual is this times as big." );
 idCVar vr_useOculusProfile( "vr_useOculusProfile", "1", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "TODO REMOVE, Use official profile values. 0 = use user defined profile, 1 = use official profile." );
 idCVar vr_manualIPDEnable( "vr_manualIPDEnable", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, " Override the HMD provided IPD value with value in vr_manualIPD 0 = disable 1= use manual iPD\n" );
@@ -807,7 +807,7 @@ void iVr::HMDInitializeDistortion()
 
 		//nvrhi::CommandListHandle commandList = tr.backend.GL_GetCommandList();
 
-		
+
 
 		vr::EVRCompositorError compositeError = vr::VRCompositorError_None;
 
@@ -818,11 +818,11 @@ void iVr::HMDInitializeDistortion()
 			vr::VRVulkanTextureData_t vulkanData;
 			nvrhi::ITexture* nativeTexture = globalImages->blackImage->GetTextureHandle();
 
-			vulkanData.m_nImage = ( uint64_t ) (void*)nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
-			vulkanData.m_pDevice = ( VkDevice_T * ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
-			vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T * ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
-			vulkanData.m_pInstance = ( VkInstance_T *) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
-			vulkanData.m_pQueue = ( VkQueue_T * ) commandList->getNativeObject( nvrhi::ObjectTypes::VK_CommandBuffer );
+			vulkanData.m_nImage = ( uint64_t )( void* )nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+			vulkanData.m_pDevice = ( VkDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
+			vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
+			vulkanData.m_pInstance = ( VkInstance_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
+			vulkanData.m_pQueue = ( VkQueue_T* ) commandList->getNativeObject( nvrhi::ObjectTypes::VK_CommandBuffer );
 			vulkanData.m_nQueueFamilyIndex = deviceManager->GetGraphicsFamilyIndex();
 
 			vulkanData.m_nWidth = globalImages->blackImage->GetUploadWidth();
@@ -830,7 +830,7 @@ void iVr::HMDInitializeDistortion()
 			vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
 			vulkanData.m_nSampleCount = 1;
 
-			vr::Texture_t skyboxTexture = { ( void * ) &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+			vr::Texture_t skyboxTexture = { ( void* )& vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
 
 			compositeError = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTexture, 1 );
 #endif
@@ -844,7 +844,7 @@ void iVr::HMDInitializeDistortion()
 			d3d12BlackSkyboxTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
 			d3d12BlackSkyboxTexture.m_nNodeMask = 0;
 
-			vr::Texture_t skyboxTexture = { ( void * ) &d3d12BlackSkyboxTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+			vr::Texture_t skyboxTexture = { ( void* )& d3d12BlackSkyboxTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
 
 			compositeError = vr::VRCompositor()->SetSkyboxOverride( ( const vr::Texture_t* ) &skyboxTexture, 1 );
 #else
@@ -1434,10 +1434,10 @@ void iVr::CalcAimMove( float& yawDelta, float& pitchDelta )
 
 /*
 ==============
-iVr::FrameStart
+iVr::StartFrame
 ==============
 */
-void iVr::FrameStart()
+void iVr::StartFrame()
 {
 	//common->Printf( "Framestart called from frame %d\n", idLib::frameNumber );
 
