@@ -2518,7 +2518,11 @@ idRenderSystemLocal::IsStereoScopicRenderingSupported
 */
 bool idRenderSystemLocal::IsStereoScopicRenderingSupported() const
 {
+#if VR_OPTIONS
 	return true;
+#else
+	return false;
+#endif
 }
 
 /*
@@ -2548,6 +2552,8 @@ idRenderSystemLocal::GetStereoScopicRenderingMode
 */
 stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
 {
+	// RB: only support in VR builds
+#if VR_OPTIONS
 	if( vrSystem->IsActive() )
 	{
 		return STEREO3D_HMD;
@@ -2555,6 +2561,9 @@ stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
 	else
 	{
 		return ( !IsStereoScopicRenderingSupported() ) ? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
+#else
+	return STEREO3D_OFF;
+#endif
 	}
 }
 
