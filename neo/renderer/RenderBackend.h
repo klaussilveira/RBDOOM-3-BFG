@@ -217,7 +217,10 @@ private:
 	void				GL_EndFrame();
 
 	// OpenVR
-	void				HMD_SubmitStereoRenders();
+	void				HMD_SubmitStereoRenders( idImage* image0, idImage* image1 );
+
+	// Render headtracked quad for menus or fake HUD
+	void				HMD_RenderHUD( idImage* image0, idImage* image1 );
 
 public:
 	uint64				GL_GetCurrentState() const;

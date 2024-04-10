@@ -1137,6 +1137,9 @@ void idImageManager::CreateIntrinsicImages()
 	{
 		stereoRenderImages[0] = ImageFromFunction( "_stereoRender0", R_VR_StereoImage );
 		stereoRenderImages[1] = ImageFromFunction( "_stereoRender1", R_VR_StereoImage );
+
+		hmdEyeImages[0] = ImageFromFunction( "_hmdEye0", R_VR_StereoImage );
+		hmdEyeImages[1] = ImageFromFunction( "_hmdEye1", R_VR_StereoImage );
 	}
 	// RB end
 

@@ -331,8 +331,6 @@ iVr::iVr()
 
 	hmdBodyTranslation = vec3_zero;
 
-	//VR_AAmode = 0;
-
 	independentWeaponYaw = 0;
 	independentWeaponPitch = 0;
 
@@ -341,22 +339,14 @@ iVr::iVr()
 	hmdWidth = 0;
 	hmdHeight = 0;
 
-	//primaryFBOWidth = 0;
-	//primaryFBOHeight = 0;
 	hmdHz = 90;
-
 	hmdFovX = 0.0f;
 	hmdFovY = 0.0f;
 
 	hmdPixelScale = 1.0f;
 	hmdAspect = 1.0f;
 
-	hmdEyeImage[0] = 0;
-	hmdEyeImage[1] = 0;
-	hmdCurrentRender[0] = 0;
-	hmdCurrentRender[1] = 0;
-
-	// wip stuff
+	// -------------------------------
 	// wip stuff
 	wipNumSteps = 0;
 	wipStepState = 0;
@@ -671,98 +661,9 @@ void iVr::HMDInitializeDistortion()
 	int primaryFBOWidth = hmdEye[0].renderTargetRes.x;
 	int primaryFBOHeight = hmdEye[0].renderTargetRes.y;
 
-	//if( !fboCreated )
-	{
-		// create the FBOs
-		common->Printf( "Generating FBOs.\n" );
-		common->Printf( "Default recommended resolution = %i %i \n", hmdWidth, hmdHeight );
-		common->Printf( "Requested pixel density = %f \n", vr_pixelDensity.GetFloat() );
-		common->Printf( "\nWorking resolution ( default * pixelDensity ) = %i %i \n", primaryFBOWidth, primaryFBOHeight );
-
-		//VR_AAmode = r_multiSamples.GetInteger() == 0 ? VR_AA_NONE : VR_AA_MSAA;
-
-		//common->Printf( "vr_FBOAAmode %d r_multisamples %d\n", VR_AAmode, r_multiSamples.GetInteger() );
-
-		/*
-		if( VR_AAmode == VR_AA_MSAA )
-		{
-			// enable MSAA
-			GL_CheckErrors();
-
-			common->Printf( "Creating %d x %d MSAA framebuffer\n", primaryFBOWidth, primaryFBOHeight );
-			globalFramebuffers.primaryFBO = new Framebuffer( "_primaryFBO", primaryFBOWidth, primaryFBOHeight, true );
-
-			common->Printf( "Adding Depth/Stencil attachments to MSAA framebuffer\n" );
-			globalFramebuffers.primaryFBO->AddDepthStencilBuffer( GL_DEPTH24_STENCIL8 );
-
-			common->Printf( "Adding color attachment to MSAA framebuffer\n" );
-			globalFramebuffers.primaryFBO->AddColorBuffer( GL_RGBA, 0 );
-
-			int status = globalFramebuffers.primaryFBO->Check();
-			globalFramebuffers.primaryFBO->Error( status );
-
-			common->Printf( "Creating resolve framebuffer\n" );
-			globalFramebuffers.resolveFBO = new Framebuffer( "_resolveFBO", primaryFBOWidth, primaryFBOHeight, false ); // Koz
-			common->Printf( "Adding Depth/Stencil attachments to framebuffer\n" );
-			globalFramebuffers.resolveFBO->AddDepthStencilBuffer( GL_DEPTH24_STENCIL8 );
-			common->Printf( "Adding color attachment to framebuffer\n" );
-			globalFramebuffers.resolveFBO->AddColorBuffer( GL_RGBA, 0 );
-
-			status = globalFramebuffers.resolveFBO->Check();
-			globalFramebuffers.resolveFBO->Error( status );
-
-			if( status = GL_FRAMEBUFFER_COMPLETE )
-			{
-				useFBO = true;
-				fboCreated = true;
-			}
-			else
-			{
-				useFBO = false;
-				fboCreated = false;
-			}
-		}
-		*/
-
-		/*
-		if( !fboCreated )
-		{
-			// either AA disabled or AA buffer creation failed. Try creating unaliased FBOs.
-			common->Printf( "Creating framebuffer\n" );
-			globalFramebuffers.primaryFBO = new Framebuffer( "_primaryFBO", primaryFBOWidth, primaryFBOHeight, false ); // Koz
-
-			common->Printf( "Adding Depth/Stencil attachments to framebuffer\n" );
-			globalFramebuffers.primaryFBO->AddDepthStencilBuffer( GL_DEPTH24_STENCIL8 );
-
-			common->Printf( "Adding color attachment to framebuffer\n" );
-			globalFramebuffers.primaryFBO->AddColorBuffer( GL_RGBA8, 0 );
-
-			int status = globalFramebuffers.primaryFBO->Check();
-			globalFramebuffers.primaryFBO->Error( status );
-
-			if( status = GL_FRAMEBUFFER_COMPLETE )
-			{
-				useFBO = true;
-				fboCreated = true;
-			}
-			else
-			{
-				useFBO = false;
-				fboCreated = false;
-			}
-		}
-		*/
-	}
-
-	//globalImages->hudImage->Resize( primaryFBOWidth, primaryFBOHeight );
-	//globalImages->pdaImage->Resize( primaryFBOWidth, primaryFBOHeight );
-	//globalImages->skyBoxFront->Resize( primaryFBOWidth, primaryFBOHeight );
-	//globalImages->skyBoxSides->Resize( primaryFBOWidth, primaryFBOHeight );
-	//globalImages->currentRenderImage->Resize( primaryFBOWidth, primaryFBOHeight );
-	//globalImages->currentDepthImage->Resize( primaryFBOWidth, primaryFBOHeight );
-
-	//common->Printf( "pdaImage size %d %d\n", globalImages->pdaImage->GetUploadWidth(), globalImages->pdaImage->GetUploadHeight() );
-	//common->Printf( "Hudimage size %d %d\n", globalImages->hudImage->GetUploadWidth(), globalImages->hudImage->GetUploadHeight() );
+	common->Printf( "Default recommended resolution = %i %i \n", hmdWidth, hmdHeight );
+	common->Printf( "Requested pixel density = %f \n", vr_pixelDensity.GetFloat() );
+	common->Printf( "\nWorking resolution ( default * pixelDensity ) = %i %i \n", primaryFBOWidth, primaryFBOHeight );
 
 	{
 		float combinedTanHalfFovHorizontal = std::max( std::max( hmdEye[0].projectionOpenVR.projLeft, hmdEye[0].projectionOpenVR.projRight ), std::max( hmdEye[1].projectionOpenVR.projLeft, hmdEye[1].projectionOpenVR.projRight ) );
@@ -779,35 +680,9 @@ void iVr::HMDInitializeDistortion()
 #if 1
 	{
 		// override the default steam skybox, initially just set to black.  UpdateScreen can copy static images to skyBoxFront during level loads/saves
-
-		/*
-		static vr::Texture_t* textures = new vr::Texture_t[6];
-		for( int i = 0; i < 6; i++ )
-		{
-			textures[i].handle = globalImages->blackImage->GetTextureID();
-			if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
-			{
-				textures[i].eType = vr::TextureType_Vulkan;
-			}
-			else
-			{
-				textures[i].eType = vr::TextureType_DirectX12;
-			}
-			textures[i].eColorSpace = vr::ColorSpace_Auto;
-		}
-
-		//textures[0].handle = (unsigned int*)globalImages->skyBoxFront->texnum;
-		//textures[0].handle = globalImages->blackImage->GetTextureID();
-		*/
-
-
 		nvrhi::IDevice* device = deviceManager->GetDevice();
 		nvrhi::CommandListHandle commandList = device->createCommandList();
 		commandList->open();
-
-		//nvrhi::CommandListHandle commandList = tr.backend.GL_GetCommandList();
-
-
 
 		vr::EVRCompositorError compositeError = vr::VRCompositorError_None;
 
@@ -872,13 +747,6 @@ void iVr::HMDInitializeDistortion()
 		common->Printf( "Finished setting skybox\n" );
 	}
 #endif
-
-	//globalFramebuffers.primaryFBO->Bind();
-
-	// make sure vsync is off.
-	//wglSwapIntervalEXT( 0 );
-	//	r_swapInterval.SetInteger( 0 );
-	//	r_swapInterval.SetModified();
 
 	{
 		do

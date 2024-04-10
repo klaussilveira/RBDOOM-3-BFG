@@ -162,6 +162,7 @@ struct globalFramebuffers_t
 	Framebuffer*				vrPDAFBO;
 	Framebuffer*				vrHUDFBO;
 	Framebuffer*				vrStereoFBO[MAX_STEREO_BUFFERS];
+	Framebuffer*				vrHmdEyeFBO[MAX_STEREO_BUFFERS];
 };
 
 extern globalFramebuffers_t globalFramebuffers;

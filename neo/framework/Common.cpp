@@ -1597,6 +1597,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		}
 
 		vrSystem->renderingSplash = false;
+		vrSystem->showingIntroVideo = false;
 
 		// print all warnings queued during initialization
 		PrintWarnings();

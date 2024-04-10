@@ -210,21 +210,26 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->accumImage->texture ) );
 
-	globalFramebuffers.vrPDAFBO = new Framebuffer( "_vrPDA",
-			nvrhi::FramebufferDesc()
-			.addColorAttachment( globalImages->vrPDAImage->texture ) );
-
-	globalFramebuffers.vrHUDFBO = new Framebuffer( "_vrHUD",
-			nvrhi::FramebufferDesc()
-			.addColorAttachment( globalImages->vrHUDImage->texture ) );
-
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
+		globalFramebuffers.vrPDAFBO = new Framebuffer( "_vrPDA",
+				nvrhi::FramebufferDesc()
+				.addColorAttachment( globalImages->vrPDAImage->texture ) );
+
+		globalFramebuffers.vrHUDFBO = new Framebuffer( "_vrHUD",
+				nvrhi::FramebufferDesc()
+				.addColorAttachment( globalImages->vrHUDImage->texture ) );
+
 		for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
 		{
 			globalFramebuffers.vrStereoFBO[i] = new Framebuffer( va( "_stereoRender%i", i ),
 					nvrhi::FramebufferDesc()
 					.addColorAttachment( globalImages->stereoRenderImages[i]->texture ) );
+
+			globalFramebuffers.vrHmdEyeFBO[i] = new Framebuffer( va( "_hmdEye%i", i ),
+					nvrhi::FramebufferDesc()
+					.addColorAttachment( globalImages->hmdEyeImages[i]->texture )
+					.setDepthAttachment( globalImages->currentDepthImage->texture ) );
 		}
 	}
 
@@ -261,14 +266,16 @@ void Framebuffer::ReloadImages()
 	}
 	globalImages->guiEdit->Reload( false, tr.backend.commandList );
 	globalImages->accumImage->Reload( false, tr.backend.commandList );
-	globalImages->vrPDAImage->Reload( false, tr.backend.commandList );
-	globalImages->vrHUDImage->Reload( false, tr.backend.commandList );
 
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
+		globalImages->vrPDAImage->Reload( false, tr.backend.commandList );
+		globalImages->vrHUDImage->Reload( false, tr.backend.commandList );
+
 		for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
 		{
 			globalImages->stereoRenderImages[i]->Reload( false, tr.backend.commandList );
+			globalImages->hmdEyeImages[i]->Reload( false, tr.backend.commandList );
 		}
 	}
 

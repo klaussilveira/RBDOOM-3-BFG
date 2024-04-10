@@ -235,9 +235,6 @@ public:
 	float				manualIPD;
 	float				manualHeight;
 
-	idImage*			hmdEyeImage[2];			// TODO REMOVE duplicate of stereoImages in render backend
-	idImage*			hmdCurrentRender[2];	// these point to idRenderBackend::stereoRenderImages
-
 	idVec3				trackingOriginOffset;
 	float				trackingOriginYawOffset;
 	float				trackingOriginHeight;
