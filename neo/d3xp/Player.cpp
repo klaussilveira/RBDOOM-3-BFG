@@ -8938,7 +8938,6 @@ void idPlayer::Think()
 
 	if( !g_stopTime.GetBool() )
 	{
-
 		if( !noclip && !spectating && ( health > 0 ) && !IsHidden() )
 		{
 			TouchTriggers();
@@ -10611,6 +10610,16 @@ create the renderView for the current tic
 */
 void idPlayer::CalculateRenderView()
 {
+	// Koz add headtracking
+	static idAngles hmdAngles( 0.0, 0.0, 0.0 );
+	static idVec3 lastValidHmdTranslation = vec3_zero;
+	static idVec3 headPositionDelta = vec3_zero;
+	static idVec3 bodyPositionDelta = vec3_zero;
+
+	static bool wasCinematic = false;
+	static idVec3 cinematicOffset = vec3_zero;
+	static float cineYawOffset = 0.0f;
+
 	int i;
 	float range;
 
@@ -10689,6 +10698,165 @@ void idPlayer::CalculateRenderView()
 	if( g_showviewpos.GetBool() )
 	{
 		gameLocal.Printf( "%s : %s\n", renderView->vieworg.ToString(), renderView->viewaxis.ToAngles().ToString() );
+	}
+
+	if( vrSystem->IsActive() )
+	{
+		// Koz headtracker does not modify the model rotations
+		// offsets to body rotation added here
+
+		// body position based on neck model
+		// Koz fixme fix this.
+
+		// Koz begin : Add headtracking
+		static idVec3 absolutePosition;
+
+		hmdAngles = vrSystem->poseHmdAngles;
+		headPositionDelta = vrSystem->poseHmdHeadPositionDelta;
+		bodyPositionDelta = vrSystem->poseHmdBodyPositionDelta;
+		absolutePosition = vrSystem->poseHmdAbsolutePosition;
+
+		idVec3 origin = renderView->vieworg;
+		idAngles angles = renderView->viewaxis.ToAngles();
+		idMat3 axis = renderView->viewaxis;
+		float yawOffset = vrSystem->bodyYawOffset;
+
+
+		if( gameLocal.inCinematic || privateCameraView )
+		{
+			if( wasCinematic == false )
+			{
+				wasCinematic = true;
+
+				vrSystem->cinematicStartViewYaw = hmdAngles.yaw + vrSystem->trackingOriginYawOffset;
+				vrSystem->cinematicStartPosition = absolutePosition + ( vrSystem->trackingOriginOffset * idAngles( 0.0f, vrSystem->trackingOriginYawOffset, 0.0f ).ToMat3() );
+				cineYawOffset = hmdAngles.yaw - yawOffset;
+				//vrSystem->cinematicStartPosition.x = -vrSystem->hmdTrackingState.HeadPose.ThePose.Position.z;
+				//vrSystem->cinematicStartPosition.y = -vrSystem->hmdTrackingState.HeadPose.ThePose.Position.x;
+				//vrSystem->cinematicStartPosition.z = vrSystem->hmdTrackingState.HeadPose.ThePose.Position.y;
+
+				playerView.Flash( colorWhite, 300 );
+
+				cinematicOffset = absolutePosition;
+			}
+
+			headPositionDelta = absolutePosition - cinematicOffset;
+			bodyPositionDelta = vec3_zero;
+		}
+		else
+		{
+			wasCinematic = false;
+			cineYawOffset = 0.0f;
+		}
+
+		{
+
+			//move the head in relation to the body.
+			//bodyYawOffsets are external rotations of the body where the head remains looking in the same direction
+			//e.g. when using movepoint and snapping the body to the view.
+
+			idAngles bodyAng = axis.ToAngles();
+			idMat3 bodyAx = idAngles( bodyAng.pitch, bodyAng.yaw - yawOffset, bodyAng.roll ).Normalize180().ToMat3();
+			origin = origin + bodyAx[0] * headPositionDelta.x + bodyAx[1] * headPositionDelta.y + bodyAx[2] * headPositionDelta.z;
+
+			origin += vrSystem->leanOffset;
+
+			// Koz to do clean up later - added to allow cropped cinematics with original camera movements.
+			idQuat q1, q2;
+
+			q1 = angles.ToQuat();
+			q2 = idAngles( hmdAngles.pitch, ( hmdAngles.yaw - yawOffset ) - cineYawOffset, hmdAngles.roll ).ToQuat();
+
+			angles = ( q2 * q1 ).ToAngles();
+
+			angles.Normalize180();
+
+			vrSystem->lastHMDYaw = hmdAngles.yaw;
+			vrSystem->lastHMDPitch = hmdAngles.pitch;
+			vrSystem->lastHMDRoll = hmdAngles.roll;
+
+			axis = angles.ToMat3(); // this sets the actual view axis, separate from the body axis.
+
+			vrSystem->lastHMDViewOrigin = origin;
+			vrSystem->lastHMDViewAxis = axis;
+
+			vrSystem->uncrouchedHMDViewOrigin = origin;
+			vrSystem->uncrouchedHMDViewOrigin.z -= vrSystem->headHeightDiff;
+		}
+
+		renderView->vieworg = origin;
+		renderView->viewaxis = axis;
+
+		// if leaning, check if the eye is in a wall
+		if( vrSystem->isLeaning )
+		{
+			idBounds bounds = idBounds( idVec3( 0, -1, -1 ), idVec3( 0, 1, 1 ) );
+			trace_t trace;
+
+			gameLocal.clip.TraceBounds( trace, origin, origin, bounds, MASK_SHOT_RENDERMODEL /*MASK_SOLID*/, this );
+			if( trace.fraction != 1.0f )
+			{
+				vrSystem->leanBlank = true;
+				vrSystem->leanBlankOffset = vrSystem->leanOffset;
+				vrSystem->leanBlankOffsetLengthSqr = vrSystem->leanOffset.LengthSqr();
+			}
+
+			else
+			{
+				vrSystem->leanBlank = false;
+				vrSystem->leanBlankOffset = vec3_zero;
+				vrSystem->leanBlankOffsetLengthSqr = 0.0f;
+			}
+		}
+
+#if 0
+		// Koz fixme pause - handle the PDA model if game is paused
+		// really really need to move this somewhere else,
+
+		if( !vrSystem->PDAforcetoggle && vrSystem->PDAforced && weapon->IdentifyWeapon() != WEAPON_PDA )  // PDAforced cannot be valid if the weapon is not the PDA
+		{
+			vrSystem->PDAforced = false;
+			vrSystem->VR_GAME_PAUSED = false;
+			idPlayer* player = gameLocal.GetLocalPlayer();
+			player->SetupPDASlot( true );
+			player->SetupHolsterSlot( true );
+		}
+
+		if( vrSystem->PDAforcetoggle )
+		{
+			if( !vrSystem->PDAforced )
+			{
+				if( weapon->IdentifyWeapon() != WEAPON_PDA )
+				{
+					//common->Printf( "idPlayer::CalculateRenderView calling SelectWeapon for PDA\nPDA Forced = %i, PDAForceToggle = %i\n",vrSystem->PDAforced,vrSystem->PDAforcetoggle );
+					//common->Printf( "CRV3 Calling SetupHolsterSlot( %i ) \n", vrSystem->PDAforced );
+
+					idPlayer* player = gameLocal.GetLocalPlayer();
+					player->SetupPDASlot( vrSystem->PDAforced );
+					player->SetupHolsterSlot( vrSystem->PDAforced );
+
+					SelectWeapon( weapon_pda, true );
+					SetWeaponHandPose();
+				}
+				else
+				{
+					if( weapon->status == WP_READY )
+					{
+						vrSystem->PDAforced = true;
+						vrSystem->PDAforcetoggle = false;
+					}
+				}
+			}
+			else
+			{
+				// pda has been already been forced active, put it away.
+
+				TogglePDA();
+				vrSystem->PDAforcetoggle = false;
+				vrSystem->PDAforced = false;
+			}
+		}
+#endif
 	}
 }
 

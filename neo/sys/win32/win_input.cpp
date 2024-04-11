@@ -929,6 +929,10 @@ void idJoystickWin32::PostInputEvent( int inputDeviceNum, int event, int value, 
 	{
 		PushButton( inputDeviceNum, K_JOY1 + ( event - J_ACTION1 ), value != 0 );
 	}
+	else if( ( event >= J_TALK ) && ( event <= J_SAY_MAX ) )
+	{
+		PushButton( inputDeviceNum, K_TALK + ( event - J_TALK ), value != 0 );
+	}
 	else if( event == J_AXIS_LEFT_X )
 	{
 		PushButton( inputDeviceNum, K_JOY_STICK1_LEFT, ( value < -range ) );
@@ -961,6 +965,100 @@ void idJoystickWin32::PostInputEvent( int inputDeviceNum, int event, int value, 
 	{
 		PushButton( inputDeviceNum, K_JOY_TRIGGER2, ( value > range ) );
 	}
+
+	// Koz begin add touch
+	else if( event == J_AXIS_LEFT_TOUCH_X )
+	{
+		PushButton( inputDeviceNum, K_TOUCH_LEFT_STICK_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_TOUCH_LEFT_STICK_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_TOUCH_Y )
+	{
+		PushButton( inputDeviceNum, K_TOUCH_LEFT_STICK_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_TOUCH_LEFT_STICK_DOWN, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_TOUCH_X )
+	{
+		PushButton( inputDeviceNum, K_TOUCH_RIGHT_STICK_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_TOUCH_RIGHT_STICK_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_TOUCH_Y )
+	{
+		PushButton( inputDeviceNum, K_TOUCH_RIGHT_STICK_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_TOUCH_RIGHT_STICK_DOWN, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_TOUCH_TRIG )
+	{
+		PushButton( inputDeviceNum, K_L_TOUCHTRIG, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_TOUCH_TRIG )
+	{
+		PushButton( inputDeviceNum, K_R_TOUCHTRIG, ( value > range ) );
+	}
+
+
+	// add SteamVR controllers
+	else if( event == J_AXIS_LEFT_STEAMVR_X )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_LEFT_PAD x\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_PAD_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_PAD_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_STEAMVR_Y )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_LEFT_PAD y\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_PAD_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_PAD_DOWN, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_STEAMVR_X )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_RIGHT_PAD x\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_PAD_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_PAD_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_STEAMVR_Y )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_RIGHT_PAD y\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_PAD_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_PAD_DOWN, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_STEAMVR_TRIG )
+	{
+		//common->Printf( "Pushing button K_L_STEAMVRTRIG\n" );
+		PushButton( inputDeviceNum, K_L_STEAMVRTRIG, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_STEAMVR_TRIG )
+	{
+		//common->Printf( "Pushing button K_R_STEAMVRTRIG y\n" );
+		PushButton( inputDeviceNum, K_R_STEAMVRTRIG, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_JS_STEAMVR_X )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_LEFT_PAD x\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_JS_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_JS_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_LEFT_JS_STEAMVR_Y )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_LEFT_PAD y\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_JS_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_LEFT_JS_DOWN, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_JS_STEAMVR_X )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_RIGHT_PAD x\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_JS_LEFT, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_JS_RIGHT, ( value > range ) );
+	}
+	else if( event == J_AXIS_RIGHT_JS_STEAMVR_Y )
+	{
+		//common->Printf( "Pushing button K_STEAMVR_RIGHT_PAD y\n" );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_JS_UP, ( value < -range ) );
+		PushButton( inputDeviceNum, K_STEAMVR_RIGHT_JS_DOWN, ( value > range ) );
+	}
+
+	// Koz end
+
 	if( event >= J_AXIS_MIN && event <= J_AXIS_MAX )
 	{
 		int axis = event - J_AXIS_MIN;

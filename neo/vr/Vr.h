@@ -53,7 +53,6 @@ typedef enum
 {
 	MOTION_NONE,
 	MOTION_STEAMVR,
-	MOTION_OCULUS
 } vr_motionControl_t;
 
 typedef enum
@@ -130,7 +129,6 @@ public:
 	void				MotionControlGetLeftHand( idVec3& position, idQuat& rotation );
 	void				MotionControlGetRightHand( idVec3& position, idQuat& rotation );
 	void				MotionControlGetOpenVrController( vr::TrackedDeviceIndex_t deviceNum, idVec3& position, idQuat& rotation );
-	void				MotionControlGetTouchController( int hand, idVec3& position, idQuat& rotation );
 	void				MotionControllerSetHapticOpenVR( int hand, unsigned short value );
 
 	idVec2i				GetEyeResolution() const;
@@ -156,6 +154,16 @@ public:
 	int					GetHz() const
 	{
 		return hmdHz;
+	}
+
+	float				GetScreenSeparation() const
+	{
+		return screenSeparation;
+	}
+
+	float				GetUserDuckingAmount() const
+	{
+		return userDuckingAmount;
 	}
 
 	//---------------------------
@@ -216,11 +224,6 @@ public:
 	idVec3				uncrouchedHMDViewOrigin;
 	float				headHeightDiff;
 
-	bool				thirdPersonMovement;
-	float				thirdPersonDelta;
-	idVec3				thirdPersonHudPos;
-	idMat3				thirdPersonHudAxis;
-
 	float				angles[3];
 
 	int					VR_USE_MOTION_CONTROLS;
@@ -239,8 +242,6 @@ public:
 	float				hmdPixelScale;
 	float				hmdAspect;
 	hmdEye_t			hmdEye[2];
-
-	float				VRScreenSeparation;		// for Reduce FOV motion sickness fix
 
 	float				officialIPD;
 	float				officialHeight;
@@ -304,7 +305,6 @@ public:
 	idVec3				poseHmdBodyPositionDelta;
 	idVec3				remainingMoveHmdBodyPositionDelta;
 	idVec3				poseHmdAbsolutePosition;
-	float					userDuckingAmount; // how many game units the user has physically ducked in real life from their calibrated position
 
 	idVec3				poseHandPos[2];
 	idQuat				poseHandRotationQuat[2];
@@ -369,6 +369,7 @@ private:
 	int					hmdHz;
 
 	float				screenSeparation;		// for Reduce FOV motion sickness fix
+	float				userDuckingAmount;		// how many game units the user has physically ducked in real life from their calibrated position
 };
 
 extern idCVar vr_scale;
