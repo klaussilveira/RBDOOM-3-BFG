@@ -50,7 +50,7 @@ extern DeviceManager* deviceManager;
 // *** Oculus HMD Variables
 
 idCVar vr_pixelDensity( "vr_pixelDensity", "1", CVAR_FLOAT | CVAR_GAME, "" );
-idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
+idCVar vr_enable( "vr_enable", "0", CVAR_INTEGER | CVAR_INIT | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
 idCVar vr_scale( "vr_scale", "1.0", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "World scale. Everything virtual is this times as big." );
 idCVar vr_useOculusProfile( "vr_useOculusProfile", "1", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "TODO REMOVE, Use official profile values. 0 = use user defined profile, 1 = use official profile." );
 idCVar vr_manualIPDEnable( "vr_manualIPDEnable", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, " Override the HMD provided IPD value with value in vr_manualIPD 0 = disable 1= use manual iPD\n" );
@@ -216,7 +216,7 @@ idCVar vr_teleport( "vr_teleport", "2", CVAR_INTEGER | CVAR_ARCHIVE, "Player can
 idCVar vr_teleportMode( "vr_teleportMode", "0", CVAR_INTEGER | CVAR_ARCHIVE, "Teleport Mode. 0 = Blink (default), 1 = Doom VFR style (slow time and warp speed), 2 = Doom VFR style + jet strafe)", 0, 2 );
 idCVar vr_teleportMaxTravel( "vr_teleportMaxTravel", "950", CVAR_INTEGER | CVAR_ARCHIVE, "Maximum teleport path length/complexity/time. About 250 or 500 are good choices, but must be >= about 950 to use tightrope in MC Underground.", 150, 5000 );
 idCVar vr_teleportThroughDoors( "vr_teleportThroughDoors", "0", CVAR_BOOL | CVAR_ARCHIVE, "Player can teleport somewhere visible even if the path to get there takes them through closed (but not locked) doors." );
-idCVar vr_motionSickness( "vr_motionSickness", "1", CVAR_INTEGER | CVAR_ARCHIVE, "Motion sickness prevention aids. 0 = None, 1 = Chaperone, 2 = Reduce FOV, 3 = Black Screen, 4 = Black & Chaperone, 5 = Reduce FOV & Chaperone, 6 = Slow Mo, 7 = Slow Mo & Chaperone, 8 = Slow Mo & Reduce FOV, 9 = Slow Mo, Chaperone, Reduce FOV, 10 = Third Person, 11 = Particles, 12 = Particles & Chaperone", 0, 12 );
+idCVar vr_motionSickness( "vr_motionSickness", "1", CVAR_INTEGER | CVAR_ARCHIVE, "Motion sickness prevention aids. 0 = None, 1 = Chaperone, 2 = Reduce FOV, 3 = Black Screen, 4 = Black & Chaperone, 5 = Reduce FOV & Chaperone, 6 = Slow Mo, 7 = Slow Mo & Chaperone, 8 = Slow Mo & Reduce FOV, 9 = Slow Mo, Chaperone, Reduce FOV", 0, 9 );
 
 idCVar vr_strobeTime( "vr_strobeTime", "500", CVAR_INTEGER | CVAR_ARCHIVE, "Time in ms between flashes when blacking screen. 0 = no strobe" );
 idCVar vr_chaperone( "vr_chaperone", "2", CVAR_INTEGER | CVAR_ARCHIVE, "Chaperone/Guardian mode. 0 = when near, 1 = when throwing, 2 = when melee, 3 = when dodging, 4 = always", 0, 4 );
@@ -270,7 +270,7 @@ iVr::iVr()
 
 	vrIsBackgroundSaving = false;
 
-	VRScreenSeparation = 0.0f;
+	screenSeparation = 0.0f;
 
 	officialIPD = 64.0f;
 	officialHeight = 72.0f;
@@ -504,13 +504,13 @@ bool iVr::OpenVRInit()
 							  &openVRfovEye[0][0], &openVRfovEye[0][1],
 							  &openVRfovEye[0][2], &openVRfovEye[0][3] );
 
-	VRScreenSeparation =
+	screenSeparation =
 		0.5f * ( openVRfovEye[1][1] + openVRfovEye[1][0] )
 		/ ( openVRfovEye[1][1] - openVRfovEye[1][0] )
 		- 0.5f * ( openVRfovEye[0][1] + openVRfovEye[0][0] )
 		/ ( openVRfovEye[0][1] - openVRfovEye[0][0] );
 
-	VRScreenSeparation = fabs( VRScreenSeparation ) / 2.0f ;
+	screenSeparation = fabs( screenSeparation ) / 2.0f ;
 	com_engineHz.SetInteger( hmdHz );
 
 	common->Printf( "Hmd Driver: %s .\n", m_strDriver.c_str() );
@@ -527,7 +527,7 @@ bool iVr::OpenVRInit()
 	common->Printf( "HMD Right Eye rightTan %f\n", openVRfovEye[0][1] );
 	common->Printf( "HMD Right Eye upTan %f\n", openVRfovEye[0][2] );
 	common->Printf( "HMD Right Eye downTan %f\n", openVRfovEye[0][3] );
-	common->Printf( "OpenVR HMD Screen separation = %f\n", VRScreenSeparation );
+	common->Printf( "OpenVR HMD Screen separation = %f\n", screenSeparation );
 
 	return true;
 }
@@ -789,16 +789,6 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	static idVec3 currentNeckPosition = vec3_zero;
 	static idVec3 lastNeckPosition = vec3_zero;
 
-	//static idVec3 currentChestPosition = vec3_zero;
-	//static idVec3 lastChestPosition = vec3_zero;
-
-	//static float chestLength = 0;
-	//static bool chestInitialized = false;
-
-	//idVec3 neckToChestVec = vec3_zero;
-	//idMat3 neckToChestMat = mat3_identity;
-	//idAngles neckToChestAng = ang_zero;
-
 	static idVec3 lastHeadPositionDelta = vec3_zero;
 	static idVec3 lastBodyPositionDelta = vec3_zero;
 	static idVec3 lastAbsolutePosition = vec3_zero;
@@ -986,49 +976,6 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 
 	currentNeckPosition = hmdPosition + hmdAxis[0] * vr_nodalX.GetFloat() / vr_scale.GetFloat() /*+ hmdAxis[1] * 0.0f */ + hmdAxis[2] * vr_nodalZ.GetFloat() / vr_scale.GetFloat();
 
-//	currentNeckPosition.z = pm_normalviewheight.GetFloat() - (vr_nodalZ.GetFloat() + currentNeckPosition.z);
-
-	/*
-	if ( !chestInitialized )
-	{
-		if ( chestDefaultDefined )
-		{
-
-			neckToChestVec = currentNeckPosition - gameLocal.GetLocalPlayer()->chestPivotDefaultPos;
-			chestLength = neckToChestVec.Length();
-			chestInitialized = true;
-			common->Printf( "Chest Initialized, length %f\n", chestLength );
-			common->Printf( "Chest default position = %s\n", gameLocal.GetLocalPlayer()->chestPivotDefaultPos.ToString() );
-		}
-	}
-
-	if ( chestInitialized )
-	{
-		neckToChestVec = currentNeckPosition - gameLocal.GetLocalPlayer()->chestPivotDefaultPos;
-		neckToChestVec.Normalize();
-
-		idVec3 chesMove = chestLength * neckToChestVec;
-		currentChestPosition = currentNeckPosition - chesMove;
-
-		common->Printf( "Chest length %f angles roll %f pitch %f yaw %f \n", chestLength, neckToChestVec.ToAngles().roll, neckToChestVec.ToAngles().pitch, neckToChestVec.ToAngles().yaw );
-		common->Printf( "CurrentNeckPos = %s\n", currentNeckPosition.ToString() );
-		common->Printf( "CurrentChestPos = %s\n", currentChestPosition.ToString() );
-		common->Printf( "ChestMove = %s\n", chesMove.ToString() );
-
-		idAngles chestAngles = ang_zero;
-		chestAngles.roll = neckToChestVec.ToAngles().yaw + 90.0f;
-		chestAngles.pitch = 0;// neckToChestVec.ToAngles().yaw;            //chest angles.pitch rotates the chest.
-		chestAngles.yaw = 0;
-
-
-		//lastView = lastHMDViewAxis.ToAngles();
-		//headAngles.roll = lastView.pitch;
-		//headAngles.pitch = lastHMDYaw - bodyYawOffset;
-		//headAngles.yaw = lastView.roll;
-		//headAngles.Normalize360();
-		//gameLocal.GetLocalPlayer()->GetAnimator()->SetJointAxis( gameLocal.GetLocalPlayer()->chestPivotJoint, JOINTMOD_LOCAL, chestAngles.ToMat3() );
-	}
-	*/
 	if( !neckInitialized )
 	{
 		lastNeckPosition = currentNeckPosition;
@@ -1047,7 +994,6 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	lastBodyPositionDelta = bodyPositionDelta;
 
 	lastNeckPosition = currentNeckPosition;
-	//lastChestPosition = currentChestPosition;
 
 	headPositionDelta = hmdPosition - currentNeckPosition; // use this to base movement on neck model
 	//headPositionDelta = hmdPosition - currentChestPosition;

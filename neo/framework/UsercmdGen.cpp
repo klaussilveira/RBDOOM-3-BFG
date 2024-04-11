@@ -129,6 +129,8 @@ userCmdString_t	userCmdStrings[] =
 	{ "_zoom",			UB_ZOOM },
 	{ "_showScores",	UB_SHOWSCORES },
 	{ "_use",			UB_USE },
+	{ "_talk",			UB_TALK },
+	{ "_teleport",		UB_TELEPORT },
 
 	{ "_impulse0",		UB_IMPULSE0 },
 	{ "_impulse1",		UB_IMPULSE1 },
@@ -162,6 +164,23 @@ userCmdString_t	userCmdStrings[] =
 	{ "_impulse29",		UB_IMPULSE29 },
 	{ "_impulse30",		UB_IMPULSE30 },
 	{ "_impulse31",		UB_IMPULSE31 },
+
+	// Koz begin
+	{ "_impulse32",		UB_IMPULSE32 }, // new impulse for HMD/Body orientation reset
+	{ "_impulse33",		UB_IMPULSE33 }, // new impulse for lasersight toggle
+	{ "_impulse34",		UB_IMPULSE34 }, // new impulse for comfort turn right
+	{ "_impulse35",		UB_IMPULSE35 }, // new impulse for comfort turn left
+	{ "_impulse36",		UB_IMPULSE36 }, // new impulse for hud toggle;
+	{ "_impulse37",		UB_IMPULSE37 }, // new impulse for headingbeam toggle;
+	{ "_impulse38",		UB_IMPULSE38 }, // new impulse for walk in place
+	{ "_impulse39",		UB_IMPULSE39 }, // new impulse for next flashlight mode;
+	{ "_impulse40",		UB_IMPULSE40 }, // new impulse for system menu;
+	{ "_impulse41",		UB_IMPULSE41 }, // new impulse for click to move;
+	// Koz end
+	{ "_soulcube",		UB_IMPULSE_SOULCUBE }, // new impulse for Soul Cube
+	{ "_artifact",		UB_IMPULSE_ARTIFACT }, // new impulse for The Artifact
+	{ "_pause",			UB_IMPULSE_PAUSE }, // new impulse for Computer, Freeze Program
+	{ "_resume",		UB_IMPULSE_RESUME }, // new impulse for Computer, Resume Program
 
 	{ NULL,				UB_NONE },
 };

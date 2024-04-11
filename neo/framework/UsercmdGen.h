@@ -51,17 +51,17 @@ const int BUTTON_CHATTING		= BIT( 7 );
 
 // usercmd_t->impulse commands
 const int IMPULSE_0				= 0;			// weap 0
-const int IMPULSE_1				= 1;			// weap 1
+const int IMPULSE_1				= 1;			// weap 1 Carl: grabber
 const int IMPULSE_2				= 2;			// weap 2
 const int IMPULSE_3				= 3;			// weap 3
-const int IMPULSE_4				= 4;			// weap 4
+const int IMPULSE_4				= 4;			// weap 4 Carl: double barreled shotgun
 const int IMPULSE_5				= 5;			// weap 5
 const int IMPULSE_6				= 6;			// weap 6
 const int IMPULSE_7				= 7;			// weap 7
 const int IMPULSE_8				= 8;			// weap 8
 const int IMPULSE_9				= 9;			// weap 9
 const int IMPULSE_10			= 10;			// weap 10
-const int IMPULSE_11			= 11;			// weap 11
+const int IMPULSE_11			= 11;			// weap 11 Carl: single barreled shotgun
 const int IMPULSE_12			= 12;			// weap 12
 const int IMPULSE_13			= 13;			// weap reload
 const int IMPULSE_14			= 14;			// weap next
@@ -71,11 +71,36 @@ const int IMPULSE_18			= 18;			// center view
 const int IMPULSE_19			= 19;			// show PDA/SCORES
 const int IMPULSE_22			= 22;			// spectate
 const int IMPULSE_25			= 25;			// Envirosuit light
+const int IMPULSE_26			= 26;			// Carl: Fists
 const int IMPULSE_27			= 27;			// Chainsaw
 const int IMPULSE_28			= 28;			// quick 0
 const int IMPULSE_29			= 29;			// quick 1
 const int IMPULSE_30			= 30;			// quick 2
 const int IMPULSE_31			= 31;			// quick 3
+
+// Koz
+const int IMPULSE_32			= 32;			// reset HMD/Body orientation
+const int IMPULSE_33			= 33;			// toggle lasersight
+const int IMPULSE_34			= 34;			// comfort turn right
+const int IMPULSE_35			= 35;			// comfort turn left
+const int IMPULSE_36			= 36;			// toggle hud
+const int IMPULSE_37			= 37;			// toggle headingbeam
+const int IMPULSE_38			= 38;			// walk in place
+const int IMPULSE_39			= 39;			// freelook
+const int IMPULSE_40			= 40;			// system menu
+const int IMPULSE_41			= 41;			// click to move
+// Koz end
+const int IMPULSE_42			= 42;			// Carl: soul cube
+const int IMPULSE_SOULCUBE = IMPULSE_42;
+const int IMPULSE_43			= 43;			// Carl: the artifact
+const int IMPULSE_ARTIFACT = IMPULSE_43;
+const int IMPULSE_44			= 44;			// Carl: computer, freeze program
+const int IMPULSE_PAUSE = IMPULSE_44;
+const int IMPULSE_45			= 45;			// Carl: computer, resume program
+const int IMPULSE_RESUME = IMPULSE_45;
+
+//Npi : global minimal dead zone
+const double MOVE_DEAD_ZONE = 0.05;
 
 class usercmd_t
 {
@@ -151,6 +176,8 @@ typedef enum
 	UB_ZOOM,
 	UB_SHOWSCORES,
 	UB_USE,
+	UB_TALK,
+	UB_TELEPORT,
 
 	UB_IMPULSE0,
 	UB_IMPULSE1,
@@ -182,8 +209,30 @@ typedef enum
 	UB_IMPULSE27,
 	UB_IMPULSE28,
 	UB_IMPULSE29,
-	UB_IMPULSE30,
-	UB_IMPULSE31,
+	UB_IMPULSE30, // Koz use for Push to Talk for voice commands.
+	UB_IMPULSE31, // escape to access menu
+
+	// Koz begin
+	UB_IMPULSE32, // HMD/Body orientation reset
+	UB_IMPULSE33, // lasersight toggle
+	UB_IMPULSE34, // comfort turn right
+	UB_IMPULSE35, // comfort turn left
+	UB_IMPULSE36, // hud toggle
+	UB_IMPULSE37, // headingbeam toggle
+	UB_IMPULSE38, // walk in place
+	UB_IMPULSE39, // next flashlight mode
+	UB_IMPULSE40, // system menu
+	UB_IMPULSE41, // click to move
+	// Koz end
+
+	UB_IMPULSE42, // Carl: Soul Cube
+	UB_IMPULSE_SOULCUBE = UB_IMPULSE42,
+	UB_IMPULSE43, // Carl: The Artifact
+	UB_IMPULSE_ARTIFACT = UB_IMPULSE43,
+	UB_IMPULSE44, // Carl: Freeze Program
+	UB_IMPULSE_PAUSE = UB_IMPULSE44,
+	UB_IMPULSE45, // Carl: Resume Program
+	UB_IMPULSE_RESUME = UB_IMPULSE45,
 
 	UB_MAX_BUTTONS
 } usercmdButton_t;

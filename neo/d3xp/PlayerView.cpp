@@ -266,45 +266,50 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict* damageDef )
 		return;
 	}
 
-	float dvTime = damageDef->GetFloat( "dv_time" );
-	if( dvTime )
+	if( !vrSystem->IsActive() || ( vrSystem->IsActive() && vr_headKick.GetBool() ) ) // consider doublevision a headkick and skip if disabled in VR
 	{
-		if( dvFinishTime < gameLocal.fast.time )
+		float dvTime = damageDef->GetFloat( "dv_time" );
+		if( dvTime )
 		{
-			dvFinishTime = gameLocal.fast.time;
+			if( dvFinishTime < gameLocal.fast.time )
+			{
+				dvFinishTime = gameLocal.fast.time;
+			}
+			dvFinishTime += g_dvTime.GetFloat() * dvTime;
+			// don't let it add up too much in god mode
+			if( dvFinishTime > gameLocal.fast.time + 5000 )
+			{
+				dvFinishTime = gameLocal.fast.time + 5000;
+			}
 		}
-		dvFinishTime += g_dvTime.GetFloat() * dvTime;
-		// don't let it add up too much in god mode
-		if( dvFinishTime > gameLocal.fast.time + 5000 )
+
+		//
+		// head angle kick
+		//
+		float kickTime = damageDef->GetFloat( "kick_time" );
+		float gkicktime = g_kickTime.GetFloat();
+
+		if( kickTime )
 		{
-			dvFinishTime = gameLocal.fast.time + 5000;
-		}
-	}
+			kickFinishTime = gameLocal.slow.time + gkicktime * kickTime;
 
-	//
-	// head angle kick
-	//
-	float kickTime = damageDef->GetFloat( "kick_time" );
-	if( kickTime )
-	{
-		kickFinishTime = gameLocal.slow.time + g_kickTime.GetFloat() * kickTime;
+			// forward / back kick will pitch view
+			kickAngles[0] = localKickDir[0];
 
-		// forward / back kick will pitch view
-		kickAngles[0] = localKickDir[0];
+			// side kick will yaw view
+			kickAngles[1] = localKickDir[1] * 0.5f;
 
-		// side kick will yaw view
-		kickAngles[1] = localKickDir[1] * 0.5f;
+			// up / down kick will pitch view
+			kickAngles[0] += localKickDir[2];
 
-		// up / down kick will pitch view
-		kickAngles[0] += localKickDir[2];
+			// roll will come from  side
+			kickAngles[2] = localKickDir[1];
 
-		// roll will come from  side
-		kickAngles[2] = localKickDir[1];
-
-		float kickAmplitude = damageDef->GetFloat( "kick_amplitude" );
-		if( kickAmplitude )
-		{
-			kickAngles *= kickAmplitude;
+			float kickAmplitude = damageDef->GetFloat( "kick_amplitude" );
+			if( kickAmplitude )
+			{
+				kickAngles *= kickAmplitude;
+			}
 		}
 	}
 
@@ -350,6 +355,11 @@ Called when a weapon fires, generates head twitches, etc
 */
 void idPlayerView::WeaponFireFeedback( const idDict* weaponDef )
 {
+	if( vrSystem->IsActive() && !vr_headKick.GetBool() )
+	{
+		return;    // Koz skip head kick from weapon recoil in vr
+	}
+
 	int recoilTime = weaponDef->GetInt( "recoilTime" );
 	// don't shorten a damage kick in progress
 	if( recoilTime && kickFinishTime < gameLocal.slow.time )
@@ -377,6 +387,13 @@ void idPlayerView::CalculateShake()
 	// since CurrentShakeAmplitudeForPosition() returns all the shake sounds
 	// the player can hear, it can go over 1.0 too.
 	//
+
+	// Koz
+	if( vrSystem->IsActive() )
+	{
+		shakeVolume *= vr_shakeAmplitude.GetFloat();
+	}
+
 	shakeAng[0] = gameLocal.random.CRandomFloat() * shakeVolume;
 	shakeAng[1] = gameLocal.random.CRandomFloat() * shakeVolume;
 	shakeAng[2] = gameLocal.random.CRandomFloat() * shakeVolume;
@@ -667,7 +684,7 @@ void idPlayerView::ScreenFade()
 	}
 }
 
-idCVar	stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "3.0", CVAR_ARCHIVE | CVAR_RENDERER, "Distance between eyes" );
+idCVar	stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "3.0", CVAR_ARCHIVE | CVAR_RENDERER, "unused see vr_manualIPD" );
 idCVar	stereoRender_convergence( "stereoRender_convergence", "6", CVAR_RENDERER, "0 = head mounted display, otherwise world units to convergence plane" );
 
 extern	idCVar stereoRender_screenSeparation;	// screen units from center to eyes

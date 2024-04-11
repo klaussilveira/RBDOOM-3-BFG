@@ -10207,19 +10207,21 @@ float idPlayer::CalcFov( bool honorZoom )
 	}
 
 	// Koz, no zoom in VR.
-
-	/*
-	if ( zoomFov.IsDone( gameLocal.time ) )
+	if( vrSystem->IsActive() )
 	{
-		fov = ( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
+		fov = DefaultFov();
 	}
 	else
 	{
-		fov = zoomFov.GetCurrentValue( gameLocal.time );
+		if( zoomFov.IsDone( gameLocal.time ) )
+		{
+			fov = ( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
+		}
+		else
+		{
+			fov = zoomFov.GetCurrentValue( gameLocal.time );
+		}
 	}
-	*/
-
-	fov = DefaultFov();
 
 	// bound normal viewsize
 	if( fov < 1 )
