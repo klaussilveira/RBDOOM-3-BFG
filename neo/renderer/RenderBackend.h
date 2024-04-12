@@ -193,9 +193,7 @@ private:
 	void				ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int numDrawSurfs, viewLight_t* vLight, int side, const idRenderMatrix& lightProjectionRenderMatrix, const idRenderMatrix& lightViewRenderMatrix );
 
 	void				ShadowAtlasPass( const viewDef_t* _viewDef );
-
-	void				StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t* vLight );
-	void				StencilSelectLight( const viewLight_t* vLight );
+	void				SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef );
 
 	void				DrawMotionVectors();
 	void				TemporalAAPass( const viewDef_t* _viewDef );
@@ -373,6 +371,8 @@ private:
 
 	// quad-tree for managing tiles within tiled shadow map
 	TileMap				tileMap;
+	//idVectorSubset<idVec3, 3> tileVertexSubset;
+	//idList<int>			tileShadowIndices;
 
 private:
 	idScreenRect					stateViewport;

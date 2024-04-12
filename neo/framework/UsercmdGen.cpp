@@ -1428,7 +1428,10 @@ void idUsercmdGenLocal::CmdButtons()
 	}
 	else
 	{
-		cmd.buttons |= BUTTON_ATTACK;
+		if( ButtonState( UB_ATTACK ) )
+		{
+			cmd.buttons |= BUTTON_ATTACK;
+		}
 	}
 	// Koz end
 

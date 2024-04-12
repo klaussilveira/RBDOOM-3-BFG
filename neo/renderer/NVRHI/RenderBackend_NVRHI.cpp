@@ -1850,7 +1850,6 @@ void idRenderBackend::GL_EndFrame()
 
 	if( vrSystem->IsActive() )
 	{
-#if 1
 		//if( vrSystem->playerDead || ( game->Shell_IsActive() && !vrSystem->PDAforced && !vrSystem->PDAforcetoggle ) || ( !vrSystem->PDAforced && common->Dialog().IsDialogActive() )
 		//		|| vrSystem->isLoading || vrSystem->showingIntroVideo || session->GetState() == idSession::LOADING || ( game->CheckInCinematic() && vr_cinematics.GetInteger() == 2 ) )
 
@@ -1860,7 +1859,6 @@ void idRenderBackend::GL_EndFrame()
 			HMD_SubmitStereoRenders( globalImages->hmdEyeImages[0], globalImages->hmdEyeImages[1] );
 		}
 		else
-#endif
 		{
 			HMD_SubmitStereoRenders( globalImages->stereoRenderImages[0], globalImages->stereoRenderImages[1] );
 		}
@@ -2318,6 +2316,9 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 
 	// TODO: only do the copy after the final view has been rendered, not mirror subviews?
 
+	// SRS - Save glConfig.timerQueryAvailable state so it can be disabled for RC_DRAW_VIEW_GUI then restored after it is finished
+	const bool timerQueryAvailable = glConfig.timerQueryAvailable;
+
 	// Render the 3D draw views from the screen origin so all the screen relative
 	// texture mapping works properly, then copy the portion we are going to use
 	// off to a texture.
@@ -2327,6 +2328,14 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 	{
 		// set up the target texture we will draw to
 		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+		// capture only timestamps for the first eye
+		if( stereoEye == -1 )
+		{
+			glConfig.timerQueryAvailable = false;
+		}
+
+		bool drawView3D = false;
 
 		// Set the back end into a known default state to fix any stale render state issues
 		GL_SetDefaultState();
@@ -2355,11 +2364,9 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 
 					foundEye[ targetEye ] = true;
 					DrawView( dsc, stereoEye );
-					if( cmds->commandId == RC_DRAW_VIEW_GUI )
-					{
-					}
+
+					break;
 				}
-				break;
 
 				case RC_SET_BUFFER:
 					SetBuffer( cmds );
@@ -2377,21 +2384,24 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 						break;
 					}
 					PostProcess( cmds );
+					break;
 				}
-				break;
 
 				default:
-					common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+					common->Error( "StereoRenderExecuteBackEndCommands: bad commandId" );
 					break;
 			}
 		}
 
-		// copy to the target
-		//stereoRenderImages[ targetEye ]->CopyFramebuffer( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+		// capture only timestamps for the first eye
+		if( stereoEye == -1 )
+		{
+			glConfig.timerQueryAvailable = timerQueryAvailable;
+		}
+
+		// copy LDR result to DX12 / Vulkan stereo image
 		{
 			OPTICK_GPU_EVENT( "Blit_StereoImage" );
-
-			// copy LDR result to DX12 / Vulkan swapchain image
 
 			BlitParameters blitParms;
 			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
@@ -2544,27 +2554,62 @@ idRenderBackend::HMD_SubmitStereoRenders
 */
 void idRenderBackend::HMD_SubmitStereoRenders( idImage* image0, idImage* image1 )
 {
-	vr::D3D12TextureData_t d3d12LeftEyeTexture;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		nvrhi::IDevice* device = deviceManager->GetDevice();
 
-	nvrhi::ITexture* nativeTexture = image0->GetTextureHandle();
-	d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
-	d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
-	d3d12LeftEyeTexture.m_nNodeMask = 0;
+		vr::VRVulkanTextureData_t vulkanData;
+		nvrhi::ITexture* nativeTexture = image0->GetTextureHandle();
 
-	vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
-	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+		vulkanData.m_nImage = ( uint64_t )( void* )nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+		vulkanData.m_pDevice = ( VkDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
+		vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
+		vulkanData.m_pInstance = ( VkInstance_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
+		vulkanData.m_pQueue = ( VkQueue_T* ) device->getNativeQueue( nvrhi::ObjectTypes::VK_Queue, nvrhi::CommandQueue::Graphics );
+		vulkanData.m_nQueueFamilyIndex = deviceManager->GetGraphicsFamilyIndex();
+
+		vulkanData.m_nWidth = image0->GetUploadWidth();
+		vulkanData.m_nHeight = image0->GetUploadHeight();
+		vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		vulkanData.m_nSampleCount = 1;
+
+		vr::Texture_t leftEyeTexture = { ( void* )& vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+
+		nativeTexture = image1->GetTextureHandle();
+		vulkanData.m_nImage = ( uint64_t )( void* )nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+		vulkanData.m_nWidth = image1->GetUploadWidth();
+		vulkanData.m_nHeight = image1->GetUploadHeight();
+		vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		vulkanData.m_nSampleCount = 1;
+
+		vr::Texture_t rightEyeTexture = { ( void* )& vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+	}
+	else
+	{
+		vr::D3D12TextureData_t d3d12LeftEyeTexture;
+
+		nvrhi::ITexture* nativeTexture = image0->GetTextureHandle();
+		d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		d3d12LeftEyeTexture.m_nNodeMask = 0;
+
+		vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
 
 
-	vr::D3D12TextureData_t d3d12RightEyeTexture;
+		vr::D3D12TextureData_t d3d12RightEyeTexture;
 
-	nativeTexture = image1->GetTextureHandle();
-	d3d12RightEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
-	d3d12RightEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
-	d3d12RightEyeTexture.m_nNodeMask = 0;
+		nativeTexture = image1->GetTextureHandle();
+		d3d12RightEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12RightEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		d3d12RightEyeTexture.m_nNodeMask = 0;
 
-	vr::Texture_t rightEyeTexture = { ( void* )& d3d12RightEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+		vr::Texture_t rightEyeTexture = { ( void* )& d3d12RightEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
 
-	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+		vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+	}
 }
 
 static void VR_TranslationMatrix( float x, float y, float z, float ( &out )[4][4] )

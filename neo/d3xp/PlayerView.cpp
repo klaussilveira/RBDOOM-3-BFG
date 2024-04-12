@@ -860,6 +860,7 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 	{
 		SingleView( view, hudManager );
 	}
+
 	ScreenFade();
 }
 

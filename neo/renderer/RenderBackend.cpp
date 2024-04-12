@@ -57,8 +57,7 @@ idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | 
 
 extern idCVar stereoRender_swapEyes;
 
-// SRS - flag indicating whether we are drawing a 3d view vs. a 2d-only view (e.g. menu or pda)
-bool drawView3D;
+
 
 /*
 ================
@@ -3426,7 +3425,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			continue;
@@ -3564,7 +3563,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			vLight->imageSize.x = vLight->imageSize.y = -1;
@@ -3661,6 +3660,78 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
+}
+
+void idRenderBackend::SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef )
+{
+	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
+	{
+		return;
+	}
+
+	OPTICK_EVENT( "SetupShadowMapMatricesForShadowAtlas" );
+
+	//
+	// for each light, perform shadowing to a big atlas Framebuffer
+	//
+	int shadowIndex = 0;
+	int failedNum = 0;
+
+	for( viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+	{
+		if( vLight->lightShader->IsFogLight() )
+		{
+			continue;
+		}
+
+		if( vLight->lightShader->IsBlendLight() )
+		{
+			continue;
+		}
+
+		if( vLight->localInteractions == NULL && vLight->globalInteractions == NULL && vLight->translucentInteractions == NULL )
+		{
+			continue;
+		}
+
+		if( !vLight->ImageAtlasPlaced() )
+		{
+			continue;
+		}
+
+		int	side, sideStop;
+
+		if( vLight->parallel )
+		{
+			side = 0;
+			sideStop = r_shadowMapSplits.GetInteger() + 1;
+		}
+		else if( vLight->pointLight )
+		{
+			if( r_shadowMapSingleSide.GetInteger() != -1 )
+			{
+				side = r_shadowMapSingleSide.GetInteger();
+				sideStop = side + 1;
+			}
+			else
+			{
+				side = 0;
+				sideStop = 6;
+			}
+		}
+		else
+		{
+			side = -1;
+			sideStop = 0;
+		}
+
+		for( ; side < sideStop ; side++ )
+		{
+			idRenderMatrix lightProjectionRenderMatrix;
+			idRenderMatrix lightViewRenderMatrix;
+			SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix );
+		}
+	}
 }
 
 /*
@@ -5304,6 +5375,8 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
 
+	// make sure the swapchains and rendertargets have the size requested
+	// by the window system
 	ResizeImages();
 
 	if( cmds->commandId == RC_NOP && !cmds->next )
@@ -5314,7 +5387,6 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		StereoRenderExecuteBackEndCommands( cmds );
-		//renderLog.EndFrame();
 		return;
 	}
 
@@ -5327,7 +5399,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	// SRS - Save glConfig.timerQueryAvailable state so it can be disabled for RC_DRAW_VIEW_GUI then restored after it is finished
 	const bool timerQueryAvailable = glConfig.timerQueryAvailable;
-	drawView3D = false;
+	bool drawView3D = false;
 
 	for( ; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 	{
@@ -5341,7 +5413,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				{
 					// SRS - Capture separate timestamps for overlay GUI rendering when RC_DRAW_VIEW_3D timestamps are active
 					renderLog.OpenMainBlock( MRB_DRAW_GUI );
-					renderLog.OpenBlock( "Render_DrawViewGUI", colorBlue );
+					//renderLog.OpenBlock( "Render_DrawViewGUI", colorBlue );
 					// SRS - Disable detailed timestamps during overlay GUI rendering so they do not overwrite timestamps from 3D rendering
 					glConfig.timerQueryAvailable = false;
 
@@ -5349,7 +5421,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 					// SRS - Restore timestamp capture state after overlay GUI rendering is finished
 					glConfig.timerQueryAvailable = timerQueryAvailable;
-					renderLog.CloseBlock();
+					//renderLog.CloseBlock();
 					renderLog.CloseMainBlock( MRB_DRAW_GUI );
 				}
 				else
@@ -5387,7 +5459,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 
 			default:
-				common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+				common->Error( "ExecuteBackEndCommands: bad commandId" );
 				break;
 		}
 	}
@@ -5406,8 +5478,6 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, pc.c_copyFrameBuffer );
 		pc.c_copyFrameBuffer = 0;
 	}
-
-	//renderLog.EndFrame();
 }
 
 
@@ -5429,7 +5499,23 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
 	//OPTICK_GPU_EVENT( "DrawView" );	// SRS - now in DrawView() for 3D vs. GUI
 
-	renderLog.OpenBlock( "Render_DrawViewInternal", colorRed );
+	// ugly but still faster than building the string
+	if( !_viewDef->viewEntitys || _viewDef->is2Dgui )
+	{
+		renderLog.OpenBlock( "Render_DrawView2D", colorRed );
+	}
+	else if( stereoEye == -1 )
+	{
+		renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
+	}
+	else if( stereoEye == 1 )
+	{
+		renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
+	}
+	else if( stereoEye == 0 )
+	{
+		renderLog.OpenBlock( "Render_DrawView3D", colorRed );
+	}
 
 	//-------------------------------------------------
 	// guis can wind up referencing purged images that need to be loaded.
@@ -5576,7 +5662,20 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// render all light <-> geometry interactions to a depth buffer atlas
 	//-------------------------------------------------
+
+	// TODO only render shadow atlas for the first eye and then reuse the data for the second
+#if 1
 	ShadowAtlasPass( _viewDef );
+#else
+	if( stereoEye == 1 || stereoEye == 0 )
+	{
+		ShadowAtlasPass( _viewDef );
+	}
+	else if( stereoEye == -1 )
+	{
+		SetupShadowMapMatricesForShadowAtlas( _viewDef );
+	}
+#endif
 
 	//-------------------------------------------------
 	// main light renderer
@@ -5948,10 +6047,6 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 		DrawViewInternal( cmd->viewDef, stereoEye );
 	}
-
-	// RB: Support motion blur in the future again?
-	// It is the worst thing next to depth of field
-	//MotionBlur();
 
 	// optionally draw a box colored based on the eye number
 	if( r_drawEyeColor.GetBool() )

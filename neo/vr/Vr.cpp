@@ -690,7 +690,7 @@ void iVr::HMDInitializeDistortion()
 			vulkanData.m_pDevice = ( VkDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
 			vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
 			vulkanData.m_pInstance = ( VkInstance_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
-			vulkanData.m_pQueue = ( VkQueue_T* ) commandList->getNativeObject( nvrhi::ObjectTypes::VK_CommandBuffer );
+			vulkanData.m_pQueue = ( VkQueue_T* ) device->getNativeQueue( nvrhi::ObjectTypes::VK_Queue, nvrhi::CommandQueue::Graphics );
 			vulkanData.m_nQueueFamilyIndex = deviceManager->GetGraphicsFamilyIndex();
 
 			vulkanData.m_nWidth = globalImages->blackImage->GetUploadWidth();
