@@ -10495,7 +10495,7 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 	angles.pitch = - RAD2DEG( atan2( focusPoint.z, focusDist ) );
 	angles.yaw -= angle;
 
-	renderView->vieworg = view;
+	renderView->vieworg[STEREOPOS_MONO] = view;
 	renderView->viewaxis = angles.ToMat3() * physicsObj.GetGravityAxis();
 	renderView->viewID = 0;
 }
@@ -10658,7 +10658,7 @@ void idPlayer::CalculateRenderView()
 	{
 		if( g_stopTime.GetBool() )
 		{
-			renderView->vieworg = firstPersonViewOrigin;
+			renderView->vieworg[STEREOPOS_MONO] = firstPersonViewOrigin;
 			renderView->viewaxis = firstPersonViewAxis;
 
 			if( !pm_thirdPerson.GetBool() )
@@ -10679,7 +10679,7 @@ void idPlayer::CalculateRenderView()
 		}
 		else
 		{
-			renderView->vieworg = firstPersonViewOrigin;
+			renderView->vieworg[STEREOPOS_MONO] = firstPersonViewOrigin;
 			renderView->viewaxis = firstPersonViewAxis;
 
 			// set the viewID to the clientNum + 1, so we can suppress the right player bodies and
@@ -10697,7 +10697,7 @@ void idPlayer::CalculateRenderView()
 
 	if( g_showviewpos.GetBool() )
 	{
-		gameLocal.Printf( "%s : %s\n", renderView->vieworg.ToString(), renderView->viewaxis.ToAngles().ToString() );
+		gameLocal.Printf( "%s : %s\n", renderView->vieworg[STEREOPOS_MONO].ToString(), renderView->viewaxis.ToAngles().ToString() );
 	}
 
 	if( vrSystem->IsActive() )
@@ -10716,7 +10716,7 @@ void idPlayer::CalculateRenderView()
 		bodyPositionDelta = vrSystem->poseHmdBodyPositionDelta;
 		absolutePosition = vrSystem->poseHmdAbsolutePosition;
 
-		idVec3 origin = renderView->vieworg;
+		idVec3 origin = renderView->vieworg[STEREOPOS_MONO];
 		idAngles angles = renderView->viewaxis.ToAngles();
 		idMat3 axis = renderView->viewaxis;
 		float yawOffset = vrSystem->bodyYawOffset;
@@ -10784,7 +10784,7 @@ void idPlayer::CalculateRenderView()
 			vrSystem->uncrouchedHMDViewOrigin.z -= vrSystem->headHeightDiff;
 		}
 
-		renderView->vieworg = origin;
+		renderView->vieworg[STEREOPOS_MONO] = origin;
 		renderView->viewaxis = axis;
 
 		// if leaning, check if the eye is in a wall
@@ -11834,7 +11834,7 @@ bool idPlayer::GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis )
 
 		memset( &view, 0, sizeof( view ) );
 		camera->GetViewParms( &view );
-		origin = view.vieworg;
+		origin = view.vieworg[STEREOPOS_MONO];
 		axis = view.viewaxis;
 		return true;
 	}

@@ -349,7 +349,7 @@ R_SetupViewMatrix
 Sets up the world to view matrix for a given viewParm
 ======================
 */
-void R_SetupViewMatrix( viewDef_t* viewDef )
+void R_SetupViewMatrix( viewDef_t* viewDef, stereoOrigin_t stereoOrigin )
 {
 	static float s_flipMatrix[16] =
 	{
@@ -370,7 +370,7 @@ void R_SetupViewMatrix( viewDef_t* viewDef )
 	world->modelMatrix[2 * 4 + 2] = 1.0f;
 
 	// transform by the camera placement
-	const idVec3& origin = viewDef->renderView.vieworg;
+	const idVec3& origin = viewDef->renderView.vieworg[ stereoOrigin ];
 	const idMat3& axis = viewDef->renderView.viewaxis;
 
 	float viewerMatrix[16];
@@ -435,6 +435,8 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 	if( vrSystem->IsActive() )
 	{
+		// TODO calculate viewDef->vieworg[STEREOPOS_CULLING]
+
 		int pEye = viewDef->renderView.viewEyeBuffer == -1 ? 0 : 1;
 		float idx = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projRight - vrSystem->hmdEye[pEye].projectionOpenVR.projLeft );
 		float idy = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projDown - vrSystem->hmdEye[pEye].projectionOpenVR.projUp );
@@ -640,6 +642,7 @@ R_SetupUnprojection
 create a matrix with similar functionality like gluUnproject, project from window space to world space
 =================
 */
+/*
 void R_SetupUnprojection( viewDef_t* viewDef )
 {
 	// RB: I don't like that this doesn't work
@@ -653,6 +656,7 @@ void R_SetupUnprojection( viewDef_t* viewDef )
 
 	idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldRenderMatrix );
 }
+*/
 
 void R_MatrixFullInverse( const float a[16], float r[16] )
 {

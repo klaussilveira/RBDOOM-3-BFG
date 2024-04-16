@@ -1026,7 +1026,7 @@ CONSOLE_COMMAND( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			ref.rdflags = RDF_NOAMBIENT | RDF_IRRADIANCE;
 			ref.fov_x = ref.fov_y = 90;
 
-			ref.vieworg = def->parms.origin;
+			ref.vieworg[STEREOPOS_MONO] = def->parms.origin;
 			ref.viewaxis = tr.cubeAxis[j];
 
 			// discard anything currently on the list

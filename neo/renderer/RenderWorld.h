@@ -243,6 +243,15 @@ const int RDF_NOAMBIENT		= BIT( 1 ); // don't render indirect lighting
 const int RDF_IRRADIANCE	= BIT( 2 ); // render into 256^2 HDR render target for irradiance/radiance GGX calculation
 const int RDF_UNDERWATER	= BIT( 3 ); // TODO enable automatic underwater caustics and fog
 
+enum stereoOrigin_t
+{
+	STEREOPOS_MONO,			// old view origin or in VR, middle between the eyes where it derived from
+	STEREOPOS_LEFT,			// only in VR: left
+	STEREOPOS_RIGHT,		// only in VR: right but both share the same viewaxis
+	STEREOPOS_CULLING,		// only in VR: combined which is behind both eyes
+	STEREOPOS_MAX
+};
+
 typedef struct renderView_s
 {
 	// player views will set this to a non-zero integer for model suppress / allow
@@ -250,8 +259,8 @@ typedef struct renderView_s
 	int						viewID;
 
 	float					fov_x, fov_y;		// in degrees
-	idVec3					vieworg;			// has already been adjusted for stereo world seperation
-	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
+	idVec3					vieworg[STEREOPOS_MAX];			// has already been adjusted for stereo world seperation
+	//idVec3				vieworg_weapon;		// has already been adjusted for stereo world seperation
 	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
 
 //	idPlane                 clipPlane;			// SP

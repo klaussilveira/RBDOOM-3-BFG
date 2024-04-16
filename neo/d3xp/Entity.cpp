@@ -1842,7 +1842,7 @@ renderView_t* idEntity::GetRenderView()
 	}
 	memset( renderView, 0, sizeof( *renderView ) );
 
-	renderView->vieworg = GetPhysics()->GetOrigin();
+	renderView->vieworg[STEREOPOS_MONO] = GetPhysics()->GetOrigin();
 	renderView->fov_x = 120;
 	renderView->fov_y = 120;
 	renderView->viewaxis = GetPhysics()->GetAxis();

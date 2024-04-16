@@ -1518,7 +1518,7 @@ idRenderBackend::RenderInteractions
 With added sorting and trivial path work.
 =============
 */
-void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds )
+void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds, stereoOrigin_t stereoOrigin )
 {
 	if( surfList == NULL )
 	{
@@ -1813,7 +1813,7 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 				idVec4 localLightOrigin( 0.0f );
 				idVec4 localViewOrigin( 1.0f );
 				R_GlobalPointToLocal( surf->space->modelMatrix, vLight->globalLightOrigin, localLightOrigin.ToVec3() );
-				R_GlobalPointToLocal( surf->space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+				R_GlobalPointToLocal( surf->space->modelMatrix, viewDef->renderView.vieworg[ stereoOrigin ], localViewOrigin.ToVec3() );
 
 				// set the local light/view origin
 				SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLightOrigin.ToFloatPtr() );
@@ -2023,7 +2023,7 @@ AMBIENT PASS RENDERING
 idRenderBackend::AmbientPass
 ==================
 */
-void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer )
+void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer, const stereoOrigin_t stereoOrigin )
 {
 	Framebuffer* previousFramebuffer = Framebuffer::GetActiveFramebuffer();
 
@@ -2255,7 +2255,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 			// tranform the view origin into model local space
 			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( drawSurf->space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+			R_GlobalPointToLocal( drawSurf->space->modelMatrix, viewDef->renderView.vieworg[stereoOrigin], localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 
 			// RB: if we want to store the normals in world space so we need the model -> world matrix
@@ -2605,7 +2605,7 @@ void MatrixLookAtRH( float m[16], const idVec3& eye, const idVec3& dir, const id
 idRenderBackend::SetupShadowMapMatrices
 =====================
 */
-void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix )
+void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix, const stereoOrigin_t stereoOrigin )
 {
 	if( vLight->parallel && side >= 0 )
 	{
@@ -2623,10 +2623,10 @@ void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idR
 		//idMat3 rotation = angles.ToMat3();
 
 		const idVec3 viewDir = viewDef->renderView.viewaxis[0];
-		const idVec3 viewPos = viewDef->renderView.vieworg;
+		const idVec3 viewPos = viewDef->renderView.vieworg[stereoOrigin];
 
 #if 1
-		idRenderMatrix::CreateViewMatrix( viewDef->renderView.vieworg, rotation, lightViewRenderMatrix );
+		idRenderMatrix::CreateViewMatrix( viewDef->renderView.vieworg[stereoOrigin], rotation, lightViewRenderMatrix );
 #else
 		float lightViewMatrix[16];
 		MatrixLookAtRH( lightViewMatrix, viewPos, lightDir, viewDir );
@@ -3157,7 +3157,7 @@ void idRenderBackend::ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int
 idRenderBackend::ShadowMapPassFast
 =====================
 */
-void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas )
+void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas, const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipShadows.GetBool() )
 	{
@@ -3208,7 +3208,7 @@ void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_
 
 	idRenderMatrix lightProjectionRenderMatrix;
 	idRenderMatrix lightViewRenderMatrix;
-	SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix );
+	SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix, stereoOrigin );
 
 	int slice = Max( 0, side );
 
@@ -3358,7 +3358,7 @@ public:
 	const idList<idVec2i>* inputSizes;
 };
 
-void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
+void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
 	{
@@ -3624,7 +3624,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 				continue;
 			}
 
-			ShadowMapPassFast( vLight->globalShadows, vLight, side, true );
+			ShadowMapPassFast( vLight->globalShadows, vLight, side, true, stereoOrigin );
 		}
 
 		if( !imageFitsIntoAtlas )
@@ -3662,6 +3662,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 	renderLog.CloseMainBlock();
 }
 
+/*
 void idRenderBackend::SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef )
 {
 	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
@@ -3729,10 +3730,11 @@ void idRenderBackend::SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _vi
 		{
 			idRenderMatrix lightProjectionRenderMatrix;
 			idRenderMatrix lightViewRenderMatrix;
-			SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix );
+			SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix, stereoOrigin );
 		}
 	}
 }
+*/
 
 /*
 ==============================================================================================
@@ -3746,7 +3748,7 @@ DRAW INTERACTIONS
 idRenderBackend::DrawInteractions
 ==================
 */
-void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
+void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef, stereoOrigin_t stereoOrigin )
 {
 	if( r_skipInteractions.GetBool() || viewDef->viewLights == NULL )
 	{
@@ -3835,7 +3837,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 				{
 					// vLight is const but we make an exception here to store the shadow matrices per vLight
 					// OPTIMIZE: these calculations could be moved to the renderer frontend into the multithreaded job
-					ShadowMapPassFast( vLight->globalShadows, ( viewLight_t* ) vLight, side, false );
+					ShadowMapPassFast( vLight->globalShadows, ( viewLight_t* ) vLight, side, false, stereoOrigin );
 				}
 
 				// go back to main render target
@@ -3860,14 +3862,14 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 			if( vLight->localInteractions != NULL )
 			{
 				renderLog.OpenBlock( "Local Light Interactions", colorPurple );
-				RenderInteractions( vLight->localInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds );
+				RenderInteractions( vLight->localInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds, stereoOrigin );
 				renderLog.CloseBlock();
 			}
 
 			if( vLight->globalInteractions != NULL )
 			{
 				renderLog.OpenBlock( "Global Light Interactions", colorPurple );
-				RenderInteractions( vLight->globalInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds );
+				RenderInteractions( vLight->globalInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds, stereoOrigin );
 				renderLog.CloseBlock();
 			}
 		}
@@ -3892,7 +3894,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 			// stencil shadows only affect surfaces that contribute to the view depth
 			// buffer and translucent surfaces do not contribute to the view depth buffer.
 
-			RenderInteractions( vLight->translucentInteractions, vLight, GLS_DEPTHFUNC_LESS, false, false );
+			RenderInteractions( vLight->translucentInteractions, vLight, GLS_DEPTHFUNC_LESS, false, false, stereoOrigin );
 
 			renderLog.CloseBlock();
 		}
@@ -3935,7 +3937,7 @@ be multiplied by guiEye for polarity and screenSeparation for scale.
 =====================
 */
 int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const int numDrawSurfs,
-									   const float guiStereoScreenOffset, const int stereoEye )
+									   const float guiStereoScreenOffset, const int stereoEye, const stereoOrigin_t stereoOrigin )
 {
 	// only obey skipAmbient if we are rendering a view
 	if( viewDef->viewEntitys && r_skipAmbient.GetBool() )
@@ -4033,7 +4035,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 
 			// set eye position in local space
 			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+			R_GlobalPointToLocal( space->modelMatrix, viewDef->renderView.vieworg[ stereoOrigin ], localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 
 			// set model Matrix
@@ -4450,7 +4452,7 @@ Dual texture together the falloff and projection texture with a blend
 mode to the framebuffer, instead of interacting with the surface texture
 =====================
 */
-void idRenderBackend::BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
+void idRenderBackend::BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin )
 {
 	if( drawSurfs == NULL )
 	{
@@ -4596,7 +4598,7 @@ void idRenderBackend::T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fog
 idRenderBackend::FogPass
 ==================
 */
-void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
+void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin )
 {
 	renderLog.OpenBlock( vLight->lightShader->GetName(), colorCyan );
 
@@ -4637,7 +4639,7 @@ void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* d
 	globalImages->fogEnterImage->Bind();
 
 	// S is based on the view origin
-	const float s = vLight->fogPlane.Distance( viewDef->renderView.vieworg );
+	const float s = vLight->fogPlane.Distance( viewDef->renderView.vieworg[ stereoOrigin] );
 
 	const float FOG_SCALE = 0.001f;
 
@@ -4694,7 +4696,7 @@ void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* d
 idRenderBackend::FogAllLights
 ==================
 */
-void idRenderBackend::FogAllLights()
+void idRenderBackend::FogAllLights( const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipFogLights.GetBool() || r_showOverDraw.GetInteger() != 0 || viewDef->viewLights == NULL
 			|| viewDef->isXraySubview /* don't fog in xray mode*/ )
@@ -4722,11 +4724,11 @@ void idRenderBackend::FogAllLights()
 	{
 		if( vLight->lightShader->IsFogLight() )
 		{
-			FogPass( vLight->globalInteractions, vLight->localInteractions, vLight );
+			FogPass( vLight->globalInteractions, vLight->localInteractions, vLight, stereoOrigin );
 		}
 		else if( vLight->lightShader->IsBlendLight() )
 		{
-			BlendLight( vLight->globalInteractions, vLight->localInteractions, vLight );
+			BlendLight( vLight->globalInteractions, vLight->localInteractions, vLight, stereoOrigin );
 		}
 	}
 
@@ -5185,7 +5187,7 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 	windowCoordParm[3] = aoScreenHeight;
 	SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
-	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 
 	const float jitterSampleScale = 1.0f;
 
@@ -5486,7 +5488,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 idRenderBackend::DrawViewInternal
 ==================
 */
-void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int stereoEye )
+void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int stereoEye, const stereoOrigin_t stereoOrigin )
 {
 	//OPTICK_EVENT( "Backend_DrawViewInternal" );
 	//OPTICK_TAG( "stereoEye", stereoEye );
@@ -5593,9 +5595,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		// set eye position in global space
 		//
 		float parm[4];
-		parm[0] = viewDef->renderView.vieworg[0];
-		parm[1] = viewDef->renderView.vieworg[1];
-		parm[2] = viewDef->renderView.vieworg[2];
+		parm[0] = viewDef->renderView.vieworg[ stereoOrigin ].x;
+		parm[1] = viewDef->renderView.vieworg[ stereoOrigin ].y;
+		parm[2] = viewDef->renderView.vieworg[ stereoOrigin ].z;
 		parm[3] = 1.0f;
 
 		SetVertexParm( RENDERPARM_GLOBALEYEPOS, parm ); // rpGlobalEyePos
@@ -5633,7 +5635,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		//OPTICK_EVENT( "Render_GeometryBuffer" );
 		OPTICK_GPU_EVENT( "Render_GeometryBuffer" );
 
-		AmbientPass( drawSurfs, numDrawSurfs, true );
+		AmbientPass( drawSurfs, numDrawSurfs, true, stereoOrigin );
 	}
 
 	//-------------------------------------------------
@@ -5656,7 +5658,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		//OPTICK_EVENT( "Render_AmbientPass" );
 		OPTICK_GPU_EVENT( "Render_AmbientPass" );
 
-		AmbientPass( drawSurfs, numDrawSurfs, false );
+		AmbientPass( drawSurfs, numDrawSurfs, false, stereoOrigin );
 	}
 
 	//-------------------------------------------------
@@ -5665,7 +5667,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 	// TODO only render shadow atlas for the first eye and then reuse the data for the second
 #if 1
-	ShadowAtlasPass( _viewDef );
+	ShadowAtlasPass( _viewDef, stereoOrigin );
 #else
 	if( stereoEye == 1 || stereoEye == 0 )
 	{
@@ -5680,7 +5682,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// main light renderer
 	//-------------------------------------------------
-	DrawInteractions( _viewDef );
+	DrawInteractions( _viewDef, stereoOrigin );
 
 	//-------------------------------------------------
 	// now draw any non-light dependent shading passes
@@ -5701,7 +5703,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		{
 			guiScreenOffset = stereoEye * _viewDef->renderView.stereoScreenSeparation;
 		}
-		processed = DrawShaderPasses( drawSurfs, numDrawSurfs, guiScreenOffset, stereoEye );
+		processed = DrawShaderPasses( drawSurfs, numDrawSurfs, guiScreenOffset, stereoEye, stereoOrigin );
 		renderLog.CloseMainBlock();
 	}
 
@@ -5714,7 +5716,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// fog and blend lights, drawn after emissive surfaces
 	// so they are properly dimmed down
 	//-------------------------------------------------
-	FogAllLights();
+	FogAllLights( stereoOrigin );
 
 	//-------------------------------------------------
 	// now draw any screen warping post-process effects using _currentRender
@@ -5774,7 +5776,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
 		// render the remaining surfaces
-		DrawShaderPasses( drawSurfs + processed, numDrawSurfs - processed, 0.0f /* definitely not a gui */, stereoEye );
+		DrawShaderPasses( drawSurfs + processed, numDrawSurfs - processed, 0.0f /* definitely not a gui */, stereoEye, stereoOrigin );
 		renderLog.CloseMainBlock();
 	}
 
@@ -6032,20 +6034,30 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 	DBG_ShowOverdraw();
 
+	stereoOrigin_t stereoOrigin = STEREOPOS_MONO;
+	if( stereoEye == -1 )
+	{
+		stereoOrigin = STEREOPOS_LEFT;
+	}
+	else if( stereoEye == 1 )
+	{
+		stereoOrigin = STEREOPOS_RIGHT;
+	}
+
 	// render the scene
 	if( viewDef->viewEntitys )
 	{
 		OPTICK_GPU_EVENT( "DrawView_3D" );
 		OPTICK_TAG( "stereoEye", stereoEye );
 
-		DrawViewInternal( cmd->viewDef, stereoEye );
+		DrawViewInternal( cmd->viewDef, stereoEye, stereoOrigin );
 	}
 	else
 	{
 		OPTICK_GPU_EVENT( "DrawView_GUI" );
 		OPTICK_TAG( "stereoEye", stereoEye );
 
-		DrawViewInternal( cmd->viewDef, stereoEye );
+		DrawViewInternal( cmd->viewDef, stereoEye, stereoOrigin );
 	}
 
 	// optionally draw a box colored based on the eye number

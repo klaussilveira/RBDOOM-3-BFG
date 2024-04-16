@@ -455,7 +455,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	}
 
 	// place the sound origin for the player
-	gameSoundWorld->PlaceListener( view->vieworg, view->viewaxis, player->entityNumber + 1 );
+	gameSoundWorld->PlaceListener( view->vieworg[STEREOPOS_MONO], view->viewaxis, player->entityNumber + 1 );
 
 	// if the objective system is up, don't do normal drawing
 	if( player->objectiveSystemOpen )
@@ -474,7 +474,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() )
 	{
 		renderView_t portalView = hackedView;
-		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+		portalView.vieworg[STEREOPOS_MONO] = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
 		gameRenderWorld->RenderScene( &portalView );
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 
@@ -702,6 +702,10 @@ struct stereoDistances_t
 	// Game world units from one eye to the centerline.
 	// Total distance is twice this.
 	float	worldSeparation;
+
+	// RB: offset behind both eyes considering the FOV
+	// see https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues/878
+	float	combinedSeperation;
 };
 
 float CentimetersToInches( const float cm )
@@ -742,12 +746,14 @@ stereoDistances_t	CaclulateStereoDistances(
 		// head mounted display mode
 		dists.worldSeparation = CentimetersToWorldUnits( interOcularCentimeters * 0.5 );
 		dists.screenSeparation = 0.0f;
+		dists.combinedSeperation = CentimetersToWorldUnits( ( interOcularCentimeters * 0.5 ) / idMath::Tan( vrSystem->hmdEye[1].projectionOpenVR.projRight ) );
 		return dists;
 	}
 
 	// 3DTV mode
 	dists.screenSeparation = 0.5f * interOcularCentimeters / screenWidthCentimeters;
 	dists.worldSeparation = CalculateWorldSeparation( dists.screenSeparation, convergenceWorldUnits, fov_x_degrees );
+	dists.combinedSeperation = 0;
 
 	return dists;
 }
@@ -766,7 +772,6 @@ float GetIPD()
 float	GetScreenSeparationForGuis()
 {
 	stereoDistances_t dists = CaclulateStereoDistances(
-								  //stereoRender_interOccularCentimeters.GetFloat(),
 								  GetIPD(),
 								  renderSystem->GetPhysicalScreenWidthInCentimeters(),
 								  stereoRender_convergence.GetFloat(),
@@ -803,7 +808,24 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 										view->fov_x );
 
 
-	eyeView.vieworg += ( eye * dists.worldSeparation ) * eyeView.viewaxis[1];
+	// TODO check
+	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.combinedSeperation ) * eyeView.viewaxis[0];
+
+#if 1
+	eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+
+	if( eye == -1 )
+	{
+		eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_LEFT];
+	}
+	else
+	{
+		eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_RIGHT];
+	}
+#else
+	eyeView.vieworg[STEREOPOS_MONO] += ( eye * dists.worldSeparation ) * eyeView.viewaxis[1];
+#endif
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 	eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
@@ -811,7 +833,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	// Koz begin
 	if( vrSystem->IsActive() )
 	{
-		vrSystem->lastViewOrigin = eyeView.vieworg;
+		vrSystem->lastViewOrigin = eyeView.vieworg[STEREOPOS_MONO];
 		vrSystem->lastViewAxis = eyeView.viewaxis;
 	}
 	// Koz end

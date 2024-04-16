@@ -569,7 +569,7 @@ static void R_ReloadSurface_f( const idCmdArgs& args )
 	}
 
 	// start far enough away that we don't hit the player model
-	start = tr.primaryView->renderView.vieworg + tr.primaryView->renderView.viewaxis[0] * 16;
+	start = tr.primaryView->renderView.vieworg[STEREOPOS_MONO] + tr.primaryView->renderView.viewaxis[0] * 16;
 	end = start + tr.primaryView->renderView.viewaxis[0] * 1000.0f;
 	if( !tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
 	{

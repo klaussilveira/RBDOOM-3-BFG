@@ -156,7 +156,7 @@ private:
 	void				SetColorMappings();
 	void				ResizeImages();
 
-	void				DrawViewInternal( const viewDef_t* viewDef, const int stereoEye );
+	void				DrawViewInternal( const viewDef_t* viewDef, const int stereoEye, const stereoOrigin_t stereoOrigin );
 	void				DrawView( const void* data, const int stereoEye );
 	void				CopyRender( const void* data );
 
@@ -170,30 +170,30 @@ private:
 	void				FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs );
 
 	void				T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLight );
-	void				BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight );
+	void				BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin );
 	void				T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[ 4 ], const idRenderMatrix* inverseBaseLightProject );
-	void				FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight );
-	void				FogAllLights();
+	void				FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin );
+	void				FogAllLights( const stereoOrigin_t stereoOrigin );
 
 	void				SetupInteractionStage( const shaderStage_t* surfaceStage, const float* surfaceRegs, const float lightColor[4],
 			idVec4 matrix[2], float color[4] );
 
-	void				DrawInteractions( const viewDef_t* _viewDef );
+	void				DrawInteractions( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin );
 	void				DrawSingleInteraction( drawInteraction_t* din, bool useFastPath, bool useIBL, bool setInteractionShader );
 	int					DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const int numDrawSurfs,
-										  const float guiStereoScreenOffset, const int stereoEye );
+										  const float guiStereoScreenOffset, const int stereoEye, const stereoOrigin_t stereoOrigin );
 
-	void				RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds );
+	void				RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds, stereoOrigin_t stereoOrigin );
 
 	// RB
-	void				AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer );
+	void				AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer, const stereoOrigin_t stereoOrigin );
 
-	void				SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix );
-	void				ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas );
+	void				SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix, const stereoOrigin_t stereoOrigin );
+	void				ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas, const stereoOrigin_t stereoOrigin );
 	void				ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int numDrawSurfs, viewLight_t* vLight, int side, const idRenderMatrix& lightProjectionRenderMatrix, const idRenderMatrix& lightViewRenderMatrix );
 
-	void				ShadowAtlasPass( const viewDef_t* _viewDef );
-	void				SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef );
+	void				ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin );
+	//void				SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef );
 
 	void				DrawMotionVectors();
 	void				TemporalAAPass( const viewDef_t* _viewDef );

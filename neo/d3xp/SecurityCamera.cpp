@@ -287,7 +287,7 @@ renderView_t* idSecurityCamera::GetRenderView()
 	rv->fov_x = scanFov;
 	rv->fov_y = scanFov;
 	rv->viewaxis = GetAxis().ToAngles().ToMat3();
-	rv->vieworg = GetPhysics()->GetOrigin() + viewOffset;
+	rv->vieworg[STEREOPOS_MONO] = GetPhysics()->GetOrigin() + viewOffset;
 	return rv;
 }
 

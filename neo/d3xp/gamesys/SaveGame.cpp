@@ -792,7 +792,7 @@ void idSaveGame::WriteRenderView( const renderView_t& view )
 
 	WriteFloat( view.fov_x );
 	WriteFloat( view.fov_y );
-	WriteVec3( view.vieworg );
+	WriteVec3( view.vieworg[STEREOPOS_MONO] );
 	WriteMat3( view.viewaxis );
 
 	WriteBool( view.cramZNear );
@@ -1701,7 +1701,7 @@ void idRestoreGame::ReadRenderView( renderView_t& view )
 
 	ReadFloat( view.fov_x );
 	ReadFloat( view.fov_y );
-	ReadVec3( view.vieworg );
+	ReadVec3( view.vieworg[STEREOPOS_MONO] );
 	ReadMat3( view.viewaxis );
 
 	ReadBool( view.cramZNear );

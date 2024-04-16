@@ -1253,7 +1253,7 @@ CONSOLE_COMMAND( bakeLightGrids, "Bake irradiance/vis light grid data", NULL )
 
 							ref.fov_x = ref.fov_y = 90;
 
-							ref.vieworg = gridPoint->origin;
+							ref.vieworg[STEREOPOS_MONO] = gridPoint->origin;
 							ref.viewaxis = tr.cubeAxis[ side ];
 
 							// discard anything currently on the list

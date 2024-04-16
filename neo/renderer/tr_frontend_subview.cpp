@@ -53,7 +53,7 @@ struct orientation_t
 R_MirrorPoint
 =================
 */
-static void R_MirrorPoint( const idVec3 in, orientation_t* surface, orientation_t* camera, idVec3& out )
+static void R_MirrorPoint( const idVec3& in, orientation_t* surface, orientation_t* camera, idVec3& out )
 {
 	const idVec3 local = in - surface->origin;
 
@@ -72,7 +72,7 @@ static void R_MirrorPoint( const idVec3 in, orientation_t* surface, orientation_
 R_MirrorVector
 =================
 */
-static void R_MirrorVector( const idVec3 in, orientation_t* surface, orientation_t* camera, idVec3& out )
+static void R_MirrorVector( const idVec3& in, orientation_t* surface, orientation_t* camera, idVec3& out )
 {
 	out.Zero();
 	for( int i = 0; i < 3; i++ )
@@ -157,7 +157,7 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 
 	// backface and frustum cull
 	idVec3 localViewOrigin;
-	R_GlobalPointToLocal( drawSurf->space->modelMatrix, tr.viewDef->renderView.vieworg, localViewOrigin );
+	R_GlobalPointToLocal( drawSurf->space->modelMatrix, tr.viewDef->renderView.vieworg[STEREOPOS_CULLING], localViewOrigin );
 
 	for( int i = 0; i < tri->numIndexes; i += 3 )
 	{
@@ -252,7 +252,7 @@ static viewDef_t* R_MirrorViewBySurface( const drawSurf_t* drawSurf )
 	camera.axis[2] = surface.axis[2];
 
 	// set the mirrored origin and axis
-	R_MirrorPoint( tr.viewDef->renderView.vieworg, &surface, &camera, parms->renderView.vieworg );
+	R_MirrorPoint( tr.viewDef->renderView.vieworg[STEREOPOS_MONO], &surface, &camera, parms->renderView.vieworg[STEREOPOS_MONO] );
 
 	R_MirrorVector( tr.viewDef->renderView.viewaxis[0], &surface, &camera, parms->renderView.viewaxis[0] );
 	R_MirrorVector( tr.viewDef->renderView.viewaxis[1], &surface, &camera, parms->renderView.viewaxis[1] );
@@ -292,7 +292,7 @@ static viewDef_t* R_PortalViewBySurface( const drawSurf_t* surf )
 
 	idMat3 viewaxis = parms->renderView.viewaxis;
 	idMat3 remoteViewAxis = surf->space->entityDef->parms.remoteRenderView->viewaxis;
-	const idVec3 orig = parms->renderView.vieworg;
+	const idVec3 orig = parms->renderView.vieworg[STEREOPOS_MONO];
 	float fov_x = parms->renderView.fov_x;
 	float fov_y = parms->renderView.fov_y;
 
@@ -331,14 +331,14 @@ static viewDef_t* R_PortalViewBySurface( const drawSurf_t* surf )
 	const idMat3 inverseSurfView = surfViewAxis.Transpose();
 	idVec3 dirToPortal = ( surf->space->entityDef->parms.origin - orig ) * inverseSurfView;
 	dirToPortal.z = -dirToPortal.z;
-	parms->renderView.vieworg += dirToPortal * remoteViewAxis;
+	parms->renderView.vieworg[STEREOPOS_MONO] += dirToPortal * remoteViewAxis;
 
 	// Set up oblique view clipping plane
 	parms->numClipPlanes = 1;
 	parms->clipPlanes[0] = remoteViewAxis[0];
-	parms->clipPlanes[0][3] = -( surf->space->entityDef->parms.remoteRenderView->vieworg * parms->clipPlanes[0].Normal() );
+	parms->clipPlanes[0][3] = -( surf->space->entityDef->parms.remoteRenderView->vieworg[STEREOPOS_MONO] * parms->clipPlanes[0].Normal() );
 	float dist = parms->clipPlanes[0].Dist();
-	float viewdist = parms->renderView.vieworg * parms->clipPlanes[0].Normal();
+	float viewdist = parms->renderView.vieworg[STEREOPOS_MONO] * parms->clipPlanes[0].Normal();
 	float fDist = -dist + viewdist;
 	// fudge avoids depth precision artifacts when performing oblique projection
 	static const float fudge = 2.f;
@@ -357,7 +357,7 @@ static viewDef_t* R_PortalViewBySurface( const drawSurf_t* surf )
 	parms->isObliqueProjection = true;
 
 	parms->renderView.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
-	parms->initialViewAreaOrigin = parms->renderView.vieworg;
+	parms->initialViewAreaOrigin = parms->renderView.vieworg[STEREOPOS_MONO];
 	parms->isSubview = true;
 	parms->isMirror = false;
 
@@ -410,7 +410,7 @@ static void R_RemoteRender( const drawSurf_t* surf, textureStage_t* stage )
 
 	parms->renderView = *surf->space->entityDef->parms.remoteRenderView;
 	parms->renderView.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
-	parms->initialViewAreaOrigin = parms->renderView.vieworg;
+	parms->initialViewAreaOrigin = parms->renderView.vieworg[STEREOPOS_MONO];
 	parms->isSubview = true;
 	parms->isMirror = false;
 
