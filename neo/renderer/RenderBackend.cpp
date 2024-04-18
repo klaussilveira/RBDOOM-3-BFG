@@ -43,6 +43,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 #include <nvrhi/utils.h>
 
+#include "../vr/Vr.h"
+
 extern DeviceManager* deviceManager;
 
 idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL, "use the new SSAO pass from Donut" );
@@ -6049,6 +6051,62 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 	{
 		OPTICK_GPU_EVENT( "DrawView_3D" );
 		OPTICK_TAG( "stereoEye", stereoEye );
+
+		// RB: also see Latency Reduction Strategies by John Carmack
+		// https://danluu.com/latency-mitigation/
+
+		// the following strategy is the View bypass strategy mentioned in the article
+
+		// Koz vr right before the view is drawn, update the view with the latest pos/angles from the hmd
+		// Thanks to Leyland for idea & implementation
+
+		// dont fix up if we are projecting the cinematic into space or if this is a subview ( security cam etc. )
+		if( vrSystem->IsActive() && ( !viewDef->isSubview || viewDef->isMirror ) )
+		{
+			idVec3& drawViewOrigin = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+			idMat3& drawViewAxis = cmd->viewDef->renderView.viewaxis;
+
+			idVec3 hmdPosDelta = ( vrSystem->poseHmdAbsolutePosition - vrSystem->poseLastHmdAbsolutePosition ) ; // the delta in hmd position since the frame was initialy created and now
+			idMat3 hmdAxisDelta = vrSystem->poseHmdAngles.ToMat3() * vrSystem->poseLastHmdAngles.ToMat3().Inverse();// the delta in hmd rotation since the frame was initialy created and now
+
+			// adjust origin from the stereoeye position, not the center eye position
+			const float ipdOffset = stereoEye * -vrSystem->singleEyeIPD;
+
+			drawViewOrigin -= ipdOffset * drawViewAxis[1];
+			drawViewOrigin += hmdPosDelta;
+
+			drawViewAxis = hmdAxisDelta * drawViewAxis;
+
+			drawViewOrigin += ipdOffset * drawViewAxis[1];
+
+			cmd->viewDef->renderView.vieworg[STEREOPOS_LEFT] = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+
+
+			R_SetupViewMatrix( cmd->viewDef, STEREOPOS_MONO );
+			idRenderMatrix drawViewRenderMatrix;
+			idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
+			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, drawViewRenderMatrix );
+			idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, drawViewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+
+			// update modelview and mvp matrices for all view entitities
+			for( viewEntity_t* vEntity = cmd->viewDef->viewEntitys; vEntity != NULL; vEntity = vEntity->next )
+			{
+				// Koz copied from tr_frontend_addmodels
+				R_MatrixMultiply( vEntity->modelMatrix, cmd->viewDef->worldSpace.modelViewMatrix, vEntity->modelViewMatrix );
+
+				idRenderMatrix viewMat;
+				idRenderMatrix::Transpose( *( idRenderMatrix* ) vEntity->modelViewMatrix, viewMat );
+				idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewMat, vEntity->mvp );
+				if( vEntity->weaponDepthHack )
+				{
+					idRenderMatrix::ApplyDepthHack( vEntity->mvp );
+				}
+				if( vEntity->modelDepthHack != 0.0f )
+				{
+					idRenderMatrix::ApplyModelDepthHack( vEntity->mvp, vEntity->modelDepthHack );
+				}
+			}
+		}
 
 		DrawViewInternal( cmd->viewDef, stereoEye, stereoOrigin );
 	}
