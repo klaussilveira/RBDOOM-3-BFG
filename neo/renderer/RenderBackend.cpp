@@ -6079,7 +6079,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 			drawViewOrigin += ipdOffset * drawViewAxis[1];
 
-			cmd->viewDef->renderView.vieworg[STEREOPOS_LEFT] = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+			cmd->viewDef->renderView.vieworg[stereoOrigin] = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
 
 
 			R_SetupViewMatrix( cmd->viewDef, STEREOPOS_MONO );
