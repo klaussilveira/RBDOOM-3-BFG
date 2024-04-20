@@ -235,6 +235,10 @@ public:
 	idVec3				poseLastHmdAbsolutePosition;
 	float				lastBodyYawOffset;
 
+	// weapon aiming and interaction
+	float				independentWeaponYaw;
+	float				independentWeaponPitch;
+
 	// TODO remove
 	bool				renderingSplash;
 	bool				showingIntroVideo;
@@ -316,11 +320,6 @@ private:
 
 
 	idVec3				fixedPDAMoveDelta;
-
-
-
-	float				independentWeaponYaw;
-	float				independentWeaponPitch;
 
 	bool				playerDead;
 

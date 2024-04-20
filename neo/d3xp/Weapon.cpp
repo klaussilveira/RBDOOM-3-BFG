@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Game_local.h"
 #include "PredictedValue_impl.h"
 
+#include "../vr/Vr.h"
+
 /***********************************************************************
 
   idWeapon
@@ -2598,6 +2600,19 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	playerViewOrigin = owner->firstPersonViewOrigin;
 	playerViewAxis = owner->firstPersonViewAxis;
 
+	// RB: cheap version to make gamepad movement possible
+	if( vrSystem->IsActive() && vr_controllerGamepad.GetBool() )
+	{
+		idAngles independentAngles;
+
+		independentAngles.pitch = vrSystem->independentWeaponPitch;
+		independentAngles.yaw = vrSystem->independentWeaponYaw;
+		independentAngles.roll = 0;
+
+		playerViewAxis = independentAngles.ToMat3() * owner->firstPersonViewAxis;
+	}
+	// RB end
+
 	if( isPlayerFlashlight )
 	{
 		viewWeaponOrigin = playerViewOrigin;
@@ -4281,17 +4296,7 @@ void idWeapon::Event_LaunchProjectilesEllipse( int num_projectiles, float spread
 	}
 
 	// calculate the muzzle position
-	if( barrelJointView != INVALID_JOINT && projectileDict.GetBool( "launchFromBarrel" ) )
-	{
-		// there is an explicit joint for the muzzle
-		GetGlobalJointTransform( true, barrelJointView, muzzleOrigin, muzzleAxis );
-	}
-	else
-	{
-		// go straight out of the view
-		muzzleOrigin = playerViewOrigin;
-		muzzleAxis = playerViewAxis;
-	}
+	GetProjectileLaunchOriginAndAxis( muzzleOrigin, muzzleAxis );
 
 	// add some to the kick time, incrementally moving repeat firing weapons back
 	if( kick_endtime < gameLocal.time )
@@ -4319,7 +4324,15 @@ void idWeapon::Event_LaunchProjectilesEllipse( int num_projectiles, float spread
 			spin = ( float )DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			anga = idMath::Sin( spreadRadA * gameLocal.random.RandomFloat() );
 			angb = idMath::Sin( spreadRadB * gameLocal.random.RandomFloat() );
-			dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( angb * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( anga * idMath::Cos( spin ) );
+
+			if( vrSystem->IsActive() )
+			{
+				dir = muzzleAxis[0] + muzzleAxis[2] * ( angb * idMath::Sin( spin ) ) - muzzleAxis[1] * ( anga * idMath::Cos( spin ) );
+			}
+			else
+			{
+				dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( angb * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( anga * idMath::Cos( spin ) );
+			}
 			dir.Normalize();
 
 			gameLocal.SpawnEntityDef( projectileDict, &ent );

@@ -6437,6 +6437,21 @@ void idPlayer::UpdateFocus()
 	start = GetEyePosition();
 	end = start + firstPersonViewAxis[0] * 80.0f;
 
+	// RB: cheap version to make gamepad movement possible
+	if( vrSystem->IsActive() && vr_controllerGamepad.GetBool() )
+	{
+		idAngles independentAngles;
+
+		independentAngles.pitch = vrSystem->independentWeaponPitch;
+		independentAngles.yaw = vrSystem->independentWeaponYaw;
+		independentAngles.roll = 0;
+
+		idMat3 gunAxis = independentAngles.ToMat3() * firstPersonViewAxis;
+
+		end = start + gunAxis[0] * 80.0f;
+	}
+	// RB end
+
 	// player identification -> names to the hud
 	if( common->IsMultiplayer() && IsLocallyControlled() )
 	{
@@ -10358,7 +10373,20 @@ void idPlayer::CalculateViewWeaponPos( idVec3& origin, idMat3& axis )
 
 	// CalculateRenderView must have been called first
 	const idVec3& viewOrigin = firstPersonViewOrigin;
-	const idMat3& viewAxis = firstPersonViewAxis;
+	idMat3 viewAxis = firstPersonViewAxis;
+
+	// RB: cheap version to make gamepad movement possible
+	if( vrSystem->IsActive() && vr_controllerGamepad.GetBool() )
+	{
+		idAngles independentAngles;
+
+		independentAngles.pitch = vrSystem->independentWeaponPitch;
+		independentAngles.yaw = vrSystem->independentWeaponYaw;
+		independentAngles.roll = 0;
+
+		viewAxis = independentAngles.ToMat3() * firstPersonViewAxis;
+	}
+	// RB end
 
 	// these cvars are just for hand tweaking before moving a value to the weapon def
 	idVec3	gunpos( g_gun_x.GetFloat(), g_gun_y.GetFloat(), g_gun_z.GetFloat() );
