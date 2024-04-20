@@ -5510,11 +5510,11 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	}
 	else if( stereoEye == -1 )
 	{
-		renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
+		renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
 	}
 	else if( stereoEye == 1 )
 	{
-		renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
+		renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
 	}
 	else if( stereoEye == 0 )
 	{
@@ -5667,17 +5667,14 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// render all light <-> geometry interactions to a depth buffer atlas
 	//-------------------------------------------------
 
-	// TODO only render shadow atlas for the first eye and then reuse the data for the second
-#if 1
+#if VR_EMITSTEREO
 	ShadowAtlasPass( _viewDef, stereoOrigin );
 #else
-	if( stereoEye == 1 || stereoEye == 0 )
+
+	// only render shadow atlas for the first eye and then reuse the data for the second
+	if( stereoEye == 1 )
 	{
-		ShadowAtlasPass( _viewDef );
-	}
-	else if( stereoEye == -1 )
-	{
-		SetupShadowMapMatricesForShadowAtlas( _viewDef );
+		ShadowAtlasPass( _viewDef, stereoOrigin );
 	}
 #endif
 
@@ -6037,14 +6034,34 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 	DBG_ShowOverdraw();
 
 	stereoOrigin_t stereoOrigin = STEREOPOS_MONO;
-	if( stereoEye == -1 )
-	{
-		stereoOrigin = STEREOPOS_LEFT;
-	}
-	else if( stereoEye == 1 )
+	if( stereoEye == 1 )
 	{
 		stereoOrigin = STEREOPOS_RIGHT;
 	}
+	else if( stereoEye == -1 )
+	{
+		stereoOrigin = STEREOPOS_LEFT;
+	}
+
+	// update projection matrices for the case we submit only 1 view
+#if !VR_EMITSTEREO
+	if( vrSystem->IsActive() && stereoEye == -1 )
+	{
+		cmd->viewDef->renderView.viewEyeBuffer = stereoEye;
+
+		R_SetupProjectionMatrix( cmd->viewDef, true );
+		R_SetupProjectionMatrix( cmd->viewDef, false );
+
+		// setup render matrices for faster culling
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
+		idRenderMatrix viewRenderMatrix;
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
+		idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );
+		idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
+	}
+#endif
 
 	// render the scene
 	if( viewDef->viewEntitys )
@@ -6060,10 +6077,11 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		// Koz vr right before the view is drawn, update the view with the latest pos/angles from the hmd
 		// Thanks to Leyland for idea & implementation
 
-		// dont fix up if we are projecting the cinematic into space or if this is a subview ( security cam etc. )
+		// don't fix up if we are projecting the cinematic into space or if this is a subview ( security cam etc. )
+#if VR_EMITSTEREO
 		if( vrSystem->IsActive() && ( !viewDef->isSubview || viewDef->isMirror ) )
 		{
-			idVec3& drawViewOrigin = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+			idVec3 drawViewOrigin = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
 			idMat3& drawViewAxis = cmd->viewDef->renderView.viewaxis;
 
 			idVec3 hmdPosDelta = ( vrSystem->poseHmdAbsolutePosition - vrSystem->poseLastHmdAbsolutePosition ) ; // the delta in hmd position since the frame was initialy created and now
@@ -6071,6 +6089,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 			// adjust origin from the stereoeye position, not the center eye position
 			const float ipdOffset = stereoEye * -vrSystem->singleEyeIPD;
+			//const float ipdOffset = stereoEye * ( -vrSystem->GetIPD() * 0.5f ) / 2.54f;
 
 			drawViewOrigin -= ipdOffset * drawViewAxis[1];
 			drawViewOrigin += hmdPosDelta;
@@ -6079,12 +6098,43 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 			drawViewOrigin += ipdOffset * drawViewAxis[1];
 
-			cmd->viewDef->renderView.vieworg[stereoOrigin] = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+			cmd->viewDef->renderView.vieworg[ stereoOrigin ] = cmd->viewDef->renderView.vieworg[STEREOPOS_MONO];
+#else
+		if( vrSystem->IsActive() )
+		{
+			// the delta in hmd position since the frame was initialy created and now
+			const idVec3 hmdPosDelta = ( vrSystem->poseHmdAbsolutePosition - vrSystem->poseLastHmdAbsolutePosition );
 
+			// the delta in hmd rotation since the frame was initialy created and now
+			const idMat3 hmdAxisDelta = vrSystem->poseHmdAngles.ToMat3() * vrSystem->poseLastHmdAngles.ToMat3().Inverse();
 
-			R_SetupViewMatrix( cmd->viewDef, STEREOPOS_MONO );
+			idMat3& drawViewAxis = cmd->viewDef->renderView.viewaxis;
+
+			// adjust origin from the stereoeye position, not the center eye position
+			const float ipdSingle = stereoEye * -vrSystem->singleEyeIPD;
+			const float ipd = vrSystem->GetIPD();
+			const float ipdOffset = ipdSingle; //stereoEye * ( -ipd * 0.5f ) / 2.54f;
+
+			idVec3 drawViewOrigin = cmd->viewDef->renderView.vieworg[ stereoOrigin ];
+
+			drawViewOrigin -= ipdOffset * drawViewAxis[1];
+			drawViewOrigin += hmdPosDelta;
+
+			if( stereoEye == 1 )
+			{
+				// only update viewaxis to avoid oversteering
+				drawViewAxis = hmdAxisDelta * drawViewAxis;
+			}
+
+			drawViewOrigin += ipdOffset * drawViewAxis[1];
+
+			cmd->viewDef->renderView.vieworg[ stereoOrigin ] = drawViewOrigin;
+#endif
+
+			// setup new camera matrix with adjusted view
+			R_SetupViewMatrix( cmd->viewDef, stereoOrigin );
 			idRenderMatrix drawViewRenderMatrix;
-			idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
+			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
 			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, drawViewRenderMatrix );
 			idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, drawViewRenderMatrix, cmd->viewDef->worldSpace.mvp );
 

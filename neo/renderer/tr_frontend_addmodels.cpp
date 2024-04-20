@@ -596,7 +596,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 	// local light and view origins are used to determine if the view is definitely outside
 	// an extruded shadow volume, which means we can skip drawing the end caps
 	idVec3 localViewOrigin;
-	R_GlobalPointToLocal( vEntity->modelMatrix, viewDef->renderView.vieworg[STEREOPOS_MONO], localViewOrigin );
+	R_GlobalPointToLocal( vEntity->modelMatrix, viewDef->renderView.vieworg[STEREOPOS_CULLING], localViewOrigin );
 
 	//---------------------------
 	// add all the model surfaces

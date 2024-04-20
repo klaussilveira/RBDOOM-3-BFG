@@ -132,6 +132,9 @@ public:
 	void				MotionControllerSetHapticOpenVR( int hand, unsigned short value );
 
 	idVec2i				GetEyeResolution() const;
+
+	// returns IPD in centimeters
+	float				GetIPD() const;
 	void				CalcAimMove( float& yawDelta, float& pitchDelta );
 
 	int					GetCurrentFlashMode();
@@ -156,6 +159,16 @@ public:
 		return hmdHz;
 	}
 
+	float				GetHMDFovX() const
+	{
+		return hmdFovX;
+	}
+
+	float				GetHMDFovY() const
+	{
+		return hmdFovY;
+	}
+
 	float				GetScreenSeparation() const
 	{
 		return screenSeparation;
@@ -166,6 +179,68 @@ public:
 		return userDuckingAmount;
 	}
 
+	// input
+	vr_motionControl_t	motionControlType;
+	int					VR_USE_MOTION_CONTROLS;
+
+	// rendering
+	hmdEye_t			hmdEye[2];
+	float				singleEyeIPD;
+
+	float				bodyYawOffset;
+	float				lastHMDYaw;
+	float				lastHMDPitch;
+	float				lastHMDRoll;
+	idVec3				lastHMDViewOrigin;
+	idMat3				lastHMDViewAxis;
+	idVec3				uncrouchedHMDViewOrigin;
+	float				headHeightDiff;
+
+	// player movement
+	bool				isLeaning;
+	idVec3				leanOffset;
+	idVec3				leanBlankOffset;
+	float				leanBlankOffsetLengthSqr;
+	bool				leanBlank;
+	bool				forceRun;
+
+	float				cinematicStartViewYaw;
+	idVec3				cinematicStartPosition;
+
+	idVec3				trackingOriginOffset;
+	float				trackingOriginYawOffset;
+
+	// teleporting
+	bool				didTeleport;
+	float				teleportDir;
+	int					teleportButtonCount;
+	idVec2				leftMapped;
+	int					oldTeleportButtonState;
+
+	// for 2D
+	idAngles			poseHmdAngles;
+	idVec3				poseHmdAbsolutePosition;
+
+	idVec3				poseHmdHeadPositionDelta;
+	idVec3				poseHmdBodyPositionDelta;
+
+	idVec3				poseHandPos[2];
+	idQuat				poseHandRotationQuat[2];
+	idMat3				poseHandRotationMat3[2];
+	idAngles			poseHandRotationAngles[2];
+
+	idAngles			poseLastHmdAngles;
+	idVec3				poseLastHmdHeadPositionDelta;
+	idVec3				poseLastHmdBodyPositionDelta;
+	idVec3				poseLastHmdAbsolutePosition;
+	float				lastBodyYawOffset;
+
+	// TODO remove
+	bool				renderingSplash;
+	bool				showingIntroVideo;
+	bool				vrIsBackgroundSaving;
+
+private:
 	//---------------------------
 	// client VR code shared with the game code
 
@@ -182,7 +257,7 @@ public:
 	bool				scanningPDA;
 
 	bool				gameSavingLoading;
-	bool				showingIntroVideo;
+
 
 	int					swfRenderMode;
 	int					pdaToggleTime;
@@ -190,13 +265,9 @@ public:
 	bool				wasSaved;
 	bool				wasLoaded;
 
-	bool				forceRun;
-
 	int					currentFlashlightPosition;
 
 	bool				handInGui;
-
-	bool				vrIsBackgroundSaving;
 
 	bool				shouldRecenter;
 
@@ -215,18 +286,9 @@ public:
 
 	float				handRoll[2];
 
-	float				bodyYawOffset;
-	float				lastHMDYaw;
-	float				lastHMDPitch;
-	float				lastHMDRoll;
-	idVec3				lastHMDViewOrigin;
-	idMat3				lastHMDViewAxis;
-	idVec3				uncrouchedHMDViewOrigin;
-	float				headHeightDiff;
+
 
 	float				angles[3];
-
-	int					VR_USE_MOTION_CONTROLS;
 
 	vr::VRControllerState_t pControllerStateL;
 	vr::VRControllerState_t pControllerStateR;
@@ -234,14 +296,9 @@ public:
 	vr::TrackedDeviceIndex_t leftControllerDeviceNo;
 	vr::TrackedDeviceIndex_t rightControllerDeviceNo;
 
-	float				singleEyeIPD;
 	float				hmdForwardOffset;
 
-	float				hmdFovX;
-	float				hmdFovY;
-	float				hmdPixelScale;
-	float				hmdAspect;
-	hmdEye_t			hmdEye[2];
+
 
 	float				officialIPD;
 	float				officialHeight;
@@ -249,25 +306,18 @@ public:
 	float				manualIPD;
 	float				manualHeight;
 
-	idVec3				trackingOriginOffset;
-	float				trackingOriginYawOffset;
+
 	float				trackingOriginHeight;
 	bool				chestDefaultDefined;
 	idVec3				hmdBodyTranslation;
 
 	idVec3				motionMoveDelta;
 	idVec3				motionMoveVelocity;
-	bool				isLeaning;
-	idVec3				leanOffset;
-	idVec3				leanBlankOffset;
-	float				leanBlankOffsetLengthSqr;
-	bool				leanBlank;
+
 
 	idVec3				fixedPDAMoveDelta;
 
-	int					teleportButtonCount;
-	idVec2				leftMapped;
-	int					oldTeleportButtonState;
+
 
 	float				independentWeaponYaw;
 	float				independentWeaponPitch;
@@ -284,7 +334,7 @@ public:
 
 	bool				privateCamera;
 
-	vr_motionControl_t	motionControlType;
+
 
 	// wip stuff
 	int					wipNumSteps;
@@ -298,36 +348,15 @@ public:
 	float				wipAvgPeriod;
 	float				wipTotalDeltaAvg;
 
-	bool				renderingSplash;
 
-	idAngles			poseHmdAngles;
-	idVec3				poseHmdHeadPositionDelta;
-	idVec3				poseHmdBodyPositionDelta;
+
 	idVec3				remainingMoveHmdBodyPositionDelta;
-	idVec3				poseHmdAbsolutePosition;
 
-	idVec3				poseHandPos[2];
-	idQuat				poseHandRotationQuat[2];
-	idMat3				poseHandRotationMat3[2];
-	idAngles			poseHandRotationAngles[2];
 
-	idAngles			poseLastHmdAngles;
-	idVec3				poseLastHmdHeadPositionDelta;
-	idVec3				poseLastHmdBodyPositionDelta;
-	idVec3				poseLastHmdAbsolutePosition;
-	float				lastBodyYawOffset;
 
 	idStr				currentBindingDisplay;
 
-	float				cinematicStartViewYaw;
-	idVec3				cinematicStartPosition;
-
-	bool				didTeleport;
-	float				teleportDir;
-
 	idVec3				currentHandWorldPosition[2];
-
-
 
 	// clip stuff
 	idClipModel*		bodyClip;
@@ -367,6 +396,11 @@ private:
 	uint32_t			hmdWidth;
 	uint32_t			hmdHeight;
 	int					hmdHz;
+
+	float				hmdFovX;
+	float				hmdFovY;
+	float				hmdPixelScale;
+	float				hmdAspect;
 
 	float				screenSeparation;		// for Reduce FOV motion sickness fix
 	float				userDuckingAmount;		// how many game units the user has physically ducked in real life from their calibrated position
@@ -467,7 +501,7 @@ extern idCVar vr_motionWeaponPitchAdj;
 
 extern idCVar vr_3dgui;
 extern idCVar vr_shakeAmplitude;
-extern idCVar vr_controllerStandard;
+extern idCVar vr_controllerGamepad;
 
 extern idCVar vr_offHandPosX;
 extern idCVar vr_offHandPosY;

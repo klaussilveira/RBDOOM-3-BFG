@@ -602,7 +602,7 @@ void R_RenderView( viewDef_t* parms )
 	tr.viewDef = parms;
 
 	// setup the matrix for world space to eye space
-	R_SetupViewMatrix( tr.viewDef, STEREOPOS_MONO );
+	R_SetupViewMatrix( tr.viewDef, STEREOPOS_CULLING );
 
 	// we need to set the projection matrix before doing
 	// portal-to-screen scissor calculations

@@ -2353,6 +2353,7 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 				case RC_DRAW_VIEW_GUI:
 				case RC_DRAW_VIEW_3D:
 				{
+#if VR_EMITSTEREO
 					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
 					const viewDef_t&			eyeViewDef = *dsc->viewDef;
 
@@ -2361,10 +2362,10 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 						// this is the render view for the other eye
 						continue;
 					}
+#endif
 
 					foundEye[ targetEye ] = true;
-					DrawView( dsc, stereoEye );
-
+					DrawView( cmds, stereoEye );
 					break;
 				}
 
@@ -2378,11 +2379,13 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 
 				case RC_POST_PROCESS:
 				{
+#if VR_EMITSTEREO
 					postProcessCommand_t* cmd = ( postProcessCommand_t* )cmds;
 					if( cmd->viewDef->renderView.viewEyeBuffer != stereoEye )
 					{
 						break;
 					}
+#endif
 					PostProcess( cmds );
 					break;
 				}

@@ -166,7 +166,7 @@ idCVar vr_3dgui( "vr_3dgui", "1", CVAR_BOOL | CVAR_ARCHIVE, "3d effects for in g
 idCVar vr_shakeAmplitude( "vr_shakeAmplitude", "1.0", CVAR_FLOAT | CVAR_ARCHIVE, "Screen shake amplitude 0.0 = disabled to 1.0 = full\n", 0.0f, 1.0f );
 
 
-idCVar vr_controllerStandard( "vr_controllerStandard", "0", CVAR_INTEGER | CVAR_ARCHIVE, "If 1, use standard controller, not motion controllers\nRestart after changing\n" );
+idCVar vr_controllerGamepad( "vr_controllerGamepad", "1", CVAR_BOOL, "If 1, use standard controller, not motion controllers" );
 
 idCVar vr_padDeadzone( "vr_padDeadzone", ".25", CVAR_FLOAT | CVAR_ARCHIVE, "Deadzone for steam pads.\n 0.0 = no deadzone 1.0 = dead\n" );
 idCVar vr_jsDeadzone( "vr_jsDeadzone", ".25", CVAR_FLOAT | CVAR_ARCHIVE, "Deadzone for steam joysticks.\n 0.0 = no deadzone 1.0 = dead\n" );
@@ -609,6 +609,16 @@ idVec2i iVr::GetEyeResolution() const
 	idVec2i res( hmdWidth * vr_pixelDensity.GetFloat(), hmdHeight * vr_pixelDensity.GetFloat() );
 
 	return res;
+}
+
+float iVr::GetIPD() const
+{
+	if( vrSystem->IsActive() && !vr_manualIPDEnable.GetInteger() && vr_useOculusProfile.GetInteger() )
+	{
+		return vr::VRSystem()->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_UserIpdMeters_Float ) * 100;
+	}
+
+	return vr_manualIPD.GetFloat() / 10;
 }
 
 /*

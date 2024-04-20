@@ -759,20 +759,12 @@ stereoDistances_t	CaclulateStereoDistances(
 }
 
 
-float GetIPD()
-{
-	if( vrSystem->IsActive() && !vr_manualIPDEnable.GetInteger() && vr_useOculusProfile.GetInteger() )
-	{
-		return vr::VRSystem()->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_UserIpdMeters_Float ) * 100;
-	}
 
-	return vr_manualIPD.GetFloat() / 10;
-}
 
 float	GetScreenSeparationForGuis()
 {
 	stereoDistances_t dists = CaclulateStereoDistances(
-								  GetIPD(),
+								  vrSystem->GetIPD(),
 								  renderSystem->GetPhysicalScreenWidthInCentimeters(),
 								  stereoRender_convergence.GetFloat(),
 								  80.0f /* fov */ );
@@ -802,20 +794,18 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	renderView_t eyeView = *view;
 
 	const stereoDistances_t dists = CaclulateStereoDistances(
-										GetIPD(),
+										vrSystem->GetIPD(),
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
 										view->fov_x );
 
 
-	// TODO check
-	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.combinedSeperation ) * eyeView.viewaxis[0];
+#if VR_EMITSTEREO
 
-#if 1
-	eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
-	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+	eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
 
-	if( eye == -1 )
+	if( eye == 1 )
 	{
 		eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_LEFT];
 	}
@@ -823,19 +813,26 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	{
 		eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_RIGHT];
 	}
+	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
 #else
-	eyeView.vieworg[STEREOPOS_MONO] += ( eye * dists.worldSeparation ) * eyeView.viewaxis[1];
+
+	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+	eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+
+	// TODO offset view origin for combined frustum
+	//eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] - ( dists.combinedSeperation * eyeView.viewaxis[0] );
+	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
 #endif
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 	eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
 
 	// Koz begin
-	if( vrSystem->IsActive() )
-	{
-		vrSystem->lastViewOrigin = eyeView.vieworg[STEREOPOS_MONO];
-		vrSystem->lastViewAxis = eyeView.viewaxis;
-	}
+	//if( vrSystem->IsActive() )
+	//{
+	//	vrSystem->lastViewOrigin = eyeView.vieworg[STEREOPOS_MONO];
+	//	vrSystem->lastViewAxis = eyeView.viewaxis;
+	//}
 	// Koz end
 
 	SingleView( &eyeView, hudManager );
@@ -872,15 +869,25 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 	const renderView_t* view = player->GetRenderView();
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
+		int eye = 0;
+
 		// render both eye views each frame on the PC
-		for( int eye = 1 ; eye >= -1 ; eye -= 2 )
+#if VR_EMITSTEREO
+		for( eye = 1 ; eye >= -1 ; eye -= 2 )
+#endif
 		{
 			EmitStereoEyeView( eye, hudManager );
 		}
 	}
 	else
 	{
-		SingleView( view, hudManager );
+		renderView_t eyeView = *view;
+
+		eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO];
+		eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO];
+		eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
+
+		SingleView( &eyeView, hudManager );
 	}
 
 	ScreenFade();

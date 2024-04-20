@@ -3148,8 +3148,8 @@ void idGameLocal::CalcFov( float base_fov, float& fov_x, float& fov_y ) const
 	if( vrSystem->IsActive() )
 	{
 		// this is the Rift, so don't mess with our aspect ratio corrections
-		fov_x = vrSystem->hmdFovX;
-		fov_y = vrSystem->hmdFovY;
+		fov_x = vrSystem->GetHMDFovX();
+		fov_y = vrSystem->GetHMDFovY();
 		return;
 	}
 

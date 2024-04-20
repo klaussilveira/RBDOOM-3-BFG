@@ -1252,7 +1252,7 @@ void idUsercmdGenLocal::JoystickMove2()
 	float comfortTurn = 0.0f;
 	static int lastComfortTime = 0;
 
-	if( vrSystem->IsActive() )
+	if( vrSystem->IsActive() && !vr_controllerGamepad.GetBool() )
 	{
 		mappedMove = vec2_zero;
 		mappedLook = vec2_zero;
@@ -1643,7 +1643,7 @@ void idUsercmdGenLocal::EvaluateVRMoveMode()
 
 
 
-	if( vrSystem->VR_USE_MOTION_CONTROLS
+	if( !vr_controllerGamepad.GetBool() && vrSystem->VR_USE_MOTION_CONTROLS
 			&& ( vr_movePoint.GetInteger() == 1 || vr_movePoint.GetInteger() > 2 ) // move hands dependent
 			&& ( abs( cmd.forwardmove ) >= MOVE_DEAD_ZONE || abs( cmd.rightmove ) >= MOVE_DEAD_ZONE || vr_teleportMode.GetInteger() == 2 ) ) // body will follow motion from move vector
 	{
@@ -1669,7 +1669,7 @@ void idUsercmdGenLocal::EvaluateVRMoveMode()
 		viewangles[YAW] += controllerAng.yaw - vrSystem->bodyYawOffset;
 		vrSystem->bodyYawOffset = controllerAng.yaw;
 	}
-	else if( !vrSystem->VR_USE_MOTION_CONTROLS || vr_movePoint.GetInteger() == 2 ) // body will follow view
+	else if( !vr_controllerGamepad.GetBool() && !vrSystem->VR_USE_MOTION_CONTROLS || vr_movePoint.GetInteger() == 2 ) // body will follow view
 	{
 		viewangles[YAW] += vrSystem->poseHmdAngles.yaw - vrSystem->bodyYawOffset;
 		//vrSystem->bodyMoveAng = vrSystem->poseHmdAngles.yaw; //Npi don't change bodyAng without cmd
