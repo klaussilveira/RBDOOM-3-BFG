@@ -1854,7 +1854,7 @@ void idRenderBackend::GL_EndFrame()
 		//		|| vrSystem->isLoading || vrSystem->showingIntroVideo || session->GetState() == idSession::LOADING || ( game->CheckInCinematic() && vr_cinematics.GetInteger() == 2 ) )
 
 		// RB: do it simpler for now
-		if( game->Shell_IsActive() )
+		if( game->Shell_IsActive() || game->IsPDAOpen() )
 		{
 			HMD_SubmitStereoRenders( globalImages->hmdEyeImages[0], globalImages->hmdEyeImages[1] );
 		}
@@ -2474,7 +2474,7 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 					//bool is3D = !vrSystem->isLoading && !vrSystem->showingIntroVideo && session->GetState() != idSession::LOADING;
 
 					// RB: do it simpler for now
-					if( game->Shell_IsActive() )
+					if( game->Shell_IsActive() || game->IsPDAOpen() )
 					{
 						// draw a floating 2D menu
 						HMD_RenderHUD( globalImages->stereoRenderImages[0], globalImages->stereoRenderImages[0] );
