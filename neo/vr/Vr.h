@@ -115,9 +115,6 @@ public:
 
 	void				HMDInitializeDistortion();
 	void				HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idVec3& bodyPositionDelta, idVec3& absolutePosition, bool resetTrackingOffset );
-	//void				HMDRender( idImage* leftCurrent, idImage* rightCurrent );
-	void				HMDTrackStatic( bool is3D );
-	void				HUDRender( idImage* image0, idImage* image1 );
 	void				HMDResetTrackingOriginOffset();
 
 	void				StartFrame();
@@ -318,7 +315,6 @@ private:
 	idVec3				motionMoveDelta;
 	idVec3				motionMoveVelocity;
 
-
 	idVec3				fixedPDAMoveDelta;
 
 	bool				playerDead;
@@ -346,8 +342,6 @@ private:
 	float				wipLastAcces;
 	float				wipAvgPeriod;
 	float				wipTotalDeltaAvg;
-
-
 
 	idVec3				remainingMoveHmdBodyPositionDelta;
 
