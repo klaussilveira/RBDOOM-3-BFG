@@ -10841,27 +10841,27 @@ void idPlayer::CalculateRenderView()
 		// Koz fixme pause - handle the PDA model if game is paused
 		// really really need to move this somewhere else,
 
-		if( !vrSystem->PDAforcetoggle && vrSystem->PDAforced && weapon->IdentifyWeapon() != WEAPON_PDA )  // PDAforced cannot be valid if the weapon is not the PDA
+		if( !vrSystem->pdaForceToggle && vrSystem->pdaForced && weapon->IdentifyWeapon() != WEAPON_PDA )  // pdaForced cannot be valid if the weapon is not the PDA
 		{
-			vrSystem->PDAforced = false;
+			vrSystem->pdaForced = false;
 			vrSystem->VR_GAME_PAUSED = false;
 			idPlayer* player = gameLocal.GetLocalPlayer();
 			player->SetupPDASlot( true );
 			player->SetupHolsterSlot( true );
 		}
 
-		if( vrSystem->PDAforcetoggle )
+		if( vrSystem->pdaForceToggle )
 		{
-			if( !vrSystem->PDAforced )
+			if( !vrSystem->pdaForced )
 			{
 				if( weapon->IdentifyWeapon() != WEAPON_PDA )
 				{
-					//common->Printf( "idPlayer::CalculateRenderView calling SelectWeapon for PDA\nPDA Forced = %i, PDAForceToggle = %i\n",vrSystem->PDAforced,vrSystem->PDAforcetoggle );
-					//common->Printf( "CRV3 Calling SetupHolsterSlot( %i ) \n", vrSystem->PDAforced );
+					//common->Printf( "idPlayer::CalculateRenderView calling SelectWeapon for PDA\nPDA Forced = %i, PDAForceToggle = %i\n",vrSystem->pdaForced,vrSystem->pdaForceToggle );
+					//common->Printf( "CRV3 Calling SetupHolsterSlot( %i ) \n", vrSystem->pdaForced );
 
 					idPlayer* player = gameLocal.GetLocalPlayer();
-					player->SetupPDASlot( vrSystem->PDAforced );
-					player->SetupHolsterSlot( vrSystem->PDAforced );
+					player->SetupPDASlot( vrSystem->pdaForced );
+					player->SetupHolsterSlot( vrSystem->pdaForced );
 
 					SelectWeapon( weapon_pda, true );
 					SetWeaponHandPose();
@@ -10870,8 +10870,8 @@ void idPlayer::CalculateRenderView()
 				{
 					if( weapon->status == WP_READY )
 					{
-						vrSystem->PDAforced = true;
-						vrSystem->PDAforcetoggle = false;
+						vrSystem->pdaForced = true;
+						vrSystem->pdaForceToggle = false;
 					}
 				}
 			}
@@ -10880,8 +10880,8 @@ void idPlayer::CalculateRenderView()
 				// pda has been already been forced active, put it away.
 
 				TogglePDA();
-				vrSystem->PDAforcetoggle = false;
-				vrSystem->PDAforced = false;
+				vrSystem->pdaForceToggle = false;
+				vrSystem->pdaForced = false;
 			}
 		}
 #endif

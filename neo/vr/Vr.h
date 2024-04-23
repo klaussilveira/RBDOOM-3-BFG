@@ -239,7 +239,6 @@ public:
 	// TODO remove
 	bool				renderingSplash;
 	bool				showingIntroVideo;
-	bool				vrIsBackgroundSaving;
 
 private:
 	//---------------------------
@@ -251,14 +250,13 @@ private:
 
 	bool				VR_GAME_PAUSED;
 
-	bool				PDAforcetoggle;
-	bool				PDAforced;
-	bool				PDArising;
-	bool				forceLeftStick;				// navigate through PDA menus only with the left controller and motions
-	bool				scanningPDA;
+	bool				pdaForceToggle;
+	bool				pdaForced;
+	bool				pdaRising;
+	bool				pdaForceLeftStick;				// navigate through PDA menus only with the left controller and motions
+	bool				pdaScanning;
 
 	bool				gameSavingLoading;
-
 
 	int					swfRenderMode;
 	int					pdaToggleTime;

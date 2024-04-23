@@ -392,7 +392,7 @@ void idCommonLocal::Draw()
 		}
 		else
 		{
-			//if( !vrSystem->PDAforced && !vrSystem->PDAforcetoggle )
+			//if( !vrSystem->pdaForced && !vrSystem->pdaForceToggle )
 			{
 				Dialog().Render( loadGUI != NULL );
 
