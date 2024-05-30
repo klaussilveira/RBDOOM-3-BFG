@@ -5,7 +5,7 @@ Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2014 Carl Kenner
 Copyright (C) 2016-2017 Dustin Land
-Copyright (C) 2013-2023 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -64,7 +64,7 @@ bool drawView3D;
 SetVertexParm
 ================
 */
-static ID_INLINE void SetVertexParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetVertexParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
@@ -74,11 +74,11 @@ static ID_INLINE void SetVertexParm( renderParm_t rp, const float* value )
 SetVertexParms
 ================
 */
-static ID_INLINE void SetVertexParms( renderParm_t rp, const float* value, int num )
+static ID_INLINE void SetVertexParms( renderParm_t rp, const float values[], int num )
 {
 	for( int i = 0; i < num; i++ )
 	{
-		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), value + ( i * 4 ) );
+		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), values + ( i * 4 ) );
 	}
 }
 
@@ -87,7 +87,7 @@ static ID_INLINE void SetVertexParms( renderParm_t rp, const float* value, int n
 SetFragmentParm
 ================
 */
-static ID_INLINE void SetFragmentParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetFragmentParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
@@ -545,8 +545,11 @@ void idRenderBackend::ResetViewportAndScissorToDefaultCamera( const viewDef_t* _
 				 _viewDef->viewport.y2 + 1 - _viewDef->viewport.y1 );
 
 	// the scissor may be smaller than the viewport for subviews
+
+	// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+	// convert light scissor to from GL coordinates to DX
 	GL_Scissor( viewDef->viewport.x1 + _viewDef->scissor.x1,
-				viewDef->viewport.y1 + _viewDef->scissor.y1,
+				viewDef->viewport.y2 - _viewDef->scissor.y2,
 				_viewDef->scissor.x2 + 1 - _viewDef->scissor.x1,
 				_viewDef->scissor.y2 + 1 - _viewDef->scissor.y1 );
 
@@ -790,16 +793,6 @@ on the 360.
 */
 void idRenderBackend::FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSurfs )
 {
-	OPTICK_EVENT( "Render_FillDepthBufferFast" );
-
-	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
-	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
-	{
-		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
-	}
-	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
-	OPTICK_GPU_EVENT( "Render_FillDepthBufferFast" );
-
 	if( numDrawSurfs == 0 )
 	{
 		return;
@@ -810,6 +803,16 @@ void idRenderBackend::FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSu
 	{
 		return;
 	}
+
+	//OPTICK_EVENT( "Render_FillDepthBufferFast" );
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_FillDepthBufferFast" );
 
 	renderLog.OpenMainBlock( MRB_FILL_DEPTH_BUFFER );
 	renderLog.OpenBlock( "Render_FillDepthBufferFast", colorBlue );
@@ -1525,8 +1528,10 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 	// change the scissor if needed, it will be constant across all the surfaces lit by the light
 	if( !currentScissor.Equals( vLight->scissorRect ) && r_useScissor.GetBool() )
 	{
+		// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+		// convert light scissor to from GL coordinates to DX
 		GL_Scissor( viewDef->viewport.x1 + vLight->scissorRect.x1,
-					viewDef->viewport.y1 + vLight->scissorRect.y1,
+					viewDef->viewport.y2 - vLight->scissorRect.y2,
 					vLight->scissorRect.x2 + 1 - vLight->scissorRect.x1,
 					vLight->scissorRect.y2 + 1 - vLight->scissorRect.y1 );
 
@@ -1652,6 +1657,8 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 			{
 				shadowOffsets[ i ].x = vLight->imageAtlasOffset[ i ].x * ( 1.0f / r_shadowMapAtlasSize.GetInteger() );
 				shadowOffsets[ i ].y = vLight->imageAtlasOffset[ i ].y * ( 1.0f / r_shadowMapAtlasSize.GetInteger() );
+				shadowOffsets[ i ].z = 0.0f;
+				shadowOffsets[ i ].w = 0.0f;
 			}
 
 			SetVertexParms( RENDERPARM_SHADOW_ATLAS_OFFSET_0, &shadowOffsets[0][0], 6 );
@@ -2165,11 +2172,11 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 		specularColor = lightColor;// * 0.5f;
 
 		float ambientBoost = 1.0f;
-		if( !r_usePBR.GetBool() )
-		{
-			ambientBoost += r_useSSAO.GetBool() ? 0.2f : 0.0f;
-			ambientBoost *= 1.1f;
-		}
+		//if( !r_usePBR.GetBool() )
+		//{
+		//	ambientBoost += r_useSSAO.GetBool() ? 0.2f : 0.0f;
+		//	ambientBoost *= 1.1f;
+		//}
 
 		ambientColor.x = r_forceAmbient.GetFloat() * ambientBoost;
 		ambientColor.y = r_forceAmbient.GetFloat() * ambientBoost;
@@ -2179,7 +2186,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 	renderProgManager.SetRenderParm( RENDERPARM_AMBIENT_COLOR, ambientColor.ToFloatPtr() );
 
-	bool useIBL = r_usePBR.GetBool() && !fillGbuffer;
+	bool useIBL = !fillGbuffer;
 
 	// setup renderparms assuming we will be drawing trivial surfaces first
 	RB_SetupForFastPathInteractions( diffuseColor, specularColor );
@@ -3358,7 +3365,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 		return;
 	}
 
-	OPTICK_EVENT( "Render_ShadowAtlas" );
+	//OPTICK_EVENT( "Render_ShadowAtlas" );
 
 	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
@@ -3674,7 +3681,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 		return;
 	}
 
-	OPTICK_EVENT( "Render_Interactions" );
+	//OPTICK_EVENT( "Render_Interactions" );
 
 	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
@@ -3864,7 +3871,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 		return numDrawSurfs;
 	}
 
-	OPTICK_EVENT( "Render_GenericShaderPasses" );
+	//OPTICK_EVENT( "Render_GenericShaderPasses" );
 
 	renderLog.OpenBlock( "Render_GenericShaderPasses", colorBlue );
 	if( viewDef->targetRender )
@@ -3971,8 +3978,9 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 		// change the scissor if needed
 		if( !currentScissor.Equals( surf->scissorRect ) && r_useScissor.GetBool() )
 		{
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
 			GL_Scissor( viewDef->viewport.x1 + surf->scissorRect.x1,
-						viewDef->viewport.y1 + surf->scissorRect.y1,
+						viewDef->viewport.y2 - surf->scissorRect.y2,
 						surf->scissorRect.x2 + 1 - surf->scissorRect.x1,
 						surf->scissorRect.y2 + 1 - surf->scissorRect.y1 );
 
@@ -4328,9 +4336,10 @@ void idRenderBackend::T_BlendLight( const drawSurf_t* drawSurfs, const viewLight
 
 		if( !currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
 		{
-			// change the scissor
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+			// convert light scissor to from GL coordinates to DX
 			GL_Scissor( viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						viewDef->viewport.y1 + drawSurf->scissorRect.y1,
+						viewDef->viewport.y2 - drawSurf->scissorRect.y2,
 						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
 						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
 
@@ -4457,9 +4466,10 @@ void idRenderBackend::T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fog
 
 		if( !currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
 		{
-			// change the scissor
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+			// convert light scissor to from GL coordinates to DX
 			GL_Scissor( viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						viewDef->viewport.y1 + drawSurf->scissorRect.y1,
+						viewDef->viewport.y2 - drawSurf->scissorRect.y2,
 						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
 						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
 
@@ -4614,13 +4624,21 @@ idRenderBackend::FogAllLights
 */
 void idRenderBackend::FogAllLights()
 {
-	if( r_skipFogLights.GetBool() || r_showOverDraw.GetInteger() != 0
+	if( r_skipFogLights.GetBool() || r_showOverDraw.GetInteger() != 0 || viewDef->viewLights == NULL
 			|| viewDef->isXraySubview /* don't fog in xray mode*/ )
 	{
 		return;
 	}
 
 	//OPTICK_EVENT( "Render_FogAllLights" );
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_FogAllLights" );
 
 	renderLog.OpenMainBlock( MRB_FOG_ALL_LIGHTS );
 	renderLog.OpenBlock( "Render_FogAllLights", colorBlue );
@@ -4669,6 +4687,15 @@ void idRenderBackend::DrawMotionVectors()
 
 	//OPTICK_EVENT( "Render_MotionVectors" );
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_MotionVectors" );
+
+	renderLog.OpenMainBlock( MRB_MOTION_VECTORS );
 	renderLog.OpenBlock( "Render_MotionVectors" );
 
 	// clear the alpha buffer and draw only the hands + weapon into it so
@@ -4784,6 +4811,7 @@ void idRenderBackend::DrawMotionVectors()
 	}
 
 	renderLog.CloseBlock();
+	renderLog.CloseMainBlock();
 }
 
 void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
@@ -4810,6 +4838,14 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 	}
 
 	//OPTICK_EVENT( "Render_TemporalAA" );
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_TemporalAA" );
 
 	renderLog.OpenMainBlock( MRB_TAA );
 	renderLog.OpenBlock( "Render_TemporalAA" );
@@ -4845,6 +4881,16 @@ void idRenderBackend::Bloom( const viewDef_t* _viewDef )
 	{
 		return;
 	}
+
+	//OPTICK_EVENT( "Render_Bloom" );
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_Bloom" );
 
 	renderLog.OpenMainBlock( MRB_BLOOM );
 	renderLog.OpenBlock( "Render_Bloom", colorBlue );
@@ -4968,6 +5014,14 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 	}
 
 	//OPTICK_EVENT( "Render_SSAO" );
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_SSAO" );
 
 	renderLog.OpenMainBlock( MRB_SSAO_PASS );
 	renderLog.OpenBlock( "Render_SSAO", colorBlue );
@@ -5202,6 +5256,14 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion2( const viewDef_t* _viewDe
 
 	//OPTICK_EVENT( "Render_SSAO2" );
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_SSAO2" );
+
 	renderLog.OpenMainBlock( MRB_SSAO_PASS );
 	renderLog.OpenBlock( "Render_SSAO2", colorBlue );
 
@@ -5364,6 +5426,10 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 			}
 
+			case RC_CRT_POST_PROCESS:
+				CRTPostProcess();
+				break;
+
 			default:
 				common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
 				break;
@@ -5372,11 +5438,12 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	DrawFlickerBox();
 
-	GL_EndFrame();
-
 	// stop rendering on this thread
 	uint64 backEndFinishTime = Sys_Microseconds();
 	pc.cpuTotalMicroSec = backEndFinishTime - backEndStartTime;
+
+	// SRS - capture backend timing before GL_EndFrame() since it can block when r_mvkSynchronousQueueSubmits is enabled on macOS/MoltenVK
+	GL_EndFrame();
 
 	if( r_debugRenderToTexture.GetInteger() == 1 )
 	{
@@ -5395,8 +5462,8 @@ idRenderBackend::DrawViewInternal
 */
 void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int stereoEye )
 {
-	OPTICK_EVENT( "Backend_DrawViewInternal" );
-	OPTICK_TAG( "stereoEye", stereoEye );
+	//OPTICK_EVENT( "Backend_DrawViewInternal" );
+	//OPTICK_TAG( "stereoEye", stereoEye );
 
 	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
@@ -5404,7 +5471,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
 	}
 	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
-	OPTICK_GPU_EVENT( "DrawView" );
+	//OPTICK_GPU_EVENT( "DrawView" );	// SRS - now in DrawView() for 3D vs. GUI
 
 	renderLog.OpenBlock( "Render_DrawViewInternal", colorRed );
 
@@ -5468,7 +5535,11 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	}
 
 	// Clear the depth buffer and clear the stencil to 128 for stencil shadows as well as gui masking
-	GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
+	{
+		OPTICK_GPU_EVENT( "Render_ClearDepthStencil" );
+
+		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
+	}
 
 	// RB end
 
@@ -5515,8 +5586,10 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//
 	// fill the geometric buffer with normals and roughness
 	//-------------------------------------------------
+	if( viewDef->viewEntitys )		// 3D views only
 	{
-		OPTICK_EVENT( "Render_GeometryBuffer" );
+		//OPTICK_EVENT( "Render_GeometryBuffer" );
+		OPTICK_GPU_EVENT( "Render_GeometryBuffer" );
 
 		AmbientPass( drawSurfs, numDrawSurfs, true );
 	}
@@ -5536,8 +5609,10 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// render static lighting and consider SSAO results
 	//-------------------------------------------------
+	if( viewDef->viewEntitys )		// 3D views only
 	{
-		OPTICK_EVENT( "Render_AmbientPass" );
+		//OPTICK_EVENT( "Render_AmbientPass" );
+		OPTICK_GPU_EVENT( "Render_AmbientPass" );
 
 		AmbientPass( drawSurfs, numDrawSurfs, false );
 	}
@@ -5558,6 +5633,8 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	int processed = 0;
 	if( !r_skipShaderPasses.GetBool() )
 	{
+		OPTICK_GPU_EVENT( "Render_GenericShaderPasses" );
+
 		renderLog.OpenMainBlock( MRB_DRAW_SHADER_PASSES );
 		float guiScreenOffset;
 		if( _viewDef->viewEntitys != NULL )
@@ -5589,6 +5666,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	if( processed < numDrawSurfs && !r_skipPostProcess.GetBool() )
 	{
+		OPTICK_GPU_EVENT( "Render_ShaderPassesPost" );
+
+		renderLog.OpenMainBlock( MRB_DRAW_SHADER_PASSES_POST );
 		int x = viewDef->viewport.x1;
 		int y = viewDef->viewport.y1;
 		int	w = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
@@ -5639,7 +5719,6 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
 		// render the remaining surfaces
-		renderLog.OpenMainBlock( MRB_DRAW_SHADER_PASSES_POST );
 		DrawShaderPasses( drawSurfs + processed, numDrawSurfs - processed, 0.0f /* definitely not a gui */, stereoEye );
 		renderLog.CloseMainBlock();
 	}
@@ -5668,6 +5747,11 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 	if( useHDR && !( _viewDef->renderView.rdflags & RDF_IRRADIANCE ) && !_viewDef->targetRender )
 	{
+		OPTICK_GPU_EVENT( "Render_ToneMapPass" );
+
+		renderLog.OpenMainBlock( MRB_TONE_MAP_PASS );
+		renderLog.OpenBlock( "Render_ToneMapPass", colorBlue );
+
 		ToneMappingParameters parms;
 		if( R_UseTemporalAA() )
 		{
@@ -5686,6 +5770,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 				toneMapPass->SimpleRender( commandList, parms, viewDef, globalImages->currentRenderHDRImage->GetTextureHandle(), globalFramebuffers.ldrFBO->GetApiObject() );
 			}
 		}
+
+		renderLog.CloseBlock();
+		renderLog.CloseMainBlock();
 	}
 
 	//-------------------------------------------------
@@ -5697,6 +5784,8 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 	if( _viewDef->renderView.rdflags & RDF_IRRADIANCE )
 	{
+		OPTICK_GPU_EVENT( "Blit_EnvProbeRendered" );
+
 		// copy LDR result to DX12 / Vulkan swapchain image
 
 		// we haven't changed ldrImage so it's basically the previewsRenderLDR
@@ -5715,6 +5804,8 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	}
 	else
 	{
+		OPTICK_GPU_EVENT( "Blit_Rendered" );
+
 		// copy LDR result to DX12 / Vulkan swapchain image
 
 		BlitParameters blitParms;
@@ -5849,6 +5940,13 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 {
 	//OPTICK_EVENT( "Backend_DrawView" );
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+
 	const drawSurfsCommand_t* cmd = ( const drawSurfsCommand_t* )data;
 
 	viewDef = cmd->viewDef;
@@ -5880,7 +5978,20 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 	DBG_ShowOverdraw();
 
 	// render the scene
-	DrawViewInternal( cmd->viewDef, stereoEye );
+	if( viewDef->viewEntitys )
+	{
+		OPTICK_GPU_EVENT( "DrawView_3D" );
+		OPTICK_TAG( "stereoEye", stereoEye );
+
+		DrawViewInternal( cmd->viewDef, stereoEye );
+	}
+	else
+	{
+		OPTICK_GPU_EVENT( "DrawView_GUI" );
+		OPTICK_TAG( "stereoEye", stereoEye );
+
+		DrawViewInternal( cmd->viewDef, stereoEye );
+	}
 
 	// RB: Support motion blur in the future again?
 	// It is the worst thing next to depth of field
@@ -5922,16 +6033,44 @@ void idRenderBackend::CopyRender( const void* data )
 		return;
 	}
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "CopyRender" );
+
 	renderLog.OpenBlock( "***************** RB_CopyRender *****************" );
 
 	if( cmd->image )
 	{
+		renderLog.OpenBlock( cmd->image->GetName() );
+
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		nvrhi::IFramebuffer* framebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+		if( cmd->image == globalImages->accumImage )
+		{
+			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
+		}
+		blitParms.targetFramebuffer = framebuffer;
+		blitParms.targetViewport = nvrhi::Viewport( cmd->imageWidth, cmd->imageHeight );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
 		cmd->image->CopyFramebuffer( cmd->x, cmd->y, cmd->imageWidth, cmd->imageHeight );
+
+		renderLog.CloseBlock();
 	}
 
 	if( cmd->clearColorAfterCopy )
 	{
-		GL_Clear( true, false, false, STENCIL_SHADOW_TEST_VALUE, 0, 0, 0, 0 );
+		nvrhi::IFramebuffer* framebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+		if( cmd->image == globalImages->accumImage )
+		{
+			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
+		}
+		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, nvrhi::Color( 0.f ) );
 	}
 
 	renderLog.CloseBlock();
@@ -5946,18 +6085,19 @@ idRenderBackend::PostProcess
 extern idCVar rs_enable;
 void idRenderBackend::PostProcess( const void* data )
 {
-	// only do the post process step if resolution scaling is enabled. Prevents the unnecessary copying of the framebuffer and
-	// corresponding full screen quad pass.
-	/*
-	if( rs_enable.GetInteger() == 0 && !r_useFilmicPostProcessing.GetBool() && r_antiAliasing.GetInteger() == 0 )
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 	{
-		return;
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
 	}
-	*/
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "PostProcess" );
 
 	if( viewDef->renderView.rdflags & RDF_IRRADIANCE )
 	{
 #if defined( USE_NVRHI )
+		OPTICK_GPU_EVENT( "Blit_EnvProbePostFX" );
+
 		// we haven't changed ldrImage so it's basically the previewsRenderLDR
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
@@ -6072,9 +6212,10 @@ void idRenderBackend::PostProcess( const void* data )
 	}
 #endif
 
-	if( r_useFilmicPostProcessing.GetBool() )
+	if( r_useFilmicPostFX.GetBool() || r_renderMode.GetInteger() > 0 )
 	{
-#if defined( USE_NVRHI )
+		OPTICK_GPU_EVENT( "Render_FilmicPostFX" );
+
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
@@ -6084,20 +6225,43 @@ void idRenderBackend::PostProcess( const void* data )
 
 		GL_SelectTexture( 0 );
 		globalImages->smaaBlendImage->Bind();
-#else
-		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-
-		GL_SelectTexture( 0 );
-		globalImages->currentRenderImage->Bind();
-#endif
-
 
 		globalFramebuffers.ldrFBO->Bind();
 
 		GL_SelectTexture( 1 );
 		globalImages->blueNoiseImage256->Bind();
 
-		renderProgManager.BindShader_PostProcess();
+		float jitterTexScale[4] = {};
+
+		if( r_renderMode.GetInteger() == RENDERMODE_C64 || r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_RetroC64();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_CPC || r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_RetroCPC();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_GENESIS || r_renderMode.GetInteger() == RENDERMODE_GENESIS_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_GENESIS_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_RetroGenesis();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_PSX )
+		{
+			renderProgManager.BindShader_PostProcess_RetroPSX();
+		}
+		else
+		{
+			renderProgManager.BindShader_PostProcess();
+		}
+
+		jitterTexScale[1] = r_retroDitherScale.GetFloat();
+		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 
 		float jitterTexOffset[4];
 		jitterTexOffset[0] = 1.0f / globalImages->blueNoiseImage256->GetUploadWidth();
@@ -6123,22 +6287,127 @@ void idRenderBackend::PostProcess( const void* data )
 	GL_SelectTexture( 0 );
 	renderProgManager.Unbind();
 
-#if defined( USE_NVRHI )
-	BlitParameters blitParms;
-	blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-	blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-	blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-	commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+	{
+		OPTICK_GPU_EVENT( "Blit_FilmicPostFX" );
+
+		// copy LDR result to DX12 / Vulkan swapchain image
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
+		// copy LDR result to postProcFBO which is HDR but also used by postFX
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+		blitParms.targetViewport = nvrhi::Viewport( viewport.x1, viewport.x2, viewport.y1, viewport.y2, viewport.zmin, viewport.zmax );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+	}
 
 	GL_SelectTexture( 0 );
 	globalImages->currentRenderImage->Bind();
-#else
-	globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-
-	GL_SelectTexture( 0 );
-	globalImages->currentRenderImage->Bind();
-#endif
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
+}
+
+void idRenderBackend::CRTPostProcess()
+{
+#if 1
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "CRTPostProcess" );
+
+	renderLog.OpenMainBlock( MRB_CRT_POSTPROCESS );
+	renderLog.OpenBlock( "Render_CRTPostFX", colorBlue );
+
+	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS |  GLS_CULL_TWOSIDED );
+
+	int screenWidth = renderSystem->GetWidth();
+	int screenHeight = renderSystem->GetHeight();
+
+	// set the window clipping
+	GL_Viewport( 0, 0, screenWidth, screenHeight );
+	GL_Scissor( 0, 0, screenWidth, screenHeight );
+
+	if( r_useCRTPostFX.GetInteger() > 0 )
+	{
+		OPTICK_GPU_EVENT( "Render_CRTPostFX" );
+
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
+
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
+		GL_SelectTexture( 0 );
+		globalImages->smaaBlendImage->Bind();
+
+		globalFramebuffers.ldrFBO->Bind();
+
+		GL_SelectTexture( 1 );
+		globalImages->blueNoiseImage256->Bind();
+
+		if( r_useCRTPostFX.GetInteger() == 1 )
+		{
+			renderProgManager.BindShader_CrtMattias();
+		}
+		else
+		{
+			renderProgManager.BindShader_CrtNewPixie();
+		}
+
+		float windowCoordParm[4];
+		windowCoordParm[0] = r_crtCurvature.GetFloat();
+		windowCoordParm[1] = r_crtVignette.GetFloat();
+		windowCoordParm[2] = screenWidth;
+		windowCoordParm[3] = screenHeight;
+		SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
+
+		float jitterTexOffset[4];
+		jitterTexOffset[0] = 1.0f / globalImages->blueNoiseImage256->GetUploadWidth();
+		jitterTexOffset[1] = 1.0f / globalImages->blueNoiseImage256->GetUploadHeight();
+
+		if( r_shadowMapRandomizeJitter.GetBool() )
+		{
+			jitterTexOffset[2] = Sys_Milliseconds() / 1000.0f;
+			jitterTexOffset[3] = tr.frameCount % 64;
+		}
+		else
+		{
+			jitterTexOffset[2] = 0.0f;
+			jitterTexOffset[3] = 0.0f;
+		}
+
+		SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
+
+		// Draw
+		DrawElementsWithCounters( &unitSquareSurface );
+	}
+
+	//GL_SelectTexture( 0 );
+	//renderProgManager.Unbind();
+
+	{
+		OPTICK_GPU_EVENT( "Blit_CRTPostFX" );
+
+		// copy LDR result to DX12 / Vulkan swapchain image
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+	}
+
+	GL_SelectTexture( 0 );
+	globalImages->currentRenderImage->Bind();
+
+	renderLog.CloseBlock();
+	renderLog.CloseMainBlock();
+#endif
 }

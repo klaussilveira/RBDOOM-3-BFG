@@ -15,6 +15,212 @@ Thank you for downloading RBDOOM-3-BFG.
 
 _______________________________________
 
+TBD - RBDOOM-3-BFG 1.6.0
+_______________________________
+
+
+## .plan - April 24, 2024
+
+Cudos to Stephen Saunders for most changes in this build. NVRHI was updated to the version on 25 February.
+The shader compiling part was also split out of NVRHI into a new ShaderMake tool by Nvidia.
+
+You can get Blender lights to work with the glTF workflow without the need to place fake light entities in Blender.
+VR options are stripped from the settings menu and com_showFPS > 2 show the VRAM memory usage.
+
+Optick has been improved for macOS and Vulkan and otherwise most changes are developer related.
+The renderdemo code has been removed and if you compile the engine without Classic Doom support then you will bypass the startup screen and get into the main menu immediatly.
+
+Changelog:
+
+* Read Blender lights directly through the KHR_lights_punctual glTF extension
+
+* Don't let VR options of other VR builds to break rendering of the non-VR master
+
+* Fix testVideo to check for viewDef->viewEntitys (i.e. 3D/2D) not console state
+
+* When playing testVideos, skip sRGB to linear conversion only when console active (i.e. 2D)
+
+* Check for valid allocations before freeing Bink Decoder bundles
+
+* Renamed DX12/Vulkan specific cvars with a r_vk/r_dx prefix
+
+* Set r_maxFrameLatency max value constraint to NUM_FRAME_DATA
+
+* Change r_maxFrameLatency cvar name and set to default value of 2 frames
+
+* Implement m_frameLatencyWaitableObject sync for reduced DX12 frame latency
+
+* Extend Optick to support data tags on custom storage events
+
+* Added CMake -DRETAIL option for shipping builds on Github/ModDB
+
+* Skip startup if not compiled with Doom Classic support, closes #874
+
+* More renderdemo code removed
+
+* Killed hard to maintain renderdemo code
+
+* Fix for cinematic audio when playing Bink video files with ffmpeg decoder, improve ffmpeg a/v resync
+
+* Show VRAM memory usage with com_showFPS > 2 in separate line
+
+* Correct some uint64 types and add Optick frame tag for DX12 / Vulkan Present()
+
+* Optick: Eliminate need for blocking sleep wait at start of Vulkan clock sync
+
+* Optick: Remove blocking sleep wait at start of Vulkan clock synchronization
+
+* Complete Optick instrumentation and align with HUD GPU timers
+
+
+
+## .plan - January 20, 2024
+
+Cudos to Stephen Saunders for this build and to reeFridge for finding the issue.
+This fixes a number of multiplayer issues. Create Private Match with clients now works reliably. The missing functionality of the online game browser and leaderboards hasn't been fixed.
+
+Changelog:
+
+* Fixes regression Multiplayer: Accessing memory after it has been freed #846 caused by an earlier, but broken memory leak fix on my part. The fix is almost identical to PR Free idLobby memory inside destructor #847
+
+* Fixes a critical issue with mis-reading network snapshot data on the client side, which caused no end of problems with mis-rendering, slowdowns, unstable connections, etc. The client was ignoring the entity network-synced flag which tells it whether it should read entity class-specific data. It was trying to read it all the time and sometimes coming up with null data which caused tons of problems with rendering and physics calculations (e.g. operations on NaN numbers). Simple fix was to respect the entity's network-synced flag on the client side but it makes all the difference.
+
+* Fixes an incorrect assert on multiplayer VoiceChat shutdown
+
+* Allows r_useScissor and r_useParallelAdd cvars to be changed in multiplayer mode for use in bake* operations on multiplayer maps
+
+* Fixed a couple of uninitialized variables that showed up in valgrind when in multiplayer mode
+
+* Added Amstrad CPC 6128 Retro rendering mode
+
+
+## .plan - January 03, 2024
+
+This is a preview build of the new Retro 8-bit/16-bit/PSX rendering modes.
+
+The new rendering modes can be set in the menu options but it's controlled mainly r_renderMode.
+The values are 0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Sega Genesis, 4 = Sega Genesis Highres, 5 = Sony PSX
+
+The Commodore 64 mode regulates all colors down to the original 16 color palette.
+The Sega mode mimics 9 bit color HW which means 3 bit per color channel resulting in a total of 512 colors.
+The PSX mode only turns off linear filtering for the textures and applies a screen space dithering effect.
+
+All retro rendering modes try to mimic the 320x240 resolution but it is extended to 16:9 so it is 480 x 270.
+Highres modes only apply a higher resolution dithering on the pixelated output.
+
+The PSX mode has no additional artifacts yet like wiggling vertices or textures.
+
+There are also 2 new CRT filters that are drawn on top of everything else (even the console) for more arcade vibes.
+
+Changelog:
+
+* Fixed scissor clipping issues of regular surfaces like light flares #651
+
+* Duplicating lights with Ctrl+D works now
+
+* Merged script interpreter improvements from Dhewm3, especially that fixes https://github.com/dhewm/dhewm3/issues/303
+
+* Doubled MAX_GLOBALS for the Runners 2.6 mod
+
+* Crash fix between level switching and loading of new textures for D3HDP and other mods
+
+* Fixed many small memory leaks (thanks to Steve Saunders)
+
+* Reduced console spam and got rid of the depth-stencil is read-only warnings
+
+* Added image_pixelLook to disable texture filtering on most textures regardless of the render mode
+
+* Changed devtools.cfg so you can easily switch between the new render modes with F7 and F8
+
+
+Changelog TrenchBroomBFG:
+
+* Added Show patches option to View Options
+
+
+## .plan - October 27, 2023
+
+This is a preview build of the new WIP ingame Light Editor with some important bugfixes in the convertMapToValve220 command.
+
+The Light editor can be opened using the `editLights` command in the console. Just bind F1 editLights.
+
+It docked into certain screen areas.
+It features a gizmos for translation, rotation and scaling lights and a experimental menu bar.
+Light transforms can also be edited directly. 
+Gizmos can use snapping with defaults: 4 units for grid snapping, 15 degrees for angle snapping and 10% for scale snapping.
+
+It also provides a few keyboard shortcuts:
+
+G: Change to the translation gizmo
+R: Change to rotation gizmo
+Alt + R: Reset the current rotation
+s: Change to scaling gizmo
+
+Ctrl + S - Save all changed lights
+Ctrl + D - Duplicate the existing light (Should not be used yet beause it adds a light every frame. It is better to add lights in TrenchBroom)
+
+Steven Pridham also fixed the game related post-processing fullscreen FX effects.
+Steven Saunders fixed many Linux/macOS specific compiler warnings and extended the renderer to support the Optick profiler using the Vulkan backend.
+That feature is for coders and not part of the binary.
+
+Changelog:
+
+* Added new helper entityDefs like func_elevator_model in base/def/_tb_helpers.def for TrenchBroomBFG
+
+* Prioritize .wav and .ogg files over shipped .idwav files so overriding existing sounds works better
+
+* Fixed some critical bugs in the convertMapToValve220 command. Added origin brushes
+
+* Light editor can use the rotation/scale gizmos
+
+* Light editor can use the translation gizmo
+
+* Fixed Imgui and light scissor clipping issues. Closes #651
+
+* Wrote simple exportMaterialsToBlender command which saves all materials to base/_bl/materials.json
+
+* Started to simplify the light editor
+
+* Use same Instance pattern of AF editor for light editor
+
+* Always draw the console after Imgui
+
+* Added code to load UE5 editor themes into Imgui
+
+* Imgui ingame tools can use the docking feature now
+
+* Updated Imgui to newest docking release v1.89.9
+
+* Fix fullscreen warp FX for grabber and various effects like Berserker (Thanks Steven Pridham)
+
+* Fixed HLSL code to compile with newer versions of DXC
+
+* Fix system vs. bundled library logic, suppress gcc/clang warnings for some third party source libs (jpeg, zlib, minizip)
+
+* Fix MSVC warnings, suppress for some third party source libs (jpeg, png, oggvorbis)
+
+* Update CMakeLists to add clang -Wno-shorten-64-to-32 flag to suppress flood of int conversion warnings
+
+* Update rapidjson lib to remove deprecated std::iterator template and replace with required iterator types
+
+* Update jpeglib's format_message() error routine to use snprintf() for buffer security
+
+* Replace sprintf() / vsprintf() with idStr::snPrintf() / idStr::vsnPrintf() for buffer security
+
+* BFG Resource File Manager under tools/bfgpakexplorer has been updated
+
+
+Changelog TrenchBroomBFG:
+
+* Updated FGDs exported from the engine which can be found in base/_tb/fgd/*
+
+* Bezier patches can be duplicated and copy pasted within a map and copied from another TrenchBroomBFG instance
+
+* the DOOM-3-models.fgd has been restored
+
+
+_______________________________________
+
 23 May 2023 - RBDOOM-3-BFG 1.5.1
 _______________________________
 

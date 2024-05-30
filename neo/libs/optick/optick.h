@@ -56,6 +56,9 @@
 #	elif defined(__arm__) || defined(_M_ARM)
 #		define OPTICK_ARM (1)
 #		define OPTICK_32BIT (1)
+#	elif defined(__e2k__)
+#		define OPTICK_E2K (1)
+#		define OPTICK_64BIT (1)
 #	endif
 #else
 #error Compiler not supported
@@ -96,6 +99,7 @@
 
 // Vulkan Forward Declarations
 #define OPTICK_DEFINE_HANDLE(object) typedef struct object##_T *object;
+OPTICK_DEFINE_HANDLE(VkInstance);
 OPTICK_DEFINE_HANDLE(VkDevice);
 OPTICK_DEFINE_HANDLE(VkPhysicalDevice);
 OPTICK_DEFINE_HANDLE(VkQueue);
@@ -125,6 +129,7 @@ struct VkCommandBufferBeginInfo;
 #endif
 #endif
 
+typedef void* (VKAPI_PTR *PFN_vkGetInstanceProcAddr_)(VkInstance instance, const char* pName);
 typedef void (VKAPI_PTR *PFN_vkGetPhysicalDeviceProperties_)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties* pProperties);
 typedef int32_t (VKAPI_PTR *PFN_vkCreateQueryPool_)(VkDevice device, const VkQueryPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkQueryPool* pQueryPool);
 typedef int32_t (VKAPI_PTR *PFN_vkCreateCommandPool_)(VkDevice device, const VkCommandPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkCommandPool* pCommandPool);
@@ -165,6 +170,7 @@ namespace Optick
 {
 	struct OPTICK_API VulkanFunctions
 	{
+		PFN_vkGetInstanceProcAddr_ vkGetInstanceProcAddr;
 		PFN_vkGetPhysicalDeviceProperties_ vkGetPhysicalDeviceProperties;
 		PFN_vkCreateQueryPool_ vkCreateQueryPool;
 		PFN_vkCreateCommandPool_ vkCreateCommandPool;
@@ -655,8 +661,8 @@ struct OPTICK_API EventDescription
 	uint32_t filter;
 	uint8_t flags;
 
-	static EventDescription* Create(const char* eventName, const char* fileName, const unsigned long fileLine, const unsigned long eventColor = Color::Null, const unsigned long filter = 0, const uint8_t eventFlags = 0);
-	static EventDescription* CreateShared(const char* eventName, const char* fileName = nullptr, const unsigned long fileLine = 0, const unsigned long eventColor = Color::Null, const unsigned long filter = 0);
+	static EventDescription* Create(const char* eventName, const char* fileName, const uint32_t fileLine, const uint32_t eventColor = Color::Null, const uint32_t filter = 0, const uint8_t eventFlags = 0);
+	static EventDescription* CreateShared(const char* eventName, const char* fileName = nullptr, const uint32_t fileLine = 0, const uint32_t eventColor = Color::Null, const uint32_t filter = 0);
 
 	EventDescription();
 private:
@@ -697,11 +703,11 @@ OPTICK_INLINE Optick::EventDescription* CreateDescription(const char* functionNa
 	if (eventName != nullptr)
 		flags |= ::Optick::EventDescription::IS_CUSTOM_NAME;
 
-	return ::Optick::EventDescription::Create(eventName != nullptr ? eventName : functionName, fileName, (unsigned long)fileLine, ::Optick::Category::GetColor(category), ::Optick::Category::GetMask(category), flags);
+	return ::Optick::EventDescription::Create(eventName != nullptr ? eventName : functionName, fileName, (uint32_t)fileLine, ::Optick::Category::GetColor(category), ::Optick::Category::GetMask(category), flags);
 }
 OPTICK_INLINE Optick::EventDescription* CreateDescription(const char* functionName, const char* fileName, int fileLine, const ::Optick::Category::Type category)
 {
-	return ::Optick::EventDescription::Create(functionName, fileName, (unsigned long)fileLine, ::Optick::Category::GetColor(category), ::Optick::Category::GetMask(category));
+	return ::Optick::EventDescription::Create(functionName, fileName, (uint32_t)fileLine, ::Optick::Category::GetColor(category), ::Optick::Category::GetMask(category));
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct OPTICK_API GPUEvent
@@ -733,10 +739,21 @@ struct OPTICK_API Tag
 	static void Attach(const EventDescription& description, const char* val);
 	static void Attach(const EventDescription& description, const char* val, uint16_t length);
 
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, float val);
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, int32_t val);
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, uint32_t val);
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, uint64_t val);
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, float val[3]);
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, const char* val);
+
 	// Derived
 	static void Attach(const EventDescription& description, float x, float y, float z)
 	{
 		float p[3] = { x, y, z }; Attach(description, p);
+	}
+	static void Attach(EventStorage* storage, int64_t timestamp, const EventDescription& description, float x, float y, float z)
+	{
+		float p[3] = { x, y, z }; Attach(storage, timestamp, description, p);
 	}
 
 };
@@ -778,7 +795,7 @@ struct OPTICK_API GPUContext
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 OPTICK_API void InitGpuD3D12(ID3D12Device* device, ID3D12CommandQueue** cmdQueues, uint32_t numQueues);
-OPTICK_API void InitGpuVulkan(VkDevice* vkDevices, VkPhysicalDevice* vkPhysicalDevices, VkQueue* vkQueues, uint32_t* cmdQueuesFamily, uint32_t numQueues, const VulkanFunctions* functions);
+OPTICK_API void InitGpuVulkan(VkInstance vkInstance, VkDevice* vkDevices, VkPhysicalDevice* vkPhysicalDevices, VkQueue* vkQueues, uint32_t* cmdQueuesFamily, uint32_t numQueues, const VulkanFunctions* functions);
 OPTICK_API void GpuFlip(void* swapChain, uint32_t frameID = 0);
 OPTICK_API GPUContext SetGpuContext(GPUContext context);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -945,7 +962,7 @@ struct OptickApp
 #define OPTICK_STOP_THREAD() ::Optick::UnRegisterThread(false);
 
 // Attaches a custom data-tag.
-// Supported types: int32, uint32, uint64, vec3, string (cut to 32 characters)
+// Supported types: float, int32, uint32, uint64, vec3, string (cut to 32 characters)
 // Example:
 //		OPTICK_TAG("PlayerName", name[index]);
 //		OPTICK_TAG("Health", 100);
@@ -1022,6 +1039,18 @@ struct OptickApp
 #define OPTICK_STORAGE_PUSH(STORAGE, DESCRIPTION, CPU_TIMESTAMP_START)							if (::Optick::IsActive()) { ::Optick::Event::Push(STORAGE, DESCRIPTION, CPU_TIMESTAMP_START); }
 #define OPTICK_STORAGE_POP(STORAGE, CPU_TIMESTAMP_FINISH)										if (::Optick::IsActive()) { ::Optick::Event::Pop(STORAGE, CPU_TIMESTAMP_FINISH); }
 
+// Attaches a custom data-tag to the custom storage.
+// Supported types: float, int32, uint32, uint64, vec3, string (cut to 32 characters)
+// Example:
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "PlayerName", name[index]);
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "Health", 100);
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "Score", 0x80000000u);
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "Height(cm)", 176.3f);
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "Address", (uint64)*this);
+//		OPTICK_STORAGE_TAG(IOStorage, cpuTimestamp, "Position", 123.0f, 456.0f, 789.0f);
+#define OPTICK_STORAGE_TAG(STORAGE, CPU_TIMESTAMP, NAME, ...)		static ::Optick::EventDescription* OPTICK_CONCAT(autogen_tag_, __LINE__) = nullptr; \
+									if (OPTICK_CONCAT(autogen_tag_, __LINE__) == nullptr) OPTICK_CONCAT(autogen_tag_, __LINE__) = ::Optick::EventDescription::Create( NAME, __FILE__, __LINE__ ); \
+									::Optick::Tag::Attach(STORAGE, CPU_TIMESTAMP, *OPTICK_CONCAT(autogen_tag_, __LINE__), __VA_ARGS__); \
 
 // Registers state change callback
 // If callback returns false - the call is repeated the next frame
@@ -1046,7 +1075,7 @@ struct OptickApp
 
 // GPU events
 #define OPTICK_GPU_INIT_D3D12(DEVICE, CMD_QUEUES, NUM_CMD_QUEUS)													::Optick::InitGpuD3D12(DEVICE, CMD_QUEUES, NUM_CMD_QUEUS);
-#define OPTICK_GPU_INIT_VULKAN(DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS)	::Optick::InitGpuVulkan(DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS);
+#define OPTICK_GPU_INIT_VULKAN(INSTANCE, DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS)	::Optick::InitGpuVulkan(INSTANCE, DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS);
 
 // Setup GPU context:
 // Params:
@@ -1117,11 +1146,12 @@ struct OptickApp
 #define OPTICK_STORAGE_EVENT(STORAGE, DESCRIPTION, CPU_TIMESTAMP_START, CPU_TIMESTAMP_FINISH)
 #define OPTICK_STORAGE_PUSH(STORAGE, DESCRIPTION, CPU_TIMESTAMP_START)
 #define OPTICK_STORAGE_POP(STORAGE, CPU_TIMESTAMP_FINISH)				
+#define OPTICK_STORAGE_TAG(STORAGE, CPU_TIMESTAMP, NAME, ...)
 #define OPTICK_SET_STATE_CHANGED_CALLBACK(CALLBACK)
 #define OPTICK_SET_MEMORY_ALLOCATOR(ALLOCATE_FUNCTION, DEALLOCATE_FUNCTION, INIT_THREAD_CALLBACK)
 #define OPTICK_SHUTDOWN()
 #define OPTICK_GPU_INIT_D3D12(DEVICE, CMD_QUEUES, NUM_CMD_QUEUS)
-#define OPTICK_GPU_INIT_VULKAN(DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS)
+#define OPTICK_GPU_INIT_VULKAN(INSTANCE, DEVICES, PHYSICAL_DEVICES, CMD_QUEUES, CMD_QUEUES_FAMILY, NUM_CMD_QUEUS, FUNCTIONS)
 #define OPTICK_GPU_CONTEXT(...)
 #define OPTICK_GPU_EVENT(NAME)
 #define OPTICK_GPU_FLIP(...)

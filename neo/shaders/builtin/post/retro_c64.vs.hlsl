@@ -3,8 +3,6 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
-Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,72 +26,30 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#ifndef __DEMOFILE_H__
-#define __DEMOFILE_H__
+#include "global_inc.hlsl"
 
-/*
-===============================================================================
 
-	Demo file
-
-===============================================================================
-*/
-
-typedef enum
+// *INDENT-OFF*
+struct VS_IN
 {
-	DS_FINISHED,
-	DS_RENDER,
-	DS_SOUND,
-	DS_GAME,
-	DS_VERSION
-} demoSystem_t;
-
-class idDemoFile : public idFile
-{
-public:
-	idDemoFile();
-	~idDemoFile();
-
-	const char* 	GetName()
-	{
-		return ( f ? f->GetName() : "" );
-	}
-	const char* 	GetFullPath()
-	{
-		return ( f ? f->GetFullPath() : "" );
-	}
-
-	void			SetLog( bool b, const char* p );
-	void			Log( const char* p );
-	bool			OpenForReading( const char* fileName );
-	bool			OpenForWriting( const char* fileName );
-	void			Close();
-
-	const char* 	ReadHashString();
-	void			WriteHashString( const char* str );
-
-	void			ReadDict( idDict& dict );
-	void			WriteDict( const idDict& dict );
-
-	int				Read( void* buffer, int len );
-	int				Write( const void* buffer, int len );
-
-private:
-	static idCompressor* AllocCompressor( int type );
-
-	bool			writing;
-	byte* 			fileImage;
-	idFile* 		f;
-	idCompressor* 	compressor;
-
-	idList<idStr*>	demoStrings;
-	idFile* 		fLog;
-	bool			log;
-	idStr			logStr;
-
-	static idCVar	com_logDemos;
-	static idCVar	com_compressDemos;
-	static idCVar	com_preloadDemos;
+	float4 position	: POSITION;
+	float2 texcoord	: TEXCOORD0;
+	float4 normal	: NORMAL;
+	float4 tangent	: TANGENT;
+	float4 color	: COLOR0;
+	float4 color2	: COLOR1;
 };
 
-#endif /* !__DEMOFILE_H__ */
+struct VS_OUT {
+	float4 position : SV_Position;
+	float2 texcoord0 : TEXCOORD0_centroid;
+};
+// *INDENT-ON*
+
+void main( VS_IN vertex, out VS_OUT result )
+{
+	result.position = vertex.position;
+	result.position.y = -result.position.y;
+
+	result.texcoord0 =  vertex.texcoord;
+}

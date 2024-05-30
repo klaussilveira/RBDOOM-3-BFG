@@ -40,7 +40,7 @@ idImageManager	imageManager;
 idImageManager* globalImages = &imageManager;
 
 extern DeviceManager* deviceManager;
-extern idCVar r_uploadBufferSizeMB;
+extern idCVar r_vkUploadBufferSizeMB;
 
 idCVar preLoad_Images( "preLoad_Images", "1", CVAR_SYSTEM | CVAR_BOOL, "preload images during beginlevelload" );
 
@@ -882,10 +882,11 @@ int idImageManager::LoadLevelImages( bool pacifier )
 	if( !commandList )
 	{
 		nvrhi::CommandListParameters params = {};
+		params.enableImmediateExecution = false;
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
 			// SRS - set upload buffer size to avoid Vulkan staging buffer fragmentation
-			size_t maxBufferSize = ( size_t )( r_uploadBufferSizeMB.GetInteger() * 1024 * 1024 );
+			size_t maxBufferSize = ( size_t )( r_vkUploadBufferSizeMB.GetInteger() * 1024 * 1024 );
 			params.setUploadChunkSize( maxBufferSize );
 		}
 		commandList = deviceManager->GetDevice()->createCommandList( params );
@@ -1004,10 +1005,11 @@ void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 	if( !commandList )
 	{
 		nvrhi::CommandListParameters params = {};
+		params.enableImmediateExecution = false;
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
 			// SRS - set upload buffer size to avoid Vulkan staging buffer fragmentation
-			size_t maxBufferSize = ( size_t )( r_uploadBufferSizeMB.GetInteger() * 1024 * 1024 );
+			size_t maxBufferSize = ( size_t )( r_vkUploadBufferSizeMB.GetInteger() * 1024 * 1024 );
 			params.setUploadChunkSize( maxBufferSize );
 		}
 		commandList = deviceManager->GetDevice()->createCommandList( params );

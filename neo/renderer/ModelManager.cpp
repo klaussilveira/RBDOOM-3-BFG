@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 
 extern DeviceManager* deviceManager;
-extern idCVar r_uploadBufferSizeMB;
+extern idCVar r_vkUploadBufferSizeMB;
 
 idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", 0, "enable binary load/write of render models" );
 idCVar preload_MapModels( "preload_MapModels", "1", CVAR_SYSTEM | CVAR_BOOL, "preload models during begin or end levelload" );
@@ -244,10 +244,11 @@ void idRenderModelManagerLocal::Init()
 	if( !commandList )
 	{
 		nvrhi::CommandListParameters params = {};
+		params.enableImmediateExecution = false;
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
 			// SRS - set upload buffer size to avoid Vulkan staging buffer fragmentation
-			size_t maxBufferSize = ( size_t )( r_uploadBufferSizeMB.GetInteger() * 1024 * 1024 );
+			size_t maxBufferSize = ( size_t )( r_vkUploadBufferSizeMB.GetInteger() * 1024 * 1024 );
 			params.setUploadChunkSize( maxBufferSize );
 		}
 		commandList = deviceManager->GetDevice()->createCommandList( params );

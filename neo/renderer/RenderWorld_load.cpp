@@ -57,6 +57,9 @@ void idRenderWorldLocal::FreeWorld()
 			R_StaticFree( portal );
 		}
 
+		// SRS - release the lightGridPoints idList or it will leak
+		area->lightGrid.lightGridPoints.Clear();
+
 		// there shouldn't be any remaining lightRefs or entityRefs
 		if( area->lightRefs.areaNext != &area->lightRefs )
 		{
@@ -943,12 +946,6 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 
 		mapName = name;
 		mapTimeStamp = currentTimeStamp;
-
-		// if we are writing a demo, archive the load command
-		if( common->WriteDemo() )
-		{
-			WriteLoadMap();
-		}
 
 		if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 		{

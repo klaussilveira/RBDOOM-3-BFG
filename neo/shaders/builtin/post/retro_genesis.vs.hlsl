@@ -25,68 +25,31 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#ifndef REGEXP_H_
-#define REGEXP_H_
 
-class idWindow;
+#include "global_inc.hlsl"
 
-class idRegister
+
+// *INDENT-OFF*
+struct VS_IN
 {
-public:
-	idRegister() {};
-	idRegister( const char* p, int t )
-	{
-		name = p;
-		type = t;
-		assert( t >= 0 && t < NUMTYPES );
-		regCount = REGCOUNT[t];
-		enabled = ( type == STRING ) ? false : true;
-	};
-	bool enabled;
-	int type;
-	int regCount;
-	enum REGTYPE { VEC4 = 0, FLOAT, BOOL, INT, STRING, VEC2, VEC3, NUMTYPES } ;
-	static int REGCOUNT[NUMTYPES];
-	idStr name;
-	int regs[4];
-	void SetToRegs( float* registers, idTypedDict* state );
-	void SetToRegList( idList<float>* registers, idTypedDict* state );
-	void GetFromRegs( float* registers, idTypedDict* state );
-	void CopyRegs( idRegister* src )
-	{
-		regs[0] = src->regs[0];
-		regs[1] = src->regs[1];
-		regs[2] = src->regs[2];
-		regs[3] = src->regs[3];
-	}
-	void Enable( bool b )
-	{
-		enabled = b;
-	}
-	void ReadFromDemoFile( idDemoFile* f );
-	void WriteToDemoFile( idDemoFile* f );
-
+	float4 position	: POSITION;
+	float2 texcoord	: TEXCOORD0;
+	float4 normal	: NORMAL;
+	float4 tangent	: TANGENT;
+	float4 color	: COLOR0;
+	float4 color2	: COLOR1;
 };
 
-class idRegisterList
-{
-	idList<idRegister> regs;
-public:
-
-	//
-	void RemoveReg( const char* name );
-	//
-
-	void AddReg( const char* name, int type, idTokenParser* src, idWindow* win );
-	void AddReg( const char* name, int type, idVec4 data, idWindow* win );
-	idRegister* FindReg( const char* name );
-	int			FindRegIndex( const char* name );
-	void SetToRegs( float* registers, idTypedDict* state );
-	void GetFromRegs( float* registers, idTypedDict* state );
-	void Reset();
-	void ReadFromDemoFile( idDemoFile* f );
-	void WriteToDemoFile( idDemoFile* f );
-
+struct VS_OUT {
+	float4 position : SV_Position;
+	float2 texcoord0 : TEXCOORD0_centroid;
 };
+// *INDENT-ON*
 
-#endif
+void main( VS_IN vertex, out VS_OUT result )
+{
+	result.position = vertex.position;
+	result.position.y = -result.position.y;
+
+	result.texcoord0 =  vertex.texcoord;
+}

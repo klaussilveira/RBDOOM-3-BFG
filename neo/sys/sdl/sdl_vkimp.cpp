@@ -70,15 +70,15 @@ std::vector<const char*> get_required_extensions()
 }
 
 // SRS - Helper method for creating SDL Vulkan surface within DeviceManager_VK() when NVRHI enabled
-vk::Result DeviceManager::CreateSDLWindowSurface( vk::Instance instance, vk::SurfaceKHR* surface )
+VkResult DeviceManager::CreateSDLWindowSurface( VkInstance instance, VkSurfaceKHR* surface )
 {
-	if( !SDL_Vulkan_CreateSurface( window, ( VkInstance )instance, ( VkSurfaceKHR* )surface ) )
+	if( !SDL_Vulkan_CreateSurface( window, instance, surface ) )
 	{
 		common->Warning( "Error while creating SDL Vulkan surface: %s", SDL_GetError() );
-		return vk::Result::eErrorSurfaceLostKHR;
+		return VkResult::VK_ERROR_SURFACE_LOST_KHR;
 	}
 
-	return vk::Result::eSuccess;
+	return VkResult::VK_SUCCESS;
 }
 
 bool DeviceManager::CreateWindowDeviceAndSwapChain( const glimpParms_t& parms, const char* windowTitle )
@@ -275,6 +275,7 @@ bool VKimp_Init( glimpParms_t parms )
 	if( !deviceManager->CreateWindowDeviceAndSwapChain( createParms, GAME_NAME ) )
 	{
 		common->Warning( "Couldn't initialize Vulkan subsystem for r_fullscreen = %i", parms.fullScreen );
+		VKimp_Shutdown( false );
 		return false;
 	}
 
@@ -543,7 +544,7 @@ void DeviceManager::Shutdown()
 VKimp_Shutdown
 ===================
 */
-void VKimp_Shutdown()
+void VKimp_Shutdown( bool shutdownSDL )
 {
 	common->Printf( "Shutting down Vulkan subsystem\n" );
 
@@ -558,6 +559,10 @@ void VKimp_Shutdown()
 		window = nullptr;
 	}
 
+	if( shutdownSDL && SDL_WasInit( 0 ) )
+	{
+		SDL_Quit();
+	}
 }
 
 /* Eric: Is this needed/used for Vulkan?

@@ -224,17 +224,10 @@ Exits with mapSpawned = false
 */
 void idCommonLocal::UnloadMap()
 {
-	StopPlayingRenderDemo();
-
 	// end the current map in the game
 	if( game )
 	{
 		game->MapShutdown();
-	}
-
-	if( writeDemo )
-	{
-		StopRecordingRenderDemo();
 	}
 
 	mapSpawned = false;
@@ -247,7 +240,6 @@ idCommonLocal::LoadLoadingGui
 */
 void idCommonLocal::LoadLoadingGui( const char* mapName, bool& hellMap )
 {
-
 	defaultLoadscreen = false;
 	loadGUI = new idSWF( "loading/default", NULL );
 
@@ -1428,8 +1420,11 @@ CONSOLE_COMMAND( testmap, "tests a map", idCmdSystem::ArgCompletion_MapName )
 /*
 ==================
 Common_TestMap_f
+
+// TODO finish this
 ==================
 */
+#if 0
 CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSystem::ArgCompletion_MapName )
 {
 	idStr map, string;
@@ -1449,3 +1444,4 @@ CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSyste
 	sprintf( string, "bakeEnvironmentProbes" );
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 }
+#endif

@@ -165,6 +165,10 @@ BinkDecoder::BinkDecoder()
 {
 	nFrames = 0;
 	currentFrame = 0;
+	for (int i = 0; i < BINK_NB_SRC; i++)
+	{
+		bundle[i].data = NULL;
+	}
 }
 
 BinkDecoder::~BinkDecoder()
@@ -174,6 +178,8 @@ BinkDecoder::~BinkDecoder()
 		delete[] planes[i].current;
 		delete[] planes[i].last;
 	}
+
+	FreeBundles();
 
 	for (uint32_t i = 0; i < audioTracks.size(); i++)
 	{
