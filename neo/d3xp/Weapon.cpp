@@ -447,7 +447,7 @@ void idWeapon::Save( idSaveGame* savefile ) const
 
 	// HEXEN : Zeroth
 	savefile->WriteInt( projectileEnts.Num() );
-	for ( int i = 0; i < projectileEnts.Num(); i++ )
+	for( int i = 0; i < projectileEnts.Num(); i++ )
 	{
 		savefile->WriteObject( projectileEnts[i] );
 	}
@@ -504,7 +504,7 @@ void idWeapon::Restore( idRestoreGame* savefile )
 
 	// Re-link script fields
 	WEAPON_ATTACK.LinkTo(	scriptObject, "WEAPON_ATTACK" );
-	WEAPON_ATTACK2.LinkTo(		scriptObject, "WEAPON_ATTACK2" ); // HEXEN : Zeroth
+	WEAPON_ATTACK2.LinkTo(	scriptObject, "WEAPON_ATTACK2" );  // HEXEN : Zeroth
 	WEAPON_RELOAD.LinkTo(	scriptObject, "WEAPON_RELOAD" );
 	WEAPON_NETRELOAD.LinkTo(	scriptObject, "WEAPON_NETRELOAD" );
 	WEAPON_NETENDRELOAD.LinkTo(	scriptObject, "WEAPON_NETENDRELOAD" );
@@ -670,11 +670,11 @@ void idWeapon::Restore( idRestoreGame* savefile )
 
 	// HEXEN : Zeroth
 	int projs;
-	idEntity *proj;
+	idEntity* proj;
 	savefile->ReadInt( projs );
-	for ( int i = 0; i < projs; i++ )
+	for( int i = 0; i < projs; i++ )
 	{
-		savefile->ReadObject( reinterpret_cast<idClass *&>( proj ) );
+		savefile->ReadObject( reinterpret_cast<idClass*&>( proj ) );
 		projectileEnts.Append( proj );
 	}
 
@@ -1118,7 +1118,7 @@ void idWeapon::GetWeaponDef( const char* objectname, float ammoinclip )
 
 	// find some joints in the model for locating effects
 	// HEXEN : Zeroth
-	if ( !weaponDef->dict.FindKey( "barrelJointName" ) )
+	if( !weaponDef->dict.FindKey( "barrelJointName" ) )
 	{
 		barrelJointView = animator.GetJointHandle( "barrel" );
 	}
@@ -1306,7 +1306,7 @@ void idWeapon::GetWeaponDef( const char* objectname, float ammoinclip )
 	}
 
 	WEAPON_ATTACK.LinkTo(	scriptObject, "WEAPON_ATTACK" );
-	WEAPON_ATTACK2.LinkTo(		scriptObject, "WEAPON_ATTACK2" ); // HEXEN : Zeroth
+	WEAPON_ATTACK2.LinkTo(	scriptObject, "WEAPON_ATTACK2" );  // HEXEN : Zeroth
 	WEAPON_RELOAD.LinkTo(	scriptObject, "WEAPON_RELOAD" );
 	WEAPON_NETRELOAD.LinkTo(	scriptObject, "WEAPON_NETRELOAD" );
 	WEAPON_NETENDRELOAD.LinkTo(	scriptObject, "WEAPON_NETENDRELOAD" );
@@ -2018,19 +2018,19 @@ idWeapon::BeginAttack2
 */
 void idWeapon::BeginAttack2()
 {
-	if ( status != WP_OUTOFAMMO )
+	if( status != WP_OUTOFAMMO )
 	{
 		lastAttack = gameLocal.time;
 	}
 
-	if ( !isLinked )
+	if( !isLinked )
 	{
 		return;
 	}
 
-	if ( !WEAPON_ATTACK2 )
+	if( !WEAPON_ATTACK2 )
 	{
-		if ( sndHum )
+		if( sndHum )
 		{
 			StopSound( SND_CHANNEL_BODY, false );
 		}
@@ -2067,14 +2067,14 @@ idWeapon::EndAttack2
 */
 void idWeapon::EndAttack2()
 {
-	if ( !WEAPON_ATTACK2.IsLinked() )
+	if( !WEAPON_ATTACK2.IsLinked() )
 	{
 		return;
 	}
-	if ( WEAPON_ATTACK2 )
+	if( WEAPON_ATTACK2 )
 	{
 		WEAPON_ATTACK2 = false;
-		if ( sndHum )
+		if( sndHum )
 		{
 			StartSoundShader( sndHum, SND_CHANNEL_BODY, 0, false, NULL );
 		}
@@ -2157,9 +2157,9 @@ void idWeapon::WeaponStolen()
 			SetState( "WeaponStolen", 0 );
 			thread->Execute();
 		}
-		
+
 		// HEXEN : Zeroth
-		for ( int i = 0; i < projectileEnts.Num(); i++ )
+		for( int i = 0; i < projectileEnts.Num(); i++ )
 		{
 			projectileEnts[ i ] = NULL;
 		}
@@ -3016,7 +3016,7 @@ idWeapon::EnterCinematic
 */
 void idWeapon::eoc_UnstickAllButtons()
 {
-	if ( isLinked )
+	if( isLinked )
 	{
 		WEAPON_ATTACK		= false;
 		WEAPON_ATTACK2		= false;
@@ -3244,7 +3244,7 @@ idWeapon::BlueManaAvailable
 */
 int idWeapon::BlueManaAvailable() const
 {
-	if ( owner )
+	if( owner )
 	{
 		return owner->inventory.HasAmmo( GetAmmoNumForName( "ammo_bluemana" ), 1 );
 	}
@@ -3264,7 +3264,7 @@ idWeapon::GreenManaAvailable
 */
 int idWeapon::GreenManaAvailable() const
 {
-	if ( owner )
+	if( owner )
 	{
 		return owner->inventory.HasAmmo( GetAmmoNumForName( "ammo_greenmana" ), 1 );
 	}
@@ -3284,7 +3284,7 @@ idWeapon::CombinedManaAvailable
 */
 int idWeapon::CombinedManaAvailable() const
 {
-	if ( owner )
+	if( owner )
 	{
 		return owner->inventory.HasAmmo( GetAmmoNumForName( "ammo_combinedmana" ), 1 );
 	}
@@ -3412,7 +3412,7 @@ void idWeapon::ReadFromSnapshot( const idBitMsg& msg )
 	worldModel.SetSpawnId( msg.ReadBits( 32 ) );
 	const bool snapshotLightOn = msg.ReadBits( 1 ) != 0;
 	isFiring = msg.ReadBits( 1 ) != 0;
-	
+
 	// HEXEN : That ammoClip check isn't necessary
 	/*
 	// Local clients predict the ammo in the clip. Only use the ammo cpunt from the snapshot for local clients
@@ -4105,8 +4105,8 @@ void idWeapon::Event_CreateProjectile()
 		// HEXEN : Zeroth
 		projectileEnts.Append( &idEntity() );
 		int pnum = projectileEnts.Num() - 1;
-		gameLocal.SpawnEntityDef( projectileDict, &(projectileEnts[pnum]), false );
-		if ( projectileEnts[pnum] )
+		gameLocal.SpawnEntityDef( projectileDict, &( projectileEnts[pnum] ), false );
+		if( projectileEnts[pnum] )
 		{
 			projectileEnts[pnum]->SetOrigin( GetPhysics()->GetOrigin() );
 			projectileEnts[pnum]->Bind( owner, false );
@@ -4273,36 +4273,36 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 			// HEXEN : Zeroth
 			//Z.TODO: this could be simplified, but for now it works.
 			c = projectileEnts.Num();
-			if ( c )
+			if( c )
 			{
-				for ( ; c > 0; c-- )
+				for( ; c > 0; c-- )
 				{
 					ent = projectileEnts[ c - 1 ];
 					ent->Show();
 					ent->Unbind();
 
-					if ( !ent || !ent->IsType( idProjectile::Type ) )
+					if( !ent || !ent->IsType( idProjectile::Type ) )
 					{
-						const char *projectileName = weaponDef->dict.GetString( "def_projectile" );
+						const char* projectileName = weaponDef->dict.GetString( "def_projectile" );
 						gameLocal.Error( "'%s' is not an idProjectile", projectileName );
 					}
 
-					if ( projectileDict.GetBool( "net_instanthit" ) )
+					if( projectileDict.GetBool( "net_instanthit" ) )
 					{
 						// don't synchronize this on top of the already predicted effect
 						ent->fl.networkSync = false;
 					}
 
-					proj = static_cast<idProjectile *>(ent);
+					proj = static_cast<idProjectile*>( ent );
 					proj->Create( owner, muzzleOrigin, dir );
 
 					projBounds = proj->GetPhysics()->GetBounds().Rotate( proj->GetPhysics()->GetAxis() );
 
 					// make sure the projectile starts inside the bounding box of the owner
-					if ( i == 0 )
+					if( i == 0 )
 					{
 						muzzle_pos = muzzleOrigin + playerViewAxis[ 0 ] * 2.0f;
-						if ( ( ownerBounds - projBounds).RayIntersection( muzzle_pos, playerViewAxis[ 0 ], distance ) )
+						if( ( ownerBounds - projBounds ).RayIntersection( muzzle_pos, playerViewAxis[ 0 ], distance ) )
 						{
 							start = muzzle_pos + distance * playerViewAxis[ 0 ];
 						}

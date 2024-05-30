@@ -2888,7 +2888,8 @@ Zeroth
 idLiquid::idLiquid
 ================
 */
-idLiquid::idLiquid() {
+idLiquid::idLiquid()
+{
 	clipModel = NULL;
 	touchingEntities.Clear();
 	flagEntities.Clear();
@@ -2933,7 +2934,7 @@ void idLiquid::Save( idSaveGame* savefile ) const
 	savefile->WriteFloat( moveResistance );
 
 	savefile->WriteInt( touchingEntities.Num() );
-	for ( int i = 0; i < touchingEntities.Num(); i++ )
+	for( int i = 0; i < touchingEntities.Num(); i++ )
 	{
 		savefile->WriteString( touchingEntities[i] );
 		savefile->WriteBool( flagEntities[i] );
@@ -2969,7 +2970,7 @@ void idLiquid::Restore( idRestoreGame* savefile )
 	int num;
 	idStr str;
 	savefile->ReadInt( num );
-	for ( int i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		savefile->ReadString( str );
 		touchingEntities.Append( str );
@@ -3015,29 +3016,34 @@ void idLiquid::Spawn()
 	splashParticleBig = NULL;
 	splashParticleHuge = NULL;
 
-	const char *splashName = spawnArgs.GetString( "smoke_ripple" );
-	if ( *splashName != '\0' ) {
-		splashParticleRipple = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, splashName ) );
+	const char* splashName = spawnArgs.GetString( "smoke_ripple" );
+	if( *splashName != '\0' )
+	{
+		splashParticleRipple = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, splashName ) );
 	}
 
 	splashName = spawnArgs.GetString( "smoke_splashTiny" );
-	if ( *splashName != '\0' ) {
-		splashParticleTiny = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, splashName ) );
+	if( *splashName != '\0' )
+	{
+		splashParticleTiny = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, splashName ) );
 	}
 
 	splashName = spawnArgs.GetString( "smoke_splashSmall" );
-	if ( *splashName != '\0' ) {
-		splashParticleSmall = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, splashName ) );
+	if( *splashName != '\0' )
+	{
+		splashParticleSmall = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, splashName ) );
 	}
 
 	splashName = spawnArgs.GetString( "smoke_splashBig" );
-	if ( *splashName != '\0' ) {
-		splashParticleBig = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, splashName ) );
+	if( *splashName != '\0' )
+	{
+		splashParticleBig = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, splashName ) );
 	}
 
 	splashName = spawnArgs.GetString( "smoke_splashHuge" );
-	if ( *splashName != '\0' ) {
-		splashParticleHuge = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, splashName ) );
+	if( *splashName != '\0' )
+	{
+		splashParticleHuge = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, splashName ) );
 	}
 
 	spawnArgs.GetVector( "moveDir", "0 0 0", moveDir );
@@ -3071,13 +3077,14 @@ Zeroth
 idLiquid::Event_Touch
 ================
 */
-void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split it into separate entities?
+void idLiquid::TouchEntities()   // Z.TODO: this is getting messy, maybe split it into separate entities?
+{
 	int numClipModels, i, c;
 	idBounds bounds;
-	idClipModel *cm, *clipModelList[ MAX_GENTITIES ];
+	idClipModel* cm, *clipModelList[ MAX_GENTITIES ];
 
 	// HEXEN : Zeroth - for limit entity type
-	idEntity	*entity = NULL;
+	idEntity*	entity = NULL;
 	bool		dontSplash;
 	idVec3		cmOrigin;
 	idMat3		cmAxis;
@@ -3085,28 +3092,35 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 	idVec3		myOrigin;
 	idMat3		myAxis;
 
-	if ( clipModel == NULL ) {
+	if( clipModel == NULL )
+	{
 		return;
 	}
 
-	for ( c = 0; c < touchingEntities.Num(); c++ ) {
+	for( c = 0; c < touchingEntities.Num(); c++ )
+	{
 		entity = gameLocal.FindEntity( touchingEntities[c].c_str() );
 		// remove entities from list which are no longer touching or no longer exist
-		if ( !flagEntities[c] || !entity ) {
-			if ( entity ) {
-				if ( !common->IsClient() ) {
+		if( !flagEntities[c] || !entity )
+		{
+			if( entity )
+			{
+				if( !common->IsClient() )
+				{
 					// entity->StartSound( "snd_splashexit", SND_CHANNEL_ANY, 0, false, NULL );
-					const idSoundShader *shader = declManager->FindSound( spawnArgs.GetString( "snd_splashexit" ) );
+					const idSoundShader* shader = declManager->FindSound( spawnArgs.GetString( "snd_splashexit" ) );
 					entity->StartSoundShader( shader, SND_CHANNEL_ANY, SSF_GLOBAL, false, NULL );
 
 
 					// spawn the exit splash
-					if ( particleOnExit ) {
+					if( particleOnExit )
+					{
 						// gameLocal.smokeParticles->EmitSmoke( splashParticle, gameLocal.time, gameLocal.random.CRandomFloat(), entity->GetPhysics()->GetOrigin(), idAngles( 0, gameLocal.random.CRandomFloat() * 360, 0 ).ToMat3() );
 					}
 
 					entity->inWater = false;
-					if ( entity->IsType( idPlayer::Type ) ) {
+					if( entity->IsType( idPlayer::Type ) )
+					{
 						static_cast< idPlayer* >( entity )->leftWater = gameLocal.time;
 					}
 				}
@@ -3117,7 +3131,9 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 			flagEntities.RemoveIndex( c );
 			flagEntities.Condense();
 			c--;
-		} else {
+		}
+		else
+		{
 			// flag all entities as NOT touching, test if they are during the clip tests
 			flagEntities[c] = false;
 		}
@@ -3126,18 +3142,22 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 	bounds.FromTransformedBounds( clipModel->GetBounds(), clipModel->GetOrigin(), clipModel->GetAxis() );
 	numClipModels = gameLocal.clip.ClipModelsTouchingBounds( bounds, -1, clipModelList, MAX_GENTITIES );
 
-	for ( i = 0; i < numClipModels; i++ ) {
+	for( i = 0; i < numClipModels; i++ )
+	{
 		cm = clipModelList[ i ];
-		if ( !cm->IsTraceModel() ) {
+		if( !cm->IsTraceModel() )
+		{
 			continue;
 		}
 
 		entity = clipModelList[ i ]->GetEntity();
-		if ( !entity ) {
+		if( !entity )
+		{
 			continue;
 		}
 
-		if ( entity->spawnArgs.GetBool("nosplash") ) {
+		if( entity->spawnArgs.GetBool( "nosplash" ) )
+		{
 			continue;
 		}
 
@@ -3147,32 +3167,38 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 		myOrigin = clipModel->GetOrigin();
 		myAxis =  clipModel->GetAxis();
 
-		if ( !gameLocal.clip.ContentsModel( cmOrigin, cm, cmAxis, -1, cmHandle, myOrigin, myAxis ) ) {
+		if( !gameLocal.clip.ContentsModel( cmOrigin, cm, cmAxis, -1, cmHandle, myOrigin, myAxis ) )
+		{
 			continue;
 		}
 
 		// get the intersection point so we know where to spawn the effect
 		// gameLocal.clip.Translation( trace, cmOrigin, cmOrigin, cm, cmAxis, -1, this );
 
-		if (limitEntityType) {
-			if ( ( !tripby_idPlayer && entity->IsType( idPlayer::Type ) ) ||
-				( !tripby_idAI && entity->IsType( idAI::Type ) ) ||
-				( !tripby_idActor && entity->IsType( idActor::Type ) ) ||
-				( !tripby_idProjectile && entity->IsType( idProjectile::Type ) ) ||
-				( !tripby_idItem && entity->IsType( idItem::Type ) ) ||
-				( !tripby_idMoveable && entity->IsType( idMoveable::Type ) ) ) {
+		if( limitEntityType )
+		{
+			if( ( !tripby_idPlayer && entity->IsType( idPlayer::Type ) ) ||
+					( !tripby_idAI && entity->IsType( idAI::Type ) ) ||
+					( !tripby_idActor && entity->IsType( idActor::Type ) ) ||
+					( !tripby_idProjectile && entity->IsType( idProjectile::Type ) ) ||
+					( !tripby_idItem && entity->IsType( idItem::Type ) ) ||
+					( !tripby_idMoveable && entity->IsType( idMoveable::Type ) ) )
+			{
 				continue;
 			}
 		}
 
-		if ( dontTripby_LocalPlayer && entity->IsType( idPlayer::Type ) && gameLocal.GetLocalPlayer() == ( static_cast<idPlayer *>( entity ) ) ) {
+		if( dontTripby_LocalPlayer && entity->IsType( idPlayer::Type ) && gameLocal.GetLocalPlayer() == ( static_cast<idPlayer*>( entity ) ) )
+		{
 			continue;
 		}
 
 		// if the entity is still touching, dont splash
 		dontSplash = false;
-		for ( c = 0; c < touchingEntities.Num(); c++ ) {
-			if ( touchingEntities[c] == entity->GetName() ) {
+		for( c = 0; c < touchingEntities.Num(); c++ )
+		{
+			if( touchingEntities[c] == entity->GetName() )
+			{
 				flagEntities[c] = true; // flag it as touching
 				dontSplash = true;
 				entity->inWater = true; // if the entity leaves another body of water, it will be set to false. it's still in this one, so keep it true.
@@ -3181,22 +3207,27 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 		}
 
 		// if the entity was not in our list, add it. else don't trigger.
-		if ( !dontSplash ) {
+		if( !dontSplash )
+		{
 			touchingEntities.Append( idStr( entity->GetName() ) );
 			flagEntities.Append( true );
-		} else {
+		}
+		else
+		{
 			continue;
 		}
 
 		//if the entity is already in water, dont splash
-		if ( entity->inWater ) {
+		if( entity->inWater )
+		{
 			continue;
 		}
 
 		entity->inWater = true;
 
-		if ( !common->IsClient() ) {
-			const idDeclParticle * prt = NULL;
+		if( !common->IsClient() )
+		{
+			const idDeclParticle* prt = NULL;
 			idVec3 v = entity->GetPhysics()->GetLinearVelocity();
 			float vel = v.Length();
 
@@ -3209,39 +3240,59 @@ void idLiquid::TouchEntities() { // Z.TODO: this is getting messy, maybe split i
 			float d = spawnArgs.GetFloat( "bigObjectMass" );
 			float e = spawnArgs.GetFloat( "largeObjectMass" );
 
-			if ( m <= a ) {
+			if( m <= a )
+			{
 				maxPrt = 0;
-			} else if ( m <= b ) {
+			}
+			else if( m <= b )
+			{
 				maxPrt = 1;
-			} else if ( m <= c ) {
+			}
+			else if( m <= c )
+			{
 				maxPrt = 2;
-			} else if ( m <= d ) {
+			}
+			else if( m <= d )
+			{
 				maxPrt = 3;
-			} else {
+			}
+			else
+			{
 				maxPrt = 4;
 			}
 
 			whichPrt = ( vel / spawnArgs.GetFloat( "velocityForMaxiumSplash" ) ) * maxPrt;
 
-			if ( maxPrt == 0) {
+			if( maxPrt == 0 )
+			{
 				prt = splashParticleRipple;
-			} else if ( whichPrt == 1 || maxPrt == 1) {
+			}
+			else if( whichPrt == 1 || maxPrt == 1 )
+			{
 				prt = splashParticleTiny;
-			} else if ( whichPrt == 2 || maxPrt == 2 ) {
+			}
+			else if( whichPrt == 2 || maxPrt == 2 )
+			{
 				prt = splashParticleSmall;
-			} else if ( whichPrt == 3 || maxPrt == 3 ) {
+			}
+			else if( whichPrt == 3 || maxPrt == 3 )
+			{
 				prt = splashParticleBig;
-			} else if ( whichPrt == 4 || maxPrt == 4 ) {
+			}
+			else if( whichPrt == 4 || maxPrt == 4 )
+			{
 				prt = splashParticleHuge;
 			}
 
-			if ( maxPrt != 0 ) {
+			if( maxPrt != 0 )
+			{
 				// entity->StartSound( "snd_splash", SND_CHANNEL_ANY, 0, false, NULL );
-				const idSoundShader *shader = declManager->FindSound( spawnArgs.GetString( "snd_splash" ) );
+				const idSoundShader* shader = declManager->FindSound( spawnArgs.GetString( "snd_splash" ) );
 				entity->StartSoundShader( shader, SND_CHANNEL_ANY, SSF_GLOBAL, false, NULL );
 			}
 
-			if ( prt ) {
+			if( prt )
+			{
 				gameLocal.smokeParticles->EmitSmoke( prt, gameLocal.time, gameLocal.random.CRandomFloat(), entity->GetPhysics()->GetOrigin(), idAngles( 0, gameLocal.random.CRandomFloat() * 360, 0 ).ToMat3(), timeGroup );
 			}
 		}
@@ -3254,8 +3305,10 @@ Zeroth
 idLiquid::Think
 ===============
 */
-void idLiquid::Think() {
-	if ( thinkFlags & TH_THINK ) {
+void idLiquid::Think()
+{
+	if( thinkFlags & TH_THINK )
+	{
 		TouchEntities();
 	}
 	idEntity::Think();

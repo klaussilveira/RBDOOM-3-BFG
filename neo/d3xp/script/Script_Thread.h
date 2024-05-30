@@ -134,8 +134,8 @@ private:
 	void						Event_SpawnVector( const char* key, idVec3& defaultvalue );
 	void						Event_ClearPersistantArgs();
 	void 						Event_SetPersistantArg( const char* key, const char* value );
-	void 						Event_SetPersistantMapArg( const char *key, const char *value );
-	void 						Event_GetPersistantMapFloat( const char *key, const char *defaultvalue );
+	void 						Event_SetPersistantMapArg( const char* key, const char* value );
+	void 						Event_GetPersistantMapFloat( const char* key, const char* defaultvalue );
 	void 						Event_GetPersistantString( const char* key );
 	void 						Event_GetPersistantFloat( const char* key );
 	void 						Event_GetPersistantVector( const char* key );
@@ -199,11 +199,11 @@ private:
 	void						Event_ACos( const float angle );
 	void						Event_ATan( const float angle );
 	void						Event_GetRandomBanishLocation( void );
-	void						Event_GetEntityNum( const idEntity *ent );
+	void						Event_GetEntityNum( const idEntity* ent );
 	void						Event_GetEntityNumFromName( const idStr entName );
-	void						Event_TraceSurfaceNormal( const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass );
+	void						Event_TraceSurfaceNormal( const idVec3& A, const idVec3& B, const float clipMask, const idEntity* pass );
 	void						Event_GetWorldGravity( void );
-	void						Event_SpawnParticle( const char *particleName, const idVec3 &origin );
+	void						Event_SpawnParticle( const char* particleName, const idVec3& origin );
 
 public:
 	CLASS_PROTOTYPE( idThread );
@@ -376,7 +376,7 @@ idThread::IsBusy
 */
 ID_INLINE bool idThread::IsBusy()
 {
-	if ( interpreter.GetCallstackDepth() == 0 )
+	if( interpreter.GetCallstackDepth() == 0 )
 	{
 		return false;
 	}

@@ -26,30 +26,37 @@ idProj_FireBeam
 *************************************/
 
 CLASS_DECLARATION( idProjectile, idProj_FireBeam )
-	EVENT( EV_LaunchFireBeam,				idProj_FireBeam::Event_Launch )
+EVENT( EV_LaunchFireBeam,				idProj_FireBeam::Event_Launch )
 END_CLASS
 
-void idProj_FireBeam::Spawn( void ) {
-	
+void idProj_FireBeam::Spawn( void )
+{
+
 }
 
-void idProj_FireBeam::Think( void ) {
-	if ( state == 2 && meteorNum < FIREBEAM_METEOR_NUM ) {
+void idProj_FireBeam::Think( void )
+{
+	if( state == 2 && meteorNum < FIREBEAM_METEOR_NUM )
+	{
 		idVec3 dir;
-		const idDict *boltDef;
-		idEntity *bolt;
+		const idDict* boltDef;
+		idEntity* bolt;
 
 		idVec3 forw = GetPhysics()->GetLinearVelocity();
 		forw.Normalize();
 
 		dir.z = forw.z;
 
-		for ( int i=0; i<2; i++ ) {
-			if ( i == 0 ) {
+		for( int i = 0; i < 2; i++ )
+		{
+			if( i == 0 )
+			{
 				// counter clockwise
 				dir.x = -forw.y;
 				dir.y = forw.x;
-			} else {
+			}
+			else
+			{
 				// clockwise
 				dir.x = forw.y;
 				dir.y = -forw.x;
@@ -58,11 +65,12 @@ void idProj_FireBeam::Think( void ) {
 			boltDef = gameLocal.FindEntityDefDict( "projectile_firestorm_meteor" );
 			gameLocal.SpawnEntityDef( *boltDef, &bolt );
 
-			if ( !bolt ) {
+			if( !bolt )
+			{
 				return;
 			}
 
-			idProjectile *blt = static_cast< idProjectile * >(bolt);
+			idProjectile* blt = static_cast< idProjectile* >( bolt );
 
 			idVec3 vec1 = GetPhysics()->GetOrigin() + dir * FIREBEAM_METOER_DISTT;
 
@@ -87,11 +95,13 @@ void idProj_FireBeam::Think( void ) {
 	idProjectile::Think();
 }
 
-void idProj_FireBeam::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower ) {
-	idProjectile::Launch( start, dir, pushVelocity, timeSinceFire, launchPower, dmgPower);
+void idProj_FireBeam::Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower )
+{
+	idProjectile::Launch( start, dir, pushVelocity, timeSinceFire, launchPower, dmgPower );
 }
 
-void idProj_FireBeam::Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower ) {
+void idProj_FireBeam::Event_Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower )
+{
 	idProjectile::Launch( start, dir, pushVelocity, timeSinceFire, launchPower, dmgPower );
 }
 
@@ -106,23 +116,27 @@ CLASS_DECLARATION( idProjectile, idProj_Incinerator )
 
 END_CLASS
 
-void idProj_Incinerator::Spawn( void ) {
+void idProj_Incinerator::Spawn( void )
+{
 	ent = NULL;
 }
 
-void idProj_Incinerator::Incinerate( void ) {
+void idProj_Incinerator::Incinerate( void )
+{
 	particleEmitter_t pe;
 	//idStr particleName = "firestorm_incinerator";
 	idVec3 origin;
 	idMat3 axis;
 
 	// if there's no animator, just bind one flame to the entity where we impacted it
-	if ( !ent->GetAnimator() ) {/*
-		idEntity *flame;
-		const idDict *flameDef = gameLocal.FindEntityDefDict( "firestorm_incinerator_flame" );
-		gameLocal.SpawnEntityDef( *flameDef, &flame );
-		flame->GetPhysics()->SetOrigin( GetPhysics()->GetOrigin() );
-		flame->Bind(ent, 0);*/
+	if( !ent->GetAnimator() )
+	{
+		/*
+			idEntity *flame;
+			const idDict *flameDef = gameLocal.FindEntityDefDict( "firestorm_incinerator_flame" );
+			gameLocal.SpawnEntityDef( *flameDef, &flame );
+			flame->GetPhysics()->SetOrigin( GetPhysics()->GetOrigin() );
+			flame->Bind(ent, 0);*/
 
 		return;
 	}
@@ -130,20 +144,24 @@ void idProj_Incinerator::Incinerate( void ) {
 	ent->onFire =  gameLocal.time + 5000;
 }
 
-bool idProj_Incinerator::Collide( const trace_t &collision, const idVec3 &velocity ) {
-	idEntity	*ignore;
-	const char	*damageDefName;
+bool idProj_Incinerator::Collide( const trace_t& collision, const idVec3& velocity )
+{
+	idEntity*	ignore;
+	const char*	damageDefName;
 	idVec3		dir;
 	float		push;
 	float		damageScale;
 
-	if ( state == EXPLODED || state == FIZZLED ) {
+	if( state == EXPLODED || state == FIZZLED )
+	{
 		return true;
 	}
 
 	// predict the explosion
-	if ( common->IsClient() ) {
-		if ( ClientPredictionCollide( this, spawnArgs, collision, velocity, !spawnArgs.GetBool( "net_instanthit" ) ) ) {
+	if( common->IsClient() )
+	{
+		if( ClientPredictionCollide( this, spawnArgs, collision, velocity, !spawnArgs.GetBool( "net_instanthit" ) ) )
+		{
 			Explode( collision, NULL );
 			return true;
 		}
@@ -151,7 +169,8 @@ bool idProj_Incinerator::Collide( const trace_t &collision, const idVec3 &veloci
 	}
 
 	// remove projectile when a 'noimpact' surface is hit
-	if ( ( collision.c.material != NULL ) && ( collision.c.material->GetSurfaceFlags() & SURF_NOIMPACT ) ) {
+	if( ( collision.c.material != NULL ) && ( collision.c.material->GetSurfaceFlags() & SURF_NOIMPACT ) )
+	{
 		PostEventMS( &EV_Remove, 0 );
 		common->DPrintf( "Projectile collision no impact\n" );
 		return true;
@@ -159,13 +178,15 @@ bool idProj_Incinerator::Collide( const trace_t &collision, const idVec3 &veloci
 
 	// get the entity the projectile collided with
 	ent = gameLocal.entities[ collision.c.entityNum ];
-	if ( ent == owner.GetEntity() ) {
+	if( ent == owner.GetEntity() )
+	{
 		assert( 0 );
 		return true;
 	}
 
 	// just get rid of the projectile when it hits a player in noclip
-	if ( ent->IsType( idPlayer::Type ) && static_cast<idPlayer *>( ent )->noclip ) {
+	if( ent->IsType( idPlayer::Type ) && static_cast<idPlayer*>( ent )->noclip )
+	{
 		PostEventMS( &EV_Remove, 0 );
 		return true;
 	}
@@ -175,24 +196,33 @@ bool idProj_Incinerator::Collide( const trace_t &collision, const idVec3 &veloci
 	dir.Normalize();
 
 	// projectiles can apply an additional impulse next to the rigid body physics impulse
-	if ( spawnArgs.GetFloat( "push", "0", push ) && push > 0.0f ) {
+	if( spawnArgs.GetFloat( "push", "0", push ) && push > 0.0f )
+	{
 		ent->ApplyImpulse( this, collision.c.id, collision.c.point, push * dir );
 	}
 
 	// MP: projectiles open doors
-	if ( common->IsMultiplayer() && ent->IsType( idDoor::Type ) && !static_cast< idDoor * >(ent)->IsOpen() && !ent->spawnArgs.GetBool( "no_touch" ) ) {
+	if( common->IsMultiplayer() && ent->IsType( idDoor::Type ) && !static_cast< idDoor* >( ent )->IsOpen() && !ent->spawnArgs.GetBool( "no_touch" ) )
+	{
 		ent->ProcessEvent( &EV_Activate , this );
 	}
 
-	if ( ent->IsType( idActor::Type ) || ( ent->IsType( idAFAttachment::Type ) && static_cast<const idAFAttachment*>(ent)->GetBody()->IsType( idActor::Type ) ) ) {
-		if ( !projectileFlags.detonate_on_actor ) {
+	if( ent->IsType( idActor::Type ) || ( ent->IsType( idAFAttachment::Type ) && static_cast<const idAFAttachment*>( ent )->GetBody()->IsType( idActor::Type ) ) )
+	{
+		if( !projectileFlags.detonate_on_actor )
+		{
 			return false;
 		}
-	} else {
-		if ( !projectileFlags.detonate_on_world ) {
-			if ( !StartSound( "snd_ricochet", SND_CHANNEL_ITEM, 0, true, NULL ) ) {
+	}
+	else
+	{
+		if( !projectileFlags.detonate_on_world )
+		{
+			if( !StartSound( "snd_ricochet", SND_CHANNEL_ITEM, 0, true, NULL ) )
+			{
 				float len = velocity.Length();
-				if ( len > BOUNCE_SOUND_MIN_VELOCITY ) {
+				if( len > BOUNCE_SOUND_MIN_VELOCITY )
+				{
 					SetSoundVolume( len > BOUNCE_SOUND_MAX_VELOCITY ? 1.0f : idMath::Sqrt( len - BOUNCE_SOUND_MIN_VELOCITY ) * ( 1.0f / idMath::Sqrt( BOUNCE_SOUND_MAX_VELOCITY - BOUNCE_SOUND_MIN_VELOCITY ) ) );
 					StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, true, NULL );
 				}
@@ -212,35 +242,46 @@ bool idProj_Incinerator::Collide( const trace_t &collision, const idVec3 &veloci
 	ignore = NULL;
 
 	// if the hit entity takes damage
-	if ( ent->fl.takedamage ) {
-		if ( damagePower ) {
+	if( ent->fl.takedamage )
+	{
+		if( damagePower )
+		{
 			damageScale = damagePower;
-		} else {
+		}
+		else
+		{
 			damageScale = 1.0f;
 		}
 
 		// if the projectile owner is a player
-		if ( owner.GetEntity() && owner.GetEntity()->IsType( idPlayer::Type ) ) {
+		if( owner.GetEntity() && owner.GetEntity()->IsType( idPlayer::Type ) )
+		{
 			// if the projectile hit an actor
-			if ( ent->IsType( idActor::Type ) ) {
-				idPlayer *player = static_cast<idPlayer *>( owner.GetEntity() );
+			if( ent->IsType( idActor::Type ) )
+			{
+				idPlayer* player = static_cast<idPlayer*>( owner.GetEntity() );
 				player->AddProjectileHits( 1 );
 				damageScale *= player->PowerUpModifier( PROJECTILE_DAMAGE );
 			}
 		}
 
-		if ( damageDefName[0] != '\0' ) {
+		if( damageDefName[0] != '\0' )
+		{
 			ent->Damage( this, owner.GetEntity(), dir, damageDefName, damageScale, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ), idVec3( collision.c.point ) );
 			ignore = ent;
 		}
 	}
 
 	// if the projectile causes a damage effect
-	if ( spawnArgs.GetBool( "impact_damage_effect" ) ) {
+	if( spawnArgs.GetBool( "impact_damage_effect" ) )
+	{
 		// if the hit entity has a special damage effect
-		if ( ent->spawnArgs.GetBool( "bleed" ) ) {
+		if( ent->spawnArgs.GetBool( "bleed" ) )
+		{
 			ent->AddDamageEffect( collision, velocity, damageDefName );
-		} else {
+		}
+		else
+		{
 			AddDefaultDamageEffect( collision, velocity );
 		}
 	}
@@ -262,6 +303,7 @@ CLASS_DECLARATION( idEntity, idProj_IncineratorFlame )
 
 END_CLASS
 
-void idProj_IncineratorFlame::Spawn() {
+void idProj_IncineratorFlame::Spawn()
+{
 	PostEventMS( &EV_Remove, gameLocal.random.RandomFloat() * 1000 + 4000 );
 }

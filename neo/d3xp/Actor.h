@@ -167,7 +167,7 @@ public:
 
 	// damage
 	void					SetupDamageGroups();
-	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
+	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint );
 	int						GetDamageForLocation( int damage, int location );
 	const char* 			GetDamageGroup( int location );
 	void					ClearPain();
@@ -341,8 +341,8 @@ protected:
 
 // HEXEN : Zeroth
 public:
-	bool					IsEnemy( idEntity *test );
-	float					GetAnimLength( int channel, const char *animname );
+	bool					IsEnemy( idEntity* test );
+	float					GetAnimLength( int channel, const char* animname );
 };
 
 #endif /* !__GAME_ACTOR_H__ */

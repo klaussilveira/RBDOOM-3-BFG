@@ -65,7 +65,7 @@ protected:
 	void				Event_Disable();
 
 	// void				check_gravity();
-	void				eoc_Check_Automap( idEntity *activator ); // HEXEN : Zeroth
+	void				eoc_Check_Automap( idEntity* activator ); // HEXEN : Zeroth
 
 	const function_t* 	scriptFunction;
 };
@@ -202,8 +202,14 @@ public:
 
 	void				Save( idSaveGame* savefile ) const;
 	void				Restore( idRestoreGame* savefile );
-	void				SetCount( int c ) { count = c; };
-	void				SetGoal( int c ) { goal = c; };
+	void				SetCount( int c )
+	{
+		count = c;
+	};
+	void				SetGoal( int c )
+	{
+		goal = c;
+	};
 
 	void				Spawn();
 

@@ -658,13 +658,13 @@ idThread::Event_SoundMute
 */
 void idThread::Event_SoundMute( float yesorno )
 {
- 	if ( yesorno )
+	if( yesorno )
 	{
- 		soundSystem->SetMute( true );
- 	}
+		soundSystem->SetMute( true );
+	}
 	else
 	{
- 		soundSystem->SetMute( false );
+		soundSystem->SetMute( false );
 	}
 }
 #endif
@@ -1342,17 +1342,17 @@ Zeroth
 idThread::Event_SpawnParticle
 ================
 */
-void idThread::Event_SpawnParticle( const char *particleName, const idVec3 &origin )
+void idThread::Event_SpawnParticle( const char* particleName, const idVec3& origin )
 {
-	const idDecl *dec;
+	const idDecl* dec;
 	dec = declManager->FindType( DECL_PARTICLE, particleName );
-	if ( !dec )
+	if( !dec )
 	{
 		return;
 	}
 
 	//gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time+1, gameLocal.random.CRandomFloat(), origin, idMat3() );
-	gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time, gameLocal.random.RandomFloat(), origin, idMat3( 1, 0, 0, 0, 0, 0, 0, 0, 0 ), TIME_GROUP1 );
+	gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle*>( dec ), gameLocal.time, gameLocal.random.RandomFloat(), origin, idMat3( 1, 0, 0, 0, 0, 0, 0, 0, 0 ), TIME_GROUP1 );
 }
 
 /*
@@ -1441,7 +1441,7 @@ HEXEN
 idThread::Event_SetPersistantMapArg
 ================
 */
-void idThread::Event_SetPersistantMapArg( const char *key, const char *value )
+void idThread::Event_SetPersistantMapArg( const char* key, const char* value )
 {
 	idStr name_str;
 
@@ -1458,7 +1458,7 @@ HEXEN
 idThread::Event_GetPersistantMapFloat
 ================
 */
-void idThread::Event_GetPersistantMapFloat( const char *key, const char *defaultvalue )
+void idThread::Event_GetPersistantMapFloat( const char* key, const char* defaultvalue )
 {
 	float result;
 	idStr name_str;
@@ -2300,7 +2300,7 @@ void idThread::Event_GetRandomBanishLocation()
 {
 	int i;
 
-	if ( gameLocal.BanishLocationList.Num() < 1 )
+	if( gameLocal.BanishLocationList.Num() < 1 )
 	{
 		gameLocal.Error( "There are no Banish Locations\n." );
 		idThread::ReturnVector( idVec3() );
@@ -2318,9 +2318,9 @@ Zeroth
 idThread::Event_GetEntityNum
 ================
 */
-void idThread::Event_GetEntityNum( const idEntity *ent1 )
+void idThread::Event_GetEntityNum( const idEntity* ent1 )
 {
-	if ( ent1 )
+	if( ent1 )
 	{
 		idThread::ReturnFloat( ent1->entityNumber );
 	}
@@ -2338,10 +2338,10 @@ idThread::Event_GetEntityNumFromName
 */
 void idThread::Event_GetEntityNumFromName( const idStr entName )
 {
-	for ( int i = 0; i < MAX_GENTITIES; i++ )
+	for( int i = 0; i < MAX_GENTITIES; i++ )
 	{
-		idEntity *ent = gameLocal.entities[i];
-		if ( ent && !idStr::Cmp( ent->name, entName ) )
+		idEntity* ent = gameLocal.entities[i];
+		if( ent && !idStr::Cmp( ent->name, entName ) )
 		{
 			idThread::ReturnFloat( i );
 			return;
@@ -2357,15 +2357,15 @@ Zeroth
 idThread::Event_TraceSurfaceNormal
 ================
 */
-void idThread::Event_TraceSurfaceNormal( const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass )
+void idThread::Event_TraceSurfaceNormal( const idVec3& A, const idVec3& B, const float clipMask, const idEntity* pass )
 {
 	trace_t		trace;
-	idEntity	*ent;
+	idEntity*	ent;
 
 	gameLocal.clip.TracePoint( trace, A, B, MASK_PLAYERSOLID, pass );
 
 	// if near a surface
-	if ( trace.fraction < 1.0f )
+	if( trace.fraction < 1.0f )
 	{
 		idVec3 bub = trace.c.normal;
 		ent = gameLocal.GetTraceEntity( trace );

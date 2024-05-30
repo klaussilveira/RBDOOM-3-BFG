@@ -173,7 +173,8 @@ typedef struct
 } spawnSpot_t;
 
 // HEXEN : Zeroth
-typedef struct {
+typedef struct
+{
 	int width;
 	int height;
 	int ratio;
@@ -521,14 +522,14 @@ public:
 	idEntity* 				FindEntity( const char* name ) const;
 
 // HEXEN : Zeroth
-	idEntity*				FindEntityType( const idTypeInfo &type ) const;
+	idEntity*				FindEntityType( const idTypeInfo& type ) const;
 
 	idEntity* 				FindEntityUsingDef( idEntity* from, const char* match ) const;
 	int						EntitiesWithinRadius( const idVec3 org, float radius, idEntity** entityList, int maxCount ) const;
 
 	void					KillBox( idEntity* ent, bool catch_teleport = false );
 	void					RadiusDamage( const idVec3& origin, idEntity* inflictor, idEntity* attacker, idEntity* ignoreDamage, idEntity* ignorePush, const char* damageDefName, float dmgPower = 1.0f );
-	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake, const bool notlocalplayer=false, const bool notprojectiles=true );
+	void					RadiusPush( const idVec3& origin, const float radius, const float push, const idEntity* inflictor, const idEntity* ignore, float inflictorScale, const bool quake, const bool notlocalplayer = false, const bool notprojectiles = true );
 	void					RadiusPushClipModel( const idVec3& origin, const float push, const idClipModel* clipModel );
 
 	void					ProjectDecal( const idVec3& origin, const idVec3& dir, float depth, bool parallel, float size, const char* material, float angle = 0 );
@@ -652,26 +653,26 @@ public:
 // ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
 	idList<int>             musicSpeakers; //SnoopJeDi - holds entitynum values for speakers with s_music set
 // ******
-	void					SetLocalPlayerSpawnPoint(idStr point);
+	void					SetLocalPlayerSpawnPoint( idStr point );
 //	void					FoliageRendering();
 	idStr					eoc_MapPath;
-	void					InitHub(void);
-	void					SendLocalUserHudMessage( const char *message );
+	void					InitHub( void );
+	void					SendLocalUserHudMessage( const char* message );
 	void					SendLocalUserHudMessage( idStr message );
 	void					UpdateFog();
-	void					SetPersistentRemove( const char *name );
-	void					SetPersistentLightOn( const char *name, bool state );
-	void					SetPersistentLightBroken( const char *name );
-	void					SetPersistentTrigger( const char *type, const char *name, const bool state );
-	void					SetPersistentTriggerInt( const char *type, const char *var, const char *name, int val );
-	void					SavePersistentMoveables(void);
+	void					SetPersistentRemove( const char* name );
+	void					SetPersistentLightOn( const char* name, bool state );
+	void					SetPersistentLightBroken( const char* name );
+	void					SetPersistentTrigger( const char* type, const char* name, const bool state );
+	void					SetPersistentTriggerInt( const char* type, const char* var, const char* name, int val );
+	void					SavePersistentMoveables( void );
 // HEXEN : Zeroth
 public:
 	idStr					eoc_LocalPlayerSpawnPoint;
 	float					eoc_MapLoading;
 	float					eoc_MapLoadingPrev;
 	idStr					mapNameForCheat;
-	idList<idVec3 *>		BanishLocationList;
+	idList<idVec3*>		BanishLocationList;
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;

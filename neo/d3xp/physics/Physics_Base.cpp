@@ -717,9 +717,9 @@ int idPhysics_Base::NumGroundContacts() const
 {
 	int i, cnt = 0;
 
-	for ( i = 0; i < contacts.Num(); i++ )
+	for( i = 0; i < contacts.Num(); i++ )
 	{
-		if ( contacts[ i ].normal * -gravityNormal > 0.0f )
+		if( contacts[ i ].normal * -gravityNormal > 0.0f )
 		{
 			cnt++;
 		}

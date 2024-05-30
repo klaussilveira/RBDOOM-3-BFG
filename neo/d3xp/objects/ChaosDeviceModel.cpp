@@ -5,7 +5,7 @@
 #include "../Game_local.h"
 #include "ChaosDeviceModel.h"
 
-CLASS_DECLARATION( idEntity, idEntity_ChaosDeviceModel)
+CLASS_DECLARATION( idEntity, idEntity_ChaosDeviceModel )
 
 END_CLASS
 

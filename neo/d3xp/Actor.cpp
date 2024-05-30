@@ -2458,17 +2458,17 @@ void idActor::Gib( const idVec3& dir, const char* damageDefName )
 idActor::IsEnemy
 ================
 */
-bool idActor::IsEnemy( idEntity *test )
+bool idActor::IsEnemy( idEntity* test )
 {
-	idActor		*ent;
+	idActor*		ent;
 	for( ent = enemyList.Next(); ent != NULL; ent = ent->enemyNode.Next() )
 	{
-		if ( ent->fl.hidden )
+		if( ent->fl.hidden )
 		{
 			continue;
 		}
-		gameLocal.Printf(" [%s] - [%s]", ent->name.c_str(), test->name.c_str());
-		if ( ent->name.c_str() == test->name.c_str() )
+		gameLocal.Printf( " [%s] - [%s]", ent->name.c_str(), test->name.c_str() );
+		if( ent->name.c_str() == test->name.c_str() )
 		{
 			return true;
 		}
@@ -2498,7 +2498,7 @@ calls Damage()
 */
 idCVar actor_noDamage(	"actor_noDamage",			"0",		CVAR_BOOL, "actors don't take damage -- for testing" );
 void idActor::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-					  const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
+					  const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint )
 {
 	if( !fl.takedamage || actor_noDamage.GetBool() )
 	{
@@ -2766,17 +2766,21 @@ bool idActor::Pain( idEntity* inflictor, idEntity* attacker, int damage, const i
 	idStr damageGroup = GetDamageGroup( location );
 
 	painAnim = "";
-	if ( g_debugDamage.GetBool() ) {
-		gameLocal.Printf( "Damage: joint: '%s', zone '%s', anim '%s'\n", animator.GetJointName( ( jointHandle_t )location ), 
-			damageGroup.c_str(), painAnim.c_str() );
+	if( g_debugDamage.GetBool() )
+	{
+		gameLocal.Printf( "Damage: joint: '%s', zone '%s', anim '%s'\n", animator.GetJointName( ( jointHandle_t )location ),
+						  damageGroup.c_str(), painAnim.c_str() );
 	}
 
 	// HEXEN : Zeroth: don't do pain anims for trigger types
-	if ( inflictor ) {
-		if ( inflictor->IsType( idTrigger_Hurt::Type ) ) {
+	if( inflictor )
+	{
+		if( inflictor->IsType( idTrigger_Hurt::Type ) )
+		{
 			return false;
 		}
-		if ( inflictor->IsType( idTrigger_Touch::Type ) ) {
+		if( inflictor->IsType( idTrigger_Touch::Type ) )
+		{
 			return false;
 		}
 	}
@@ -2958,7 +2962,7 @@ void idActor::PlayFootStepSound()
 {
 	const char* sound = NULL;
 	const idMaterial* material;
-	idPlayer *player;
+	idPlayer* player;
 
 	if( !GetPhysics()->HasGroundContacts() )
 	{
@@ -2966,36 +2970,50 @@ void idActor::PlayFootStepSound()
 	}
 
 	// HEXEN : Zeroth
-	if ( this->IsType( idPlayer::Type ) ) {
+	if( this->IsType( idPlayer::Type ) )
+	{
 		player = static_cast< idPlayer* >( this );
 
 		// no footstep sounds when flying (wings of wrath)
-		if ( player->FreeMove ) {
+		if( player->FreeMove )
+		{
 			return;
 		}
 
-		if ( player->inWater ) {
+		if( player->inWater )
+		{
 			waterLevel_t level = static_cast< idPhysics_Player* >( player->GetPlayerPhysics() )->GetWaterLevel();
 
-			if ( level == WATERLEVEL_FEET ) {
+			if( level == WATERLEVEL_FEET )
+			{
 				sound = spawnArgs.GetString( "snd_footstep_water_feet" );
-			} else if ( level == WATERLEVEL_WAIST ) {
+			}
+			else if( level == WATERLEVEL_WAIST )
+			{
 				sound = spawnArgs.GetString( "snd_footstep_water_waist" );
-			} else if ( level == WATERLEVEL_HEAD ) {
+			}
+			else if( level == WATERLEVEL_HEAD )
+			{
 				sound = spawnArgs.GetString( "snd_footstep_water_head" );
-			} else {
+			}
+			else
+			{
 				sound = spawnArgs.GetString( "snd_footstep_water_feet" );
 			}
 
-			if ( *sound != '\0' ) {
+			if( *sound != '\0' )
+			{
 				StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, SSF_NO_DUPS, false, NULL );
 			}
 
 			return;
-		} else if ( player->leftWater != 0 && gameLocal.time < player->leftWater + 3000 ) {
+		}
+		else if( player->leftWater != 0 && gameLocal.time < player->leftWater + 3000 )
+		{
 			sound = spawnArgs.GetString( "snd_footstep_wet" );
 
-			if ( *sound != '\0' ) {
+			if( *sound != '\0' )
+			{
 				StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, SSF_NO_DUPS, false, NULL );
 			}
 			return;
@@ -3839,7 +3857,7 @@ idActor::Event_AnimLength
 */
 void idActor::Event_AnimLength( int channel, const char* animname )
 {
-	idThread::ReturnFloat( GetAnimLength(channel, animname) );
+	idThread::ReturnFloat( GetAnimLength( channel, animname ) );
 }
 
 // HEXEN : Zeroth
@@ -3848,7 +3866,7 @@ void idActor::Event_AnimLength( int channel, const char* animname )
 idActor::GetAnimLength
 ================
 */
-float idActor::GetAnimLength( int channel, const char *animname )
+float idActor::GetAnimLength( int channel, const char* animname )
 {
 	int anim;
 

@@ -621,14 +621,14 @@ private:
 	void				Event_Touch( idEntity* other, trace_t* trace ); // HEXEN : Zeroth - was commented out
 
 // Zeroth
-	idClipModel *			clipModel;
+	idClipModel* 			clipModel;
 	void					TouchEntities();
 	bool					particleOnExit; // whether to spawn a particle when something leaves the water
-	const idDeclParticle *	splashParticleRipple;
-	const idDeclParticle *	splashParticleTiny;
-	const idDeclParticle *	splashParticleSmall;
-	const idDeclParticle *	splashParticleBig;
-	const idDeclParticle *	splashParticleHuge;
+	const idDeclParticle* 	splashParticleRipple;
+	const idDeclParticle* 	splashParticleTiny;
+	const idDeclParticle* 	splashParticleSmall;
+	const idDeclParticle* 	splashParticleBig;
+	const idDeclParticle* 	splashParticleHuge;
 	float					moveResistance;
 	idVec3					moveDir;
 	float					moveAmt;

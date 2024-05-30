@@ -593,7 +593,7 @@ private:
 
 // HEXEN : Zeroth
 public:
-	void						eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles &to, idAngles &from, float seconds, float transitions );
+	void						eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles& to, idAngles& from, float seconds, float transitions );
 };
 
 /*

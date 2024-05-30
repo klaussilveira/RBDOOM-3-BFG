@@ -5,36 +5,45 @@
 
 #include "Game_local.h"
 
-int idPlayer::FindArtifact( int art ) {
-	for (int belt=0; belt<Artifact.Num(); belt++) {
-		if (Artifact[belt]->GetInt("artifact") == art) {
+int idPlayer::FindArtifact( int art )
+{
+	for( int belt = 0; belt < Artifact.Num(); belt++ )
+	{
+		if( Artifact[belt]->GetInt( "artifact" ) == art )
+		{
 			return belt;
 		}
 	}
 	return -1;
 }
 
-bool idPlayer::ActiveArtifact( int art ) {
-	idItem *item;
+bool idPlayer::ActiveArtifact( int art )
+{
+	idItem* item;
 	int hash, i;
 
 	hash = gameLocal.entypeHash.GenerateKey( idItem::Type.classname, true );
 
-	for ( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) ) {
+	for( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) )
+		{
 			item = static_cast< idItem* >( gameLocal.entities[i] );
 
-			if ( item->GetOwner() != this ) {
+			if( item->GetOwner() != this )
+			{
 				item = NULL;
 				continue;
 			}
 
-			if ( !item->ArtifactActive ) {
+			if( !item->ArtifactActive )
+			{
 				item = NULL;
 				continue;
 			}
 
-			if ( item->spawnArgs.GetInt("artifact") != art) {
+			if( item->spawnArgs.GetInt( "artifact" ) != art )
+			{
 				item = NULL;
 				continue;
 			}
@@ -43,83 +52,101 @@ bool idPlayer::ActiveArtifact( int art ) {
 		}
 	}
 
-	return false;	
+	return false;
 }
 
-bool idPlayer::ActiveArtifact( const char *art ) {
+bool idPlayer::ActiveArtifact( const char* art )
+{
 	idDict tmp;
-	tmp.Set("art", art);
-	return ActiveArtifact(tmp.GetInt("art"));
+	tmp.Set( "art", art );
+	return ActiveArtifact( tmp.GetInt( "art" ) );
 }
 
-void idPlayer::ArtifactExec( int belt, char * funcName, bool remove ) {
+void idPlayer::ArtifactExec( int belt, char* funcName, bool remove )
+{
 	CleanupArtifactItems();
 
-	if (!ArtifactVerify(belt)) {
+	if( !ArtifactVerify( belt ) )
+	{
 		UpdateHudArtifacts();
 		return;
 	}
 
-	if (funcName == NULL) {
+	if( funcName == NULL )
+	{
 		return;
 	}
 
-	const char *name=Artifact[belt]->GetString("name");
+	const char* name = Artifact[belt]->GetString( "name" );
 
-	if (ActiveArtifact(Artifact[belt]->GetInt("artifact"))) {
+	if( ActiveArtifact( Artifact[belt]->GetInt( "artifact" ) ) )
+	{
 		return;
 	}
 
-	idItem *item;
+	idItem* item;
 	int hash, i;
 
 	hash = gameLocal.entypeHash.GenerateKey( idItem::Type.classname, true );
 
-	for ( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) ) {
+	for( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) )
+		{
 			item = static_cast< idItem* >( gameLocal.entities[i] );
 
-			if ( item->GetOwner() !=  this ) {
+			if( item->GetOwner() !=  this )
+			{
 				continue;
 			}
 
-			if ( idStr::Icmp(name, item->spawnArgs.GetString("inv_name")) ) {
+			if( idStr::Icmp( name, item->spawnArgs.GetString( "inv_name" ) ) )
+			{
 				continue;
 			}
 
-			if ( item->Processing ) {
+			if( item->Processing )
+			{
 				continue;
 			}
 
-			if ( item->DeleteMe ) {
+			if( item->DeleteMe )
+			{
 				continue;
 			}
 
-			item->CallFunc(funcName);
+			item->CallFunc( funcName );
 			return;
 		}
 	}
 }
 
-void idPlayer::SortArtifacts() {
-	int a,b;
-	idDict *temp;
+void idPlayer::SortArtifacts()
+{
+	int a, b;
+	idDict* temp;
 
-	for (a=0; a<Artifact.Num(); a++) {
-		for (b=a+1; b<Artifact.Num(); b++) {
-			if ( Artifact[a]->GetInt("artifact") < Artifact[b]->GetInt("artifact")) {
+	for( a = 0; a < Artifact.Num(); a++ )
+	{
+		for( b = a + 1; b < Artifact.Num(); b++ )
+		{
+			if( Artifact[a]->GetInt( "artifact" ) < Artifact[b]->GetInt( "artifact" ) )
+			{
 				continue;
 			}
 
-			temp=Artifact[a];
-			Artifact[a]=Artifact[b];
-			Artifact[b]=temp;
-			temp=NULL;
+			temp = Artifact[a];
+			Artifact[a] = Artifact[b];
+			Artifact[b] = temp;
+			temp = NULL;
 
-			if ( BeltSelection == a) {
-					BeltSelection = b;
-			} else if ( BeltSelection == b) {
-					BeltSelection = a;
+			if( BeltSelection == a )
+			{
+				BeltSelection = b;
+			}
+			else if( BeltSelection == b )
+			{
+				BeltSelection = a;
 			}
 
 			// we don't callUpdateHudArtifacts(); because SortArtifacts is only called by GiveInventoryItem(), and that takes care of it.
@@ -127,93 +154,109 @@ void idPlayer::SortArtifacts() {
 	}
 }
 
-void idPlayer::UpdateHudArtifacts() {
-	int	belt,art;
+void idPlayer::UpdateHudArtifacts()
+{
+	int	belt, art;
 	int	pos; // belt item position marker
-	int	onScreen=((7-1)/2); //number of on-screen artifacts to the left of the center. (belt_width - 1) / 2; belt_width must be odd (the middle number is center of belt)
-	int	tileWidth=60; //width in pixels of an artifact on the belt
+	int	onScreen = ( ( 7 - 1 ) / 2 ); //number of on-screen artifacts to the left of the center. (belt_width - 1) / 2; belt_width must be odd (the middle number is center of belt)
+	int	tileWidth = 60; //width in pixels of an artifact on the belt
 	char	itemStr[22];
 
 	ArtifactValidateSelection();
 
-	idUserInterface* hudUI = (idUserInterface*) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	// disappear all artifacts
-	for ( art=0; art < NUM_UNIQUE_ARTIFACTS; art++) {
-		sprintf(itemStr, "eoc_Artifact%iVis", art);
+	for( art = 0; art < NUM_UNIQUE_ARTIFACTS; art++ )
+	{
+		sprintf( itemStr, "eoc_Artifact%iVis", art );
 		hudUI->SetStateBool( itemStr, false );
 
-		sprintf(itemStr, "eoc_Artifact%iRotate", art);
+		sprintf( itemStr, "eoc_Artifact%iRotate", art );
 		hudUI->SetStateFloat( itemStr, 0.0f );
 	}
 
-	hudUI->SetStateInt( "eoc_Artifacts",Artifact.Num() );
-	hudUI->SetStateInt( "eoc_BeltSelection",BeltSelection );
+	hudUI->SetStateInt( "eoc_Artifacts", Artifact.Num() );
+	hudUI->SetStateInt( "eoc_BeltSelection", BeltSelection );
 
-	// determine tile position and visibility 
-	pos=0;
-	for (belt=0; belt < Artifact.Num(); belt++) {
-		art=Artifact[belt]->GetInt("artifact");
-		if (InventoryItemQty(belt) > 0) {
-			sprintf(itemStr, "eoc_Artifact%iPos", art);
+	// determine tile position and visibility
+	pos = 0;
+	for( belt = 0; belt < Artifact.Num(); belt++ )
+	{
+		art = Artifact[belt]->GetInt( "artifact" );
+		if( InventoryItemQty( belt ) > 0 )
+		{
+			sprintf( itemStr, "eoc_Artifact%iPos", art );
 			hudUI->SetStateInt( itemStr, pos );
 
-			sprintf(itemStr, "eoc_Artifact%iQty", art);
-			hudUI->SetStateInt( itemStr,InventoryItemQty(belt) );
+			sprintf( itemStr, "eoc_Artifact%iQty", art );
+			hudUI->SetStateInt( itemStr, InventoryItemQty( belt ) );
 
-			sprintf(itemStr, "eoc_Artifact%iVis", art);
-			if ((belt<BeltSelection-onScreen) || (belt>BeltSelection+onScreen)) {
+			sprintf( itemStr, "eoc_Artifact%iVis", art );
+			if( ( belt < BeltSelection - onScreen ) || ( belt > BeltSelection + onScreen ) )
+			{
 				hudUI->SetStateBool( itemStr, false ); // Hide artifacts that are off-screen
-			}else{
+			}
+			else
+			{
 				hudUI->SetStateBool( itemStr, true );
 			}
 
-			sprintf(itemStr, "eoc_Artifact%iRotate", art);
-			if (BeltSelection == belt) //ArtifactValidateSelection(); sould be called once before this in the same function
+			sprintf( itemStr, "eoc_Artifact%iRotate", art );
+			if( BeltSelection == belt ) //ArtifactValidateSelection(); sould be called once before this in the same function
 			{
-				BeltPosition=pos;
+				BeltPosition = pos;
 				hudUI->SetStateFloat( itemStr, 0.05f );
-			}else{
+			}
+			else
+			{
 				hudUI->SetStateFloat( itemStr, 0.0f );
 			}
-			
-			pos+=tileWidth; //up the position for the next visible item
-		}else{
+
+			pos += tileWidth; //up the position for the next visible item
+		}
+		else
+		{
 			//the artifact is no longer in the inventory, but is in use
-			sprintf(itemStr, "eoc_Artifact%iVis", art);
+			sprintf( itemStr, "eoc_Artifact%iVis", art );
 			hudUI->SetStateBool( itemStr, false );
 
-			sprintf(itemStr, "eoc_Artifact%iRotate", art);
+			sprintf( itemStr, "eoc_Artifact%iRotate", art );
 			hudUI->SetStateFloat( itemStr, 0.0f );
 		}
 	}
 
-	BeltPosition= -(BeltPosition)+(tileWidth*onScreen); // add onScreen*tielWidth to get to center of belt, negate to scroll in opposite (correct) direction
-	hudUI->SetStateInt( "eoc_BeltPosition",BeltPosition ); // set scrolled position of inventory
+	BeltPosition = -( BeltPosition ) + ( tileWidth * onScreen ); // add onScreen*tielWidth to get to center of belt, negate to scroll in opposite (correct) direction
+	hudUI->SetStateInt( "eoc_BeltPosition", BeltPosition ); // set scrolled position of inventory
 
 	// update selected artifact
-	if (BeltSelection < 0 ) {
+	if( BeltSelection < 0 )
+	{
 		hudUI->SetStateString( "eoc_BeltSelectionQty", "" );
-	} else {
-		hudUI->SetStateInt( "eoc_BeltSelectionQty", InventoryItemQty(BeltSelection)  );
+	}
+	else
+	{
+		hudUI->SetStateInt( "eoc_BeltSelectionQty", InventoryItemQty( BeltSelection ) );
 	}
 	UpdateArtifactHudDescription();
 }
 
-void idPlayer::UpdateHudActiveArtifacts() {
+void idPlayer::UpdateHudActiveArtifacts()
+{
 	int		i;
-	int		numActive=0;
-	int		pos=0; // active artifact position marker
-	int		tileWidth=60; //width in pixels of an artifact on the belt
+	int		numActive = 0;
+	int		pos = 0; // active artifact position marker
+	int		tileWidth = 60; //width in pixels of an artifact on the belt
 	char	itemStr[30];
 	idItem*	item;
 	bool	active[NUM_UNIQUE_ARTIFACTS];
 	bool	cooling[NUM_UNIQUE_ARTIFACTS];
-	int		totArtifacts=NUM_UNIQUE_ARTIFACTS; //Z.TODO this should be read from a def file or something
+	int		totArtifacts = NUM_UNIQUE_ARTIFACTS; //Z.TODO this should be read from a def file or something
 
 	// initialize local variables
-	for (i=0; i < totArtifacts; i++) {
-		active[i]=false;
-		cooling[i]=false;
+	for( i = 0; i < totArtifacts; i++ )
+	{
+		active[i] = false;
+		cooling[i] = false;
 	}
 
 	// figure out which artifacts are active or cooling
@@ -221,149 +264,176 @@ void idPlayer::UpdateHudActiveArtifacts() {
 
 	hash = gameLocal.entypeHash.GenerateKey( idItem::Type.classname, true );
 
-	for ( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) ) {
+	for( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) )
+		{
 			item = static_cast< idItem* >( gameLocal.entities[i] );
 
-			if ( item->GetOwner() !=  this ) {
+			if( item->GetOwner() !=  this )
+			{
 				continue;
 			}
 
-			if ( !item->ArtifactActive ) {
+			if( !item->ArtifactActive )
+			{
 				continue;
 			}
 
- 			active[item->spawnArgs.GetInt("artifact")] = true;
+			active[item->spawnArgs.GetInt( "artifact" )] = true;
 
-			if ( item->Cooling ) {
-				cooling[item->spawnArgs.GetInt("artifact")] = true;
+			if( item->Cooling )
+			{
+				cooling[item->spawnArgs.GetInt( "artifact" )] = true;
 			}
 		}
 	}
 
 
-	idUserInterface* hudUI = (idUserInterface*) hud;
-	for (i=0; i < totArtifacts; i++ ) {
-		if ( active[i] ) {
-			sprintf(itemStr, "eoc_Artifact%iPosA", i);
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
+	for( i = 0; i < totArtifacts; i++ )
+	{
+		if( active[i] )
+		{
+			sprintf( itemStr, "eoc_Artifact%iPosA", i );
 			hudUI->SetStateInt( itemStr, pos );
 
-			sprintf(itemStr, "eoc_Artifact%iVisA", i);
+			sprintf( itemStr, "eoc_Artifact%iVisA", i );
 			hudUI->SetStateBool( itemStr, true );
 
 			// artifact must be active for cooldown, but effects should be turned off at this point via script
-			sprintf(itemStr, "eoc_Artifact%iCoolDownVisA", i);
+			sprintf( itemStr, "eoc_Artifact%iCoolDownVisA", i );
 			hudUI->SetStateBool( itemStr, cooling[i] );
 
-			pos+=tileWidth; //up the position for the next visible item
+			pos += tileWidth; //up the position for the next visible item
 			numActive++;
-		}else{
+		}
+		else
+		{
 			//no need to change pos
 
-			sprintf(itemStr, "eoc_Artifact%iVisA", i);
+			sprintf( itemStr, "eoc_Artifact%iVisA", i );
 			hudUI->SetStateBool( itemStr, false );
 
-			sprintf(itemStr, "eoc_Artifact%iCoolDownVisA", i);
+			sprintf( itemStr, "eoc_Artifact%iCoolDownVisA", i );
 			hudUI->SetStateBool( itemStr, false );
 		}
 	}
 
-	hudUI->SetStateInt("eoc_ActiveArtifacts", numActive);
+	hudUI->SetStateInt( "eoc_ActiveArtifacts", numActive );
 
 }
 
-bool idPlayer::ArtifactVerify( int belt ) {
+bool idPlayer::ArtifactVerify( int belt )
+{
 	int art;
 	char itemStr[22];
-        //int iteration=rand();
+	//int iteration=rand();
 
-	if ( belt == -1 ) {
+	if( belt == -1 )
+	{
 		return false;
 	}
 
-	if ( belt >= Artifact.Num() ) {
+	if( belt >= Artifact.Num() )
+	{
 		return false;
 	}
 
-	art=Artifact[belt]->GetInt("artifact");
+	art = Artifact[belt]->GetInt( "artifact" );
 
-	sprintf(itemStr,Artifact[belt]->GetString("name"));
+	sprintf( itemStr, Artifact[belt]->GetString( "name" ) );
 
-	if ( art == -1 ) {
+	if( art == -1 )
+	{
 		return true; //?
 	}
-	
-	if ( InventoryItemQty(itemStr) > 0 ) {
+
+	if( InventoryItemQty( itemStr ) > 0 )
+	{
 		return true;
 	}
 
-	idUserInterface* hudUI = (idUserInterface*) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	// remove the artifact, we have zero items of it's type
-	sprintf(itemStr, "eoc_Artifact%iPos", art);
+	sprintf( itemStr, "eoc_Artifact%iPos", art );
 	hudUI->SetStateInt( itemStr, 0 );
-	sprintf(itemStr, "eoc_Artifact%iVis", art);
+	sprintf( itemStr, "eoc_Artifact%iVis", art );
 	hudUI->SetStateBool( itemStr, false );
-	sprintf(itemStr, "eoc_Artifact%iQty", art);
+	sprintf( itemStr, "eoc_Artifact%iQty", art );
 	hudUI->SetStateInt( itemStr, 0 );
-	sprintf(itemStr, "eoc_Artifact%iRotate", art);
+	sprintf( itemStr, "eoc_Artifact%iRotate", art );
 	hudUI->SetStateFloat( itemStr, 0.0f );
 
-	if (BeltSelection > belt) {
+	if( BeltSelection > belt )
+	{
 		BeltSelection--;
 	}
 
 	delete Artifact[belt];
-	Artifact.RemoveIndex(belt);
+	Artifact.RemoveIndex( belt );
 	Artifact.Condense();
 
 	return false;
 }
 
-void idPlayer::ArtifactValidateSelection() {
+void idPlayer::ArtifactValidateSelection()
+{
 	int belt;
 
-	if ( gameLocal.inCinematic || health < 0 ) {
+	if( gameLocal.inCinematic || health < 0 )
+	{
 		return;
 	}
 
-	if ( common->IsClient() ) {
+	if( common->IsClient() )
+	{
 		return;
 	}
 
-	if (BeltSelection == -1) {
-		ArtifactScrollRight(1);
+	if( BeltSelection == -1 )
+	{
+		ArtifactScrollRight( 1 );
 		return;
 	}
 
-	if ( ArtifactVerify(BeltSelection) ) {
+	if( ArtifactVerify( BeltSelection ) )
+	{
 		return;
 	}
 
-	belt=BeltSelection;
-	ArtifactScrollRight(0); // we start scrolling right from where we are because idList removes gaps between list items.
+	belt = BeltSelection;
+	ArtifactScrollRight( 0 ); // we start scrolling right from where we are because idList removes gaps between list items.
 
-	if ( belt == BeltSelection ) {
-		ArtifactScrollLeft(0);
+	if( belt == BeltSelection )
+	{
+		ArtifactScrollLeft( 0 );
 	}
 
-	if ( belt == BeltSelection ) {
+	if( belt == BeltSelection )
+	{
 		BeltSelection = -1;
 	}
 }
 
-void idPlayer::ArtifactScrollRight( int startfrom ) {
+void idPlayer::ArtifactScrollRight( int startfrom )
+{
 	int belt;
 
-	if ( gameLocal.inCinematic || health < 0 ) {
+	if( gameLocal.inCinematic || health < 0 )
+	{
 		return;
 	}
 
-	if ( common->IsClient() ) {
+	if( common->IsClient() )
+	{
 		return;
 	}
 
-	for (belt=BeltSelection+startfrom; belt <Artifact.Num(); belt++) {
-		if (InventoryItemQty(belt) > 0 ) {
+	for( belt = BeltSelection + startfrom; belt < Artifact.Num(); belt++ )
+	{
+		if( InventoryItemQty( belt ) > 0 )
+		{
 			BeltSelection = belt;
 			UpdateHudArtifacts();
 			return;
@@ -371,19 +441,24 @@ void idPlayer::ArtifactScrollRight( int startfrom ) {
 	}
 }
 
-void idPlayer::ArtifactScrollLeft( int startfrom ) {
+void idPlayer::ArtifactScrollLeft( int startfrom )
+{
 	int belt;
 
-	if ( gameLocal.inCinematic || health < 0 ) {
+	if( gameLocal.inCinematic || health < 0 )
+	{
 		return;
 	}
 
-	if ( common->IsClient() ) {
+	if( common->IsClient() )
+	{
 		return;
 	}
 
-	for (belt=BeltSelection-startfrom; belt > -1; belt--) {
-		if (InventoryItemQty(belt) > 0 ) {
+	for( belt = BeltSelection - startfrom; belt > -1; belt-- )
+	{
+		if( InventoryItemQty( belt ) > 0 )
+		{
 			BeltSelection = belt;
 			UpdateHudArtifacts();
 			return;
@@ -391,47 +466,56 @@ void idPlayer::ArtifactScrollLeft( int startfrom ) {
 	}
 }
 
-void idPlayer::ArtifactDrop( int belt, bool randomPos ) {
+void idPlayer::ArtifactDrop( int belt, bool randomPos )
+{
 
 	CleanupArtifactItems();
 
-	if ( !ArtifactVerify(belt) ) {
+	if( !ArtifactVerify( belt ) )
+	{
 		UpdateHudArtifacts();
 		return;
 	}
 
-	const char *name=Artifact[belt]->GetString("name");
+	const char* name = Artifact[belt]->GetString( "name" );
 
 	idEntity*	ent;
 	idItem*		item;
 
-	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+	for( int i = 0; i < MAX_GENTITIES; i++ )
+	{
 		ent = gameLocal.entities[i];
-		if ( !ent ) {
+		if( !ent )
+		{
 			continue;
 		}
-		
-		if ( !ent->IsType( idItem::Type ) ) {
+
+		if( !ent->IsType( idItem::Type ) )
+		{
 			continue;
 		}
-		
+
 		item = static_cast< idItem* >( ent );
 
-		if ( item->GetOwner() != this ) {
-			continue;
-		}
-		
-		if ( idStr::Icmp(name, item->spawnArgs.GetString("inv_name") ) ) {
+		if( item->GetOwner() != this )
+		{
 			continue;
 		}
 
-		if ( item->Processing ) {
+		if( idStr::Icmp( name, item->spawnArgs.GetString( "inv_name" ) ) )
+		{
 			continue;
 		}
 
-		idAngles use=viewAngles;
-		float	dist=80;
-		if ( randomPos ) {
+		if( item->Processing )
+		{
+			continue;
+		}
+
+		idAngles use = viewAngles;
+		float	dist = 80;
+		if( randomPos )
+		{
 			use.yaw = gameLocal.random.CRandomFloat() * 360.0f;
 			dist = 40 + gameLocal.random.CRandomFloat() * 40;
 		}
@@ -439,17 +523,17 @@ void idPlayer::ArtifactDrop( int belt, bool randomPos ) {
 		idVec3 org = GetPhysics()->GetOrigin() + idAngles( 0, use.yaw, 0 ).ToForward() * dist + idVec3( 0, 0, 1 );
 
 		idDict dict;
-		dict.Set( "classname", item->spawnArgs.GetString("classname") );
+		dict.Set( "classname", item->spawnArgs.GetString( "classname" ) );
 		dict.SetVector( "origin", org );
 		//dict.SetAngles( "angles", viewAngles.yaw + 180 );
 
-		idEntity *newItem;
+		idEntity* newItem;
 		gameLocal.SpawnEntityDef( dict, &newItem );
-		static_cast< idItem* >(newItem)->PickupDelayTime = gameLocal.time + 3000;
+		static_cast< idItem* >( newItem )->PickupDelayTime = gameLocal.time + 3000;
 
-		RemoveInventoryItem(name);
+		RemoveInventoryItem( name );
 		item->DeleteMe = true;
-		item->SetOwner(NULL);
+		item->SetOwner( NULL );
 		UpdateHudArtifacts();
 
 		break;
@@ -458,41 +542,48 @@ void idPlayer::ArtifactDrop( int belt, bool randomPos ) {
 	return;
 }
 
-bool idPlayer::ArtifactRemove( int belt ) {
+bool idPlayer::ArtifactRemove( int belt )
+{
 
 	CleanupArtifactItems();
 
-	if ( !ArtifactVerify(belt) ) {
+	if( !ArtifactVerify( belt ) )
+	{
 		UpdateHudArtifacts();
 		return false;
 	}
 
-	const char *name=Artifact[belt]->GetString("name");
+	const char* name = Artifact[belt]->GetString( "name" );
 
-	idItem *item;
+	idItem* item;
 	int hash, i;
 
 	hash = gameLocal.entypeHash.GenerateKey( idItem::Type.classname, true );
 
-	for ( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) ) {
+	for( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) )
+		{
 			item = static_cast< idItem* >( gameLocal.entities[i] );
 
-			if ( item->GetOwner() !=  this ) {
+			if( item->GetOwner() !=  this )
+			{
 				continue;
 			}
 
-			if ( idStr::Icmp(name, item->spawnArgs.GetString("inv_name")) ) {
+			if( idStr::Icmp( name, item->spawnArgs.GetString( "inv_name" ) ) )
+			{
 				continue;
 			}
 
-			if ( item->Processing ) {
+			if( item->Processing )
+			{
 				continue;
 			}
 
-			RemoveInventoryItem(name);
+			RemoveInventoryItem( name );
 			item->DeleteMe = true;
-			item->SetOwner(NULL);
+			item->SetOwner( NULL );
 			UpdateHudArtifacts();
 			return true;
 		}
@@ -502,14 +593,14 @@ bool idPlayer::ArtifactRemove( int belt ) {
 
 void idPlayer::ShowArtifactHud()
 {
-	idUserInterface* hudUI = (idUserInterface*) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	hudUI->HandleNamedEvent( "eoc_BeltShow" );
 }
 
 void idPlayer::UpdateArtifactHudDescription()
 {
-	idUserInterface* hudUI = (idUserInterface*) hud;
-	if ( g_noArtifactDescriptions.GetBool() )
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
+	if( g_noArtifactDescriptions.GetBool() )
 	{
 		hudUI->SetStateBool( "artifactDescShow", 0.0f );
 		hudUI->SetStateString( "artifactDesc", "" );
@@ -518,7 +609,7 @@ void idPlayer::UpdateArtifactHudDescription()
 
 	CleanupArtifactItems();
 
-	if (!ArtifactVerify(BeltSelection))
+	if( !ArtifactVerify( BeltSelection ) )
 	{
 		hudUI->SetStateString( "artifactDesc", "" );
 		return;
@@ -526,58 +617,75 @@ void idPlayer::UpdateArtifactHudDescription()
 
 	hudUI->SetStateBool( "artifactDescShow", 1.0f );
 
-	idStr		desc="";
+	idStr		desc = "";
 
-	const idDict *item = gameLocal.FindEntityDefDict( Artifact[BeltSelection]->GetString("defname") );
+	const idDict* item = gameLocal.FindEntityDefDict( Artifact[BeltSelection]->GetString( "defname" ) );
 
-	if ( !item ) {
+	if( !item )
+	{
 		desc = "";
-	} else {
-		desc = item->GetString("eoc_description");
+	}
+	else
+	{
+		desc = item->GetString( "eoc_description" );
 
-		if ( desc == "" ) {
-			switch( inventory.Class ) {
-				case CLERIC:	desc = "eoc_description_cleric";	break;
-				case MAGE:		desc = "eoc_description_mage";		break;
-				case FIGHTER:	desc = "eoc_description_fighter";	break;
+		if( desc == "" )
+		{
+			switch( inventory.Class )
+			{
+				case CLERIC:
+					desc = "eoc_description_cleric";
+					break;
+				case MAGE:
+					desc = "eoc_description_mage";
+					break;
+				case FIGHTER:
+					desc = "eoc_description_fighter";
+					break;
 			}
 			desc = item->GetString( desc.c_str() );
 		}
 
 		desc = "\n" + desc;
-		desc = Artifact[BeltSelection]->GetString("name") + desc;
+		desc = Artifact[BeltSelection]->GetString( "name" ) + desc;
 	}
 
 	hudUI->SetStateString( "artifactDesc", desc.c_str() );
 }
 
 // z.todo: this COULD be done with a post event ...
-void idPlayer::CleanupArtifactItems() {
-	idItem *item;
+void idPlayer::CleanupArtifactItems()
+{
+	idItem* item;
 	int hash, i;
-	bool upd=false;
+	bool upd = false;
 
 	hash = gameLocal.entypeHash.GenerateKey( idItem::Type.classname, true );
 
-	for ( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) ) {
+	for( i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && gameLocal.entities[i]->IsType( idItem::Type ) )
+		{
 			item = static_cast< idItem* >( gameLocal.entities[i] );
 
-			if ( item->GetOwner() !=  this ) {
+			if( item->GetOwner() !=  this )
+			{
 				continue;
 			}
 
-			if ( !item->DeleteMe ) {
+			if( !item->DeleteMe )
+			{
 				continue;
 			}
 
 			delete item;
-			item=NULL;
-			upd=true;
+			item = NULL;
+			upd = true;
 		}
 	}
 
-	if ( upd ) {
+	if( upd )
+	{
 		UpdateHudArtifacts();
 	}
 }

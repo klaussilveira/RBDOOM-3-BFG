@@ -1223,7 +1223,7 @@ idCVar ai_think( "ai_think", "1", CVAR_BOOL, "for testing.." );
 void idAI::Think()
 {
 	// HEXEN : Zeroth
-	if ( !AI_DEAD && gameLocal.time < onFire || onFire == -1 )
+	if( !AI_DEAD && gameLocal.time < onFire || onFire == -1 )
 	{
 		EmitFlames();
 	}
@@ -1971,7 +1971,7 @@ bool idAI::MoveToEnemy()
 		move.startTime		= gameLocal.time;
 	}
 
-	if ( spawnArgs.GetBool( "wall_walker" ) )
+	if( spawnArgs.GetBool( "wall_walker" ) )
 	{
 		move.moveDest.z		= lastVisibleEnemyPos.z;
 	}
@@ -2264,7 +2264,7 @@ void idAI::MoveForward()
 	ang.yaw = ideal_yaw;
 	ang.ToVectors( &dir );
 	dir.Normalize();
-	pos = physicsObj.GetOrigin() + (dir * 64);
+	pos = physicsObj.GetOrigin() + ( dir * 64 );
 
 	//idVec3 dir;
 	//idVec3 local_dir;
@@ -2279,7 +2279,7 @@ void idAI::MoveForward()
 //		ideal_yaw = idMath::AngleNormalize180( local_dir.ToYaw() );
 //	}
 
-	DirectMoveToPosition(pos);
+	DirectMoveToPosition( pos );
 	TurnToward( pos );
 }
 
@@ -2289,21 +2289,21 @@ HEXEN
 idAI::Event_GetJumpVelocity
 =====================
 */
-idVec3 idAI::GetJumpVelocity( const idVec3 &pos, float speed, float max_height )
+idVec3 idAI::GetJumpVelocity( const idVec3& pos, float speed, float max_height )
 {
 	idVec3 start;
 	idVec3 end;
 	idVec3 dir;
 	float dist;
 	bool result;
-	idEntity *enemyEnt = enemy.GetEntity();
+	idEntity* enemyEnt = enemy.GetEntity();
 
-	if ( !enemyEnt )
+	if( !enemyEnt )
 	{
 		return vec3_zero;
 	}
 
-	if ( speed <= 0.0f )
+	if( speed <= 0.0f )
 	{
 		gameLocal.Error( "Invalid speed.  speed must be > 0." );
 	}
@@ -2312,14 +2312,14 @@ idVec3 idAI::GetJumpVelocity( const idVec3 &pos, float speed, float max_height )
 	end = pos;
 	dir = end - start;
 	dist = dir.Normalize();
-	if ( dist > 16.0f )
+	if( dist > 16.0f )
 	{
 		dist -= 16.0f;
 		end -= dir * 16.0f;
 	}
 
 	result = PredictTrajectory( start, end, speed, physicsObj.GetGravity(), physicsObj.GetClipModel(), MASK_MONSTERSOLID, max_height, this, enemyEnt, ai_debugMove.GetBool() ? 4000 : 0, dir );
-	if ( result )
+	if( result )
 	{
 		return dir * speed ;
 	}
@@ -2338,7 +2338,7 @@ idAI::FacingNormal
 idVec3 idAI::FacingNormal()
 {
 	idVec3 dir = viewAxis[ 0 ] * physicsObj.GetGravityAxis();
-    dir.Normalize();
+	dir.Normalize();
 	return dir;
 }
 
@@ -2599,7 +2599,7 @@ bool idAI::NewWanderDir( const idVec3& dest )
 	}
 
 	// HEXEN : Zeroth - always move direcly toward the player when ignoring obstacles.
-	if ( ignoreObstacles )
+	if( ignoreObstacles )
 	{
 		return true;
 	}
@@ -3253,7 +3253,7 @@ void idAI::AnimMove()
 		{
 			goalPos = move.moveDest - move.moveDir * MS2SEC( move.startTime + move.duration - gameLocal.time );
 			delta = goalPos - oldorigin;
-			if ( !spawnArgs.GetBool( "wall_walker" ) )
+			if( !spawnArgs.GetBool( "wall_walker" ) )
 			{
 				gameLocal.Printf( "lolz\n" );
 				delta.z = 0.0f;
@@ -3262,7 +3262,7 @@ void idAI::AnimMove()
 		else
 		{
 			delta = move.moveDest - oldorigin;
-			if ( !spawnArgs.GetBool( "wall_walker" ) )
+			if( !spawnArgs.GetBool( "wall_walker" ) )
 			{
 				gameLocal.Printf( "lolz mang\n" );
 				delta.z = 0.0f;
@@ -5205,7 +5205,7 @@ void idAI::DirectDamage( const char* meleeDefName, idEntity* ent )
 idAI::TestMelee
 =====================
 */
-bool idAI::TestMelee( const idVec3 &iPoint ) const
+bool idAI::TestMelee( const idVec3& iPoint ) const
 {
 	trace_t trace;
 	idActor* enemyEnt = enemy.GetEntity();
@@ -5319,7 +5319,7 @@ bool idAI::AttackMelee( const char* meleeDefName )
 
 	// make sure the trace can actually hit the enemy
 	idVec3 iPoint;
-	if ( forceMiss || !TestMelee( iPoint ) )
+	if( forceMiss || !TestMelee( iPoint ) )
 	{
 		// missed
 		p = meleeDef->GetString( "snd_miss" );

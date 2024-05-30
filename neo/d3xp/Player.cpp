@@ -152,9 +152,9 @@ const idEventDef EV_SetViewAngles( "SetViewAngles", "v" ); //does nothing?
 const idEventDef EV_GetEyePos( "GetEyePos", NULL, 'v' );
 const idEventDef EV_StickToSurface( "StickToSurface", "v" );
 const idEventDef EV_UnstickToSurface( "UnstickToSurface" );
-const idEventDef EV_StuckToSurface( "StuckToSurface", NULL, 'f');
-const idEventDef EV_SetPowerTome( "SetPowerTome", "f");
-const idEventDef EV_GetPowerTome( "GetPowerTome", NULL, 'f');
+const idEventDef EV_StuckToSurface( "StuckToSurface", NULL, 'f' );
+const idEventDef EV_SetPowerTome( "SetPowerTome", "f" );
+const idEventDef EV_GetPowerTome( "GetPowerTome", NULL, 'f' );
 const idEventDef EV_VecForwardP( "VecForwardP", NULL, 'v' );
 const idEventDef EV_VecFacingP( "VecFacingP", NULL, 'v' );
 const idEventDef EV_HudMessage( "HudMessage", "s" );
@@ -217,7 +217,7 @@ EVENT( EV_VecForwardP,					idPlayer::Event_VecForwardP )
 EVENT( EV_VecFacingP,					idPlayer::Event_VecFacingP )
 EVENT( EV_HudMessage,					idPlayer::Event_HudMessage )
 EVENT( EV_ArtifactUseFlash,				idPlayer::Event_ArtifactUseFlash )
-// ************** 
+// **************
 END_CLASS
 
 const int MAX_RESPAWN_TIME = 10000;
@@ -254,7 +254,7 @@ void idInventory::Clear()
 	// set to -1 so that the gun knows to have a full clip the first time we get it and at the start of the level
 	// HEXEN : Zeroth. You can't memset floats as -1, else you get -1.#QNAN0 values.
 	// for( int i = 0; i < clip.Num(); ++i )
-	for ( int i = 0; i < MAX_WEAPONS; i++ )
+	for( int i = 0; i < MAX_WEAPONS; i++ )
 	{
 		clip[i].Set( -1 );
 	}
@@ -346,7 +346,7 @@ void idInventory::GetPersistantData( idDict& dict )
 			clas = "cleric";
 			break;
 		}
-	}	
+	}
 
 	dict.SetInt( idStr( "maxhealth_" ) + clas, maxHealth );
 	dict.SetInt( idStr( "armor_" ) + clas, armor );
@@ -379,7 +379,7 @@ void idInventory::GetPersistantData( idDict& dict )
 
 		// artifacts are dealt with elsewhere
 		str = item->GetString( "artifact" );
-		if ( idStr::Icmp( str, "" ) )
+		if( idStr::Icmp( str, "" ) )
 		{
 			continue;
 		}
@@ -757,7 +757,7 @@ void idInventory::Restore( idRestoreGame* savefile )
 
 		// artifacts are dealt with elsewhere
 		str = itemdict->GetString( "artifact" );
-		if ( idStr::Icmp( str, "" ) )
+		if( idStr::Icmp( str, "" ) )
 		{
 			continue;
 		}
@@ -990,19 +990,19 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 		i = AmmoIndexForAmmoClass( statname );
 		famount = atof( value );
 
-		if ( famount )
+		if( famount )
 		{
 			bool rtrn = true;
 
 			// if its combined mana, add the number to blue, green, and combined.
-			combined = idWeapon::GetAmmoNumForName("ammo_combinedmana");
-			blue = idWeapon::GetAmmoNumForName("ammo_bluemana");
-			green = idWeapon::GetAmmoNumForName("ammo_greenmana");
+			combined = idWeapon::GetAmmoNumForName( "ammo_combinedmana" );
+			blue = idWeapon::GetAmmoNumForName( "ammo_bluemana" );
+			green = idWeapon::GetAmmoNumForName( "ammo_greenmana" );
 
-			if ( i == combined )
+			if( i == combined )
 			{
 				fmax = MaxAmmoForAmmoClass( owner, "ammo_bluemana" );
-				if ( ammo[ blue ].Get() >= fmax)
+				if( ammo[ blue ].Get() >= fmax )
 				{
 					rtrn = false;
 				}
@@ -1010,14 +1010,14 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 				{
 					ammo[ blue ] += famount;
 
-					if (ammo[ blue ].Get() > fmax)
+					if( ammo[ blue ].Get() > fmax )
 					{
 						ammo[ blue ] = fmax;
 					}
 				}
 
 				fmax = MaxAmmoForAmmoClass( owner, "ammo_greenmana" );
-				if ( ammo[ green ].Get() >= fmax )
+				if( ammo[ green ].Get() >= fmax )
 				{
 					rtrn = false;
 				}
@@ -1026,7 +1026,7 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 					rtrn = true;
 					ammo[ green ] += famount;
 
-					if (ammo[ green ].Get() > fmax)
+					if( ammo[ green ].Get() > fmax )
 					{
 						ammo[ green ] = fmax;
 					}
@@ -1036,19 +1036,19 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 			{
 				fmax = MaxAmmoForAmmoClass( owner, statname );
 
-				if ( ammo[ i ].Get() >= fmax )
+				if( ammo[ i ].Get() >= fmax )
 				{
 					return false;
 				}
 
 				ammo[ i ] += famount;
-				if ( ( fmax > 0 ) && ( ammo[ i ].Get() > fmax ) )
+				if( ( fmax > 0 ) && ( ammo[ i ].Get() > fmax ) )
 				{
 					ammo[ i ] = fmax;
 				}
 			}
 
-			if ( ammo[ green ].Get() < ammo[ blue ].Get() )
+			if( ammo[ green ].Get() < ammo[ blue ].Get() )
 			{
 				ammo[ combined ] = ammo[ green ].Get();
 			}
@@ -1057,11 +1057,11 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 				ammo[ combined ] = ammo[ blue ].Get();
 			}
 
-			if ( rtrn == false )
+			if( rtrn == false )
 			{
 				return false;
 			}
-				ammoPulse = true;
+			ammoPulse = true;
 
 			name = AmmoPickupNameForIndex( i );
 			if( idStr::Length( name ) )
@@ -1070,19 +1070,19 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 			}
 		}
 	}
-	else if ( !idStr::Icmpn( statname, "armor", 5 ) )
+	else if( !idStr::Icmpn( statname, "armor", 5 ) )
 	{
-		if ( !idStr::Icmp( statname, "armor_cleric" ) &&Class == CLERIC )
+		if( !idStr::Icmp( statname, "armor_cleric" ) && Class == CLERIC )
 		{
-			if ( armor >= maxarmor )
+			if( armor >= maxarmor )
 			{
 				return false;	// can't hold any more, so leave the item
 			}
 			amount = atoi( value );
-			if ( amount )
+			if( amount )
 			{
 				armor += amount;
-				if ( armor > maxarmor )
+				if( armor > maxarmor )
 				{
 					armor = maxarmor;
 				}
@@ -1090,18 +1090,18 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 				armorPulse = true;
 			}
 		}
-		else if ( !idStr::Icmp( statname, "armor_fighter" ) &&Class == FIGHTER )
+		else if( !idStr::Icmp( statname, "armor_fighter" ) && Class == FIGHTER )
 		{
-			if ( armor >= maxarmor )
+			if( armor >= maxarmor )
 			{
 				return false;	// can't hold any more, so leave the item
 			}
 
 			amount = atoi( value );
-			if ( amount )
+			if( amount )
 			{
 				armor += amount;
-				if ( armor > maxarmor )
+				if( armor > maxarmor )
 				{
 					armor = maxarmor;
 				}
@@ -1109,18 +1109,18 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 				armorPulse = true;
 			}
 		}
-		else if ( !idStr::Icmp( statname, "armor_mage" ) &&Class == MAGE )
+		else if( !idStr::Icmp( statname, "armor_mage" ) && Class == MAGE )
 		{
-			if ( armor >= maxarmor )
+			if( armor >= maxarmor )
 			{
 				return false;	// can't hold any more, so leave the item
 			}
 
 			amount = atoi( value );
-			if ( amount )
+			if( amount )
 			{
 				armor += amount;
-				if ( armor > maxarmor )
+				if( armor > maxarmor )
 				{
 					armor = maxarmor;
 				}
@@ -1128,17 +1128,17 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 				armorPulse = true;
 			}
 		}
-		else if ( !idStr::Icmp( statname, "armor" ) )
+		else if( !idStr::Icmp( statname, "armor" ) )
 		{
-			if ( armor >= maxarmor )
+			if( armor >= maxarmor )
 			{
 				return false;	// can't hold any more, so leave the item
 			}
 			amount = atoi( value );
-			if ( amount )
+			if( amount )
 			{
 				armor += amount;
-				if ( armor > maxarmor )
+				if( armor > maxarmor )
 				{
 					armor = maxarmor;
 				}
@@ -1341,7 +1341,7 @@ void idInventory::Drop( const idDict& spawnArgs, const char* weapon_classname, i
 		ammo[ ammo_i ] = 0;
 	}
 	// HEXEN : Zeroth
-	if ( ammo_i == idWeapon::GetAmmoNumForName( "ammo_combinedmana" ) )
+	if( ammo_i == idWeapon::GetAmmoNumForName( "ammo_combinedmana" ) )
 	{
 		ammo[ idWeapon::GetAmmoNumForName( "ammo_bluemana" ) ] = 0;
 		ammo[ idWeapon::GetAmmoNumForName( "ammo_greenmana" ) ] = 0;
@@ -1370,7 +1370,7 @@ float idInventory::HasAmmo( ammo_t type, float amount )
 	DoCombinedMana();
 
 	// return how many shots we can fire
-	return (int) ( ammo[ type ].Get() / amount );
+	return ( int )( ammo[ type ].Get() / amount );
 
 }
 
@@ -1387,7 +1387,7 @@ float idInventory::HasAmmo( const char* weapon_classname, bool includeClip, idPl
 	float ammoCount = HasAmmo( ammo_i, ammoRequired );
 	if( includeClip && owner )
 	{
-		ammoCount += Max( 0, (int) clip[owner->SlotForWeapon( weapon_classname )].Get() );
+		ammoCount += Max( 0, ( int ) clip[owner->SlotForWeapon( weapon_classname )].Get() );
 	}
 	return ammoCount;
 
@@ -1399,7 +1399,8 @@ Zeroth
 idInventory::DoCombinedMana
 ===============
 */
-void idInventory::DoCombinedMana() {
+void idInventory::DoCombinedMana()
+{
 	int blue, green, combined;
 
 	combined = idWeapon::GetAmmoNumForName( "ammo_combinedmana" );
@@ -1407,7 +1408,7 @@ void idInventory::DoCombinedMana() {
 	blue = idWeapon::GetAmmoNumForName( "ammo_bluemana" );
 
 	// ammo_combinedmana is a special ammo type.
-	if ( ammo[ green ].Get() < ammo[ blue ].Get())
+	if( ammo[ green ].Get() < ammo[ blue ].Get() )
 	{
 		ammo[ combined ] = ammo[ green ].Get();
 	}
@@ -1467,7 +1468,7 @@ bool idInventory::UseAmmo( ammo_t type, float amount )
 	}
 
 
-	if ( HasAmmo( type, amount ) < 1 )
+	if( HasAmmo( type, amount ) < 1 )
 	{
 		return false;
 	}
@@ -1481,7 +1482,7 @@ bool idInventory::UseAmmo( ammo_t type, float amount )
 
 	if( ammo[ type ].Get() >= 0 )
 	{
-		if ( type == combined )
+		if( type == combined )
 		{
 			ammo[ blue ] -= amount;
 			ammo[ green ] -= amount;
@@ -2028,7 +2029,7 @@ void idPlayer::Init()
 	invincible				= false; // this is used for temporary godmode ( icon of the defender )
 	hellion_danger_time		= 0;
 
-	const idDict *HELLPIT = gameLocal.FindEntityDefDict( "object_hellionpit" );
+	const idDict* HELLPIT = gameLocal.FindEntityDefDict( "object_hellionpit" );
 	HELLION_MINS = HELLPIT->GetVector( "mins", "48 48 68" );
 	HELLION_MAXS = HELLPIT->GetVector( "maxs", "48 48 68" );
 	HELLION_BOUNDS = idBounds( HELLION_MINS, HELLION_MAXS );
@@ -2038,7 +2039,7 @@ void idPlayer::Init()
 	HELLION_DANGER_RECOUP_TIME = HELLPIT->GetInt( "time_recoup" );
 	HELLION_SPAWN_DIST_FROM_PLAYER = HELLPIT->GetInt( "dist_spawn" );
 
-	idUserInterface* hudUI = (idUserInterface *) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	hudUI->HandleNamedEvent( "eoc_AutoMapOff" );
 	AutoMapOff = true;
 	hudUI->SetStateString( "eoc_AutoMapImageTop", gameLocal.world->spawnArgs.GetString( "floor_top" ) );
@@ -2436,7 +2437,7 @@ void idPlayer::Spawn()
 			}
 		}
 
-		idUserInterface* hudUI = (idUserInterface*) hud;
+		idUserInterface* hudUI = ( idUserInterface* ) hud;
 		hudUI->SetStateString( "eoc_message", "" );
 		hudUI->HandleNamedEvent( "eoc_MessageHide" );
 	}
@@ -2864,7 +2865,7 @@ void idPlayer::Save( idSaveGame* savefile ) const
 			savefile->WriteBool( audioHasBeenHeard[i][j] );
 		}
 	}
-	
+
 // ****************************
 //
 // HEXEN
@@ -2875,7 +2876,7 @@ void idPlayer::Save( idSaveGame* savefile ) const
 	savefile->WriteBool( beaten );
 
 	savefile->WriteInt( Artifact.Num() );
-	for ( int i = 0; i < Artifact.Num(); i++ )
+	for( int i = 0; i < Artifact.Num(); i++ )
 	{
 		savefile->WriteString( Artifact[i]->GetString( "defname" ) );
 		savefile->WriteInt( InventoryItemQty( Artifact[i]->GetString( "name" ) ) );
@@ -3235,16 +3236,16 @@ void idPlayer::Restore( idRestoreGame* savefile )
 	savefile->ReadBool( beaten ); // release beaten or not
 
 	//** artifacts **
-	Artifact.DeleteContents(true);
+	Artifact.DeleteContents( true );
 	savefile->ReadInt( num );
 	idDict args;
 
-	for ( int i = 0; i < num; i++ )
+	for( int i = 0; i < num; i++ )
 	{
 		savefile->ReadString( str );
 		savefile->ReadInt( num2 );
 
-		for ( j = 0; j < num2; j++ )
+		for( j = 0; j < num2; j++ )
 		{
 			args.Set( "classname", str );
 			args.Set( "owner", name.c_str() );
@@ -3630,13 +3631,13 @@ void idPlayer::SavePersistantInfo()
 	//** artifacts **
 
 	playerInfo.SetInt( "artnum", Artifact.Num() );
-	for ( i = 0; i < Artifact.Num(); i++ )
+	for( i = 0; i < Artifact.Num(); i++ )
 	{
 		sprintf( key, "artifact%idefname", i );
-		playerInfo.Set( key, Artifact[i]->GetString("defname") );
+		playerInfo.Set( key, Artifact[i]->GetString( "defname" ) );
 
 		sprintf( key, "artifact%iqty", i );
-		playerInfo.SetInt( key, InventoryItemQty( Artifact[i]->GetString("name") ) );
+		playerInfo.SetInt( key, InventoryItemQty( Artifact[i]->GetString( "name" ) ) );
 	}
 	playerInfo.SetInt( "eoc_BeltSelection", BeltSelection );
 	playerInfo.SetInt( "eoc_BeltPosition", BeltPosition );
@@ -3665,7 +3666,7 @@ void idPlayer::RestorePersistantInfo()
 	spawnArgs.Copy( gameLocal.persistentPlayerInfo[entityNumber] );
 
 	inventory.RestoreInventory( this, spawnArgs );
-	
+
 	switch( inventory.Class )
 	{
 		case MAGE:
@@ -3694,7 +3695,7 @@ void idPlayer::RestorePersistantInfo()
 	artnum = spawnArgs.GetInt( "artnum", "0" );
 	idDict args;
 
-	for ( i = 0; i < artnum; i++ )
+	for( i = 0; i < artnum; i++ )
 	{
 		sprintf( key, "artifact%idefname", i );
 		str = spawnArgs.GetString( key );
@@ -3702,7 +3703,7 @@ void idPlayer::RestorePersistantInfo()
 		sprintf( key, "artifact%iqty", i );
 		qty = spawnArgs.GetInt( key );
 
-		for ( j = 0; j < qty; j++ )
+		for( j = 0; j < qty; j++ )
 		{
 			args.Set( "classname", str );
 			args.Set( "owner", name.c_str() );
@@ -3793,7 +3794,7 @@ void idPlayer::UpdateHudStats( idMenuHandler_HUD* _hudManager )
 		hud->UpdateHealthArmor( this );
 		hud->UpdateWeaponInfo( this );
 
-		idUserInterface* hudUI = (idUserInterface*) hud;
+		idUserInterface* hudUI = ( idUserInterface* ) hud;
 		hudUI->SetStateInt( "player_maxhealth", inventory.maxHealth );
 		hudUI->SetStateInt( "player_maxarmor", inventory.maxarmor );
 
@@ -4381,23 +4382,23 @@ void idPlayer::FireWeaponAlt()
 	idMat3 axis;
 	idVec3 muzzle;
 
-	if ( privateCameraView )
+	if( privateCameraView )
 	{
 		return;
 	}
 
-	if ( g_editEntityMode.GetInteger() )
+	if( g_editEntityMode.GetInteger() )
 	{
 		GetViewPos( muzzle, axis );
-		if ( gameLocal.editEntities->SelectEntity( muzzle, axis[0], this ) )
+		if( gameLocal.editEntities->SelectEntity( muzzle, axis[0], this ) )
 		{
 			return;
 		}
 	}
 
-	if ( !hiddenWeapon && weapon.GetEntity()->IsReady() )
+	if( !hiddenWeapon && weapon.GetEntity()->IsReady() )
 	{
-		if ( weapon.GetEntity()->AmmoInClip() || weapon.GetEntity()->AmmoAvailable() )
+		if( weapon.GetEntity()->AmmoInClip() || weapon.GetEntity()->AmmoAvailable() )
 		{
 			AI_ATTACK2_HELD = true;
 			weapon.GetEntity()->BeginAttack2();
@@ -4416,15 +4417,15 @@ void idPlayer::FireWeaponAlt()
 			NextBestWeapon();
 		}
 	}
-	if ( hud )
+	if( hud )
 	{
-		if ( tipUp )
+		if( tipUp )
 		{
 			HideTip();
 		}
 		// may want to track with with a bool as well
 		// keep from looking up named events so often
-		if ( objectiveUp )
+		if( objectiveUp )
 		{
 			HideObjective();
 		}
@@ -4509,90 +4510,90 @@ bool idPlayer::Give( const char* statname, const char* value, unsigned int giveF
 		return false;
 	}
 
-	if ( !idStr::Icmpn( statname, "health", 6 ) )
+	if( !idStr::Icmpn( statname, "health", 6 ) )
 	{
-		if ( !idStr::Icmp( statname, "health" ) )
+		if( !idStr::Icmp( statname, "health" ) )
 		{
-			if ( health >= inventory.maxHealth )
+			if( health >= inventory.maxHealth )
 			{
 				return false;
 			}
 			amount = atoi( value );
 
-	 		if ( amount )
+			if( amount )
 			{
 				health += amount;
-				if ( health > inventory.maxHealth )
+				if( health > inventory.maxHealth )
 				{
 					health = inventory.maxHealth;
 				}
-				if ( hud )
+				if( hud )
 				{
 					healthPulse = true;
 				}
 			}
 		}
-		else if ( !idStr::Icmp( statname, "health_mage" ) )
+		else if( !idStr::Icmp( statname, "health_mage" ) )
 		{
-			if ( health >= inventory.maxHealth )
+			if( health >= inventory.maxHealth )
 			{
 				return false;
 			}
 
 			amount = atoi( value );
 
-	 		if ( amount )
+			if( amount )
 			{
 				health += amount;
-				if ( health > inventory.maxHealth )
+				if( health > inventory.maxHealth )
 				{
 					health = inventory.maxHealth;
 				}
-				if ( hud )
+				if( hud )
 				{
 					healthPulse = true;
 				}
 			}
 		}
-		else if ( !idStr::Icmp( statname, "health_cleric" ) )
+		else if( !idStr::Icmp( statname, "health_cleric" ) )
 		{
-			if ( health >= inventory.maxHealth )
+			if( health >= inventory.maxHealth )
 			{
 				return false;
 			}
 
 			amount = atoi( value );
 
-	 		if ( amount )
+			if( amount )
 			{
 				health += amount;
-				if ( health > inventory.maxHealth )
+				if( health > inventory.maxHealth )
 				{
 					health = inventory.maxHealth;
 				}
-				if ( hud )
+				if( hud )
 				{
 					healthPulse = true;
 				}
 			}
 		}
-		else if ( !idStr::Icmp( statname, "health_fighter" ) )
+		else if( !idStr::Icmp( statname, "health_fighter" ) )
 		{
-			if ( health >= inventory.maxHealth )
+			if( health >= inventory.maxHealth )
 			{
 				return false;
 			}
 
 			amount = atoi( value );
 
-	 		if ( amount )
+			if( amount )
 			{
 				health += amount;
-				if ( health > inventory.maxHealth )
+				if( health > inventory.maxHealth )
 				{
 					health = inventory.maxHealth;
 				}
-				if ( hud )
+				if( hud )
 				{
 					healthPulse = true;
 				}
@@ -5080,7 +5081,7 @@ bool idPlayer::GiveInventoryItem( idItem* item, unsigned int giveFlags )
 	}
 
 	// HEXEN : Zeroth
-	if ( item->spawnArgs.GetInt( "max_inventory" ) > 0 &&InventoryItemQty( item->spawnArgs.GetString( "inv_name" ))  >= item->spawnArgs.GetInt( "max_inventory" ) )
+	if( item->spawnArgs.GetInt( "max_inventory" ) > 0 && InventoryItemQty( item->spawnArgs.GetString( "inv_name" ) )  >= item->spawnArgs.GetInt( "max_inventory" ) )
 	{
 		return false;
 	}
@@ -5088,10 +5089,10 @@ bool idPlayer::GiveInventoryItem( idItem* item, unsigned int giveFlags )
 	const char* itemName = item->spawnArgs.GetString( "inv_name" );
 
 	// HEXEN : Zeroth
-	if ( item->spawnArgs.FindKey("artifact") && !item->spawnArgs.GetBool("instantEffect") )
+	if( item->spawnArgs.FindKey( "artifact" ) && !item->spawnArgs.GetBool( "instantEffect" ) )
 	{
 		//only append an artifact if it isn't already in the list
-		if ( FindArtifact( item->spawnArgs.GetInt( "artifact" )) == -1 )
+		if( FindArtifact( item->spawnArgs.GetInt( "artifact" ) ) == -1 )
 		{
 			item->ArtifactActive = 0; // whether or not the artifact is active - can be changed later to represent number of active artifacts of this type if necessary
 			artifact.SetInt( "artifact", item->spawnArgs.GetInt( "artifact" ) ); //slot in artifact belt
@@ -5420,28 +5421,28 @@ void idPlayer::RemoveInventoryItem( const char* name )
 		name = idLocalization::GetString( "#str_00101056" );
 	}
 	idDict* item = FindInventoryItem( name );
-	
+
 	bool foundkey = false;
 	int key;
-    // int iteration = rand();
+	// int iteration = rand();
 
-	if ( !item )
+	if( !item )
 	{
 		return;
 	}
 
-	if (item->FindKey( "artifact" ) )
+	if( item->FindKey( "artifact" ) )
 	{
 		foundkey = true;
 		key = item->GetInt( "artifact" );
 	}
 
-	if ( foundkey )
+	if( foundkey )
 	{
 		ArtifactVerify( FindArtifact( key ) );
 		UpdateHudArtifacts();
 	}
-	
+
 	if( item )
 	{
 		RemoveInventoryItem( item );
@@ -5988,7 +5989,7 @@ idUserInterface* idPlayer::ActiveGui()
 		return NULL;
 	}
 
-	if ( customGuiOpen )
+	if( customGuiOpen )
 	{
 		return customGui;
 	}
@@ -6113,11 +6114,11 @@ void idPlayer::Weapon_Combat()
 		else
 		{
 			// HEXEN : Zeroth
-			if ( ( usercmd.buttons & BUTTON_ATTACK2 ) && !weaponGone )
+			if( ( usercmd.buttons & BUTTON_ATTACK2 ) && !weaponGone )
 			{
 				FireWeaponAlt();
 			}
-			else if ( oldButtons & BUTTON_ATTACK2 )
+			else if( oldButtons & BUTTON_ATTACK2 )
 			{
 				AI_ATTACK2_HELD = false;
 				weapon.GetEntity()->EndAttack2();
@@ -6156,7 +6157,7 @@ void idPlayer::Weapon_NPC()
 	else
 	{
 		// HEXEN : Zeroth
-		if ( ( usercmd.buttons & BUTTON_ATTACK2 ) && !( oldButtons & BUTTON_ATTACK2 ) )
+		if( ( usercmd.buttons & BUTTON_ATTACK2 ) && !( oldButtons & BUTTON_ATTACK2 ) )
 		{
 			buttonMask |= BUTTON_ATTACK2;
 			focusCharacter->TalkTo( this );
@@ -6279,28 +6280,28 @@ void idPlayer::Weapon_GUI()
 	else
 	{
 		// HEXEN : Zeroth
-		if ( ( oldButtons ^ usercmd.buttons ) & BUTTON_ATTACK2 )
+		if( ( oldButtons ^ usercmd.buttons ) & BUTTON_ATTACK2 )
 		{
 			sysEvent_t ev;
-			const char *command = NULL;
+			const char* command = NULL;
 			bool updateVisuals = false;
 
-			idUserInterface *ui = ActiveGui();
-			if ( ui )
+			idUserInterface* ui = ActiveGui();
+			if( ui )
 			{
 				ev = sys->GenerateMouseButtonEvent( 1, ( usercmd.buttons & BUTTON_ATTACK2 ) != 0 );
 				command = ui->HandleEvent( &ev, gameLocal.time, &updateVisuals );
-				if ( updateVisuals && focusGUIent && ui == focusUI )
+				if( updateVisuals && focusGUIent && ui == focusUI )
 				{
 					focusGUIent->UpdateVisuals();
 				}
 			}
-			if ( common->IsClient() )
+			if( common->IsClient() )
 			{
 				// we predict enough, but don't want to execute commands
 				return;
 			}
-			if ( focusGUIent )
+			if( focusGUIent )
 			{
 				HandleGuiCommands( focusGUIent, command );
 			}
@@ -6366,7 +6367,7 @@ void idPlayer::UpdateWeapon()
 	else
 	{
 		// HEXEN : Zeroth
-		if ( hiddenWeapon && tipUp && usercmd.buttons & BUTTON_ATTACK2 )
+		if( hiddenWeapon && tipUp && usercmd.buttons & BUTTON_ATTACK2 )
 		{
 			HideTip();
 		}
@@ -6716,7 +6717,7 @@ void idPlayer::UpdateSpectating()
 	{
 		wantSpectate = false;
 	}
-	/*Zeroth*/ else if ( usercmd.buttons & BUTTON_ATTACK2 )
+	/*Zeroth*/ else if( usercmd.buttons & BUTTON_ATTACK2 )
 	{
 		SpectateCycle();
 	}
@@ -6741,20 +6742,20 @@ bool idPlayer::HandleSingleGuiCommand( idEntity* entityGui, idLexer* src )
 		return false;
 	}
 
-	if ( token == "mainmenu" )
+	if( token == "mainmenu" )
 	{
 		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "clearPersistentLevelInfo" );
 		gameLocal.sessionCommand = "disconnect";
 		return true;
 	}
 
-	if ( token == "quit" )
+	if( token == "quit" )
 	{
 		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "quit" );
 		return true;
 	}
 
-	if ( token == "save" )
+	if( token == "save" )
 	{
 		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "savegame" );
 		return true;
@@ -6958,7 +6959,7 @@ void idPlayer::UpdateFocus()
 	{
 		allowFocus = false;
 	}
-	/* Zeroth */ else if ( common->IsMultiplayer() || ( !focusCharacter && ( usercmd.buttons & BUTTON_ATTACK2 ) ) )
+	/* Zeroth */ else if( common->IsMultiplayer() || ( !focusCharacter && ( usercmd.buttons & BUTTON_ATTACK2 ) ) )
 	{
 		allowFocus = false;
 	}
@@ -7420,12 +7421,12 @@ void idPlayer::BobCycle( const idVec3& pushVelocity )
 	else
 	{
 		// HEXEN : Zeroth
-		if ( FreeMove )
+		if( FreeMove )
 		{
 			// bob very little and no footsteps when player is on Wings of Wrath
 			bobmove = pm_flybob.GetFloat();
 		}
-		else if ( physicsObj.IsCrouching() )
+		else if( physicsObj.IsCrouching() )
 		{
 			bobmove = pm_crouchbob.GetFloat();
 			// ducked characters never play footsteps
@@ -8141,29 +8142,29 @@ void idPlayer::PerformImpulse( int impulse )
 			ArtifactExec( BeltSelection, "use", true );
 			break;
 		}
-		#if 0
+#if 0
 		// dropping not working properly, and isn't even necessary
 		case IMPULSE_44:
 		{
-			while ( 1 )
+			while( 1 )
 			{
 				int arse = InventoryItemQty( 0 );
-				if ( arse == 0 ) 
+				if( arse == 0 )
 				{
 					break;
 				}
-				for ( int c = 0; c < arse; c++ )
+				for( int c = 0; c < arse; c++ )
 				{
 					ArtifactDrop( 0, true );
 				}
 			}
 			break;
 		}
-		#endif
+#endif
 		case IMPULSE_45:
 		{
-			idUserInterface* hudUI = (idUserInterface*) hud;
-			if ( AutoMapOff )
+			idUserInterface* hudUI = ( idUserInterface* ) hud;
+			if( AutoMapOff )
 			{
 				hudUI->HandleNamedEvent( "eoc_AutoMapOn" );
 				AutoMapOff = false;
@@ -8236,7 +8237,7 @@ void idPlayer::AdjustSpeed()
 {
 	float speed;
 	// float rate;
-	int upmove = ((usercmd.buttons & BUTTON_JUMP) ? 127 : 0) - ((usercmd.buttons & BUTTON_CROUCH) ? 127 : 0);
+	int upmove = ( ( usercmd.buttons & BUTTON_JUMP ) ? 127 : 0 ) - ( ( usercmd.buttons & BUTTON_CROUCH ) ? 127 : 0 );
 
 	if( spectating )
 	{
@@ -8248,7 +8249,7 @@ void idPlayer::AdjustSpeed()
 		speed = pm_noclipspeed.GetFloat();
 		bobFrac = 0.0f;
 	}
-	else if ( !physicsObj.OnLadder() &&speedMod == 0 && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( upmove >= 0 ) )
+	else if( !physicsObj.OnLadder() && speedMod == 0 && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( upmove >= 0 ) )
 	{
 		bobFrac = 1; // HEXEN : Zeroth
 		speed = pm_walkspeed.GetFloat() * ( 1.0f - bobFrac ) + pm_runspeed.GetFloat() * bobFrac;
@@ -8536,7 +8537,7 @@ void idPlayer::Move_Interpolated( float fraction )
 		physicsObj.SetContents( CONTENTS_BODY );
 		physicsObj.SetMovementType( PM_FREEZE );
 	}
-	else if ( FreeMove )
+	else if( FreeMove )
 	{
 		physicsObj.SetContents( CONTENTS_BODY );
 		physicsObj.SetMovementType( PM_FLY );
@@ -9106,9 +9107,9 @@ void idPlayer::UpdateHud()
 
 	}
 
-	idUserInterface* hudUI = (idUserInterface*) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	// HEXEN : Zeroth
-	if ( g_noHudAutoHide.GetBool() )
+	if( g_noHudAutoHide.GetBool() )
 	{
 		hudUI->SetStateFloat( "dontHideHud", 1.0f );
 	}
@@ -9804,27 +9805,27 @@ Spawn hellions if the player is camping
 */
 void idPlayer::SpawnHellions()
 {
-	if ( !cvarSystem->GetCVarBool( "g_hellions" ) )
+	if( !cvarSystem->GetCVarBool( "g_hellions" ) )
 	{
 		return;
 	}
 
-	if ( hellion_danger_time == 0 )
+	if( hellion_danger_time == 0 )
 	{
 		hellion_danger_time = gameLocal.time + HELLION_DANGER_TIME_MIN + ( gameLocal.random.RandomFloat() * ( HELLION_DANGER_TIME_MAX - HELLION_DANGER_TIME_MIN ) );
 		hellion_danger_origin = gameLocal.GetLocalPlayer()->GetPhysics()->GetOrigin();
 		return;
 	}
 
-	if ( gameLocal.time < hellion_danger_time )
+	if( gameLocal.time < hellion_danger_time )
 	{
 		return;
 	}
 
 	idVec3 A = gameLocal.GetLocalPlayer()->GetPhysics()->GetOrigin() - hellion_danger_origin;
-	float dist = idMath::Sqrt(A.x * A.x + A.y * A.y + A.z * A.z);		
+	float dist = idMath::Sqrt( A.x * A.x + A.y * A.y + A.z * A.z );
 
-	if ( dist > HELLION_DANGER_DIST_MAX )
+	if( dist > HELLION_DANGER_DIST_MAX )
 	{
 		hellion_danger_origin = gameLocal.GetLocalPlayer()->GetPhysics()->GetOrigin();
 		return;
@@ -9832,7 +9833,7 @@ void idPlayer::SpawnHellions()
 
 	int i;
 	trace_t trace;
-	idEntity *floor;
+	idEntity* floor;
 	const idBounds smallBounds = idBounds( idVec3( -1, -1, -1 ), idVec3( 1, 1, 1 ) );
 	const idVec3 traceOrigin = GetEyePosition() - idVec3( 0, 0, 50 );
 	const idVec3 downward = idVec3( 0, 0, -100 );
@@ -9841,7 +9842,7 @@ void idPlayer::SpawnHellions()
 
 	// bunch of traces from players midsection to all around him.
 	// the first trace is to make sure we dont spawn hellions on the other side of a wall.
-	for ( i = 0; i < 4; i++ )
+	for( i = 0; i < 4; i++ )
 	{
 		// get perpendicular vector to forw, counterclockwise
 		perpVec.x = -forw.y;
@@ -9852,26 +9853,26 @@ void idPlayer::SpawnHellions()
 
 		// we want to find *nothing*
 		gameLocal.clip.TraceBounds( trace, traceOrigin, traceEnd, HELLION_BOUNDS, MASK_SOLID, this );
-		if ( trace.fraction != 1 )
+		if( trace.fraction != 1 )
 		{
 			continue;
 		}
 
 		// subtract width of hellionPit for next trace position so we don't spawn inside a wall.
-		idVec3 vec=forw;
+		idVec3 vec = forw;
 		vec.Normalize();
 		vec *= ( HELLION_MINS.x + HELLION_MAXS.x ) / 2;
 		traceEnd -= vec;
 
 		// from the end of that tracepoint, trace directly downward
-		gameLocal.clip.TraceBounds( trace, traceEnd, traceEnd+downward, smallBounds, MASK_SOLID, this );
-		if ( trace.fraction == 1 )
+		gameLocal.clip.TraceBounds( trace, traceEnd, traceEnd + downward, smallBounds, MASK_SOLID, this );
+		if( trace.fraction == 1 )
 		{
 			continue;
 		}
 
 		floor = gameLocal.GetTraceEntity( trace );
-		if ( !floor || ( floor->name != "world" && floor->name.Mid( 0, 11 ) != "func_static" ) )
+		if( !floor || ( floor->name != "world" && floor->name.Mid( 0, 11 ) != "func_static" ) )
 		{
 			continue;
 		}
@@ -9880,10 +9881,10 @@ void idPlayer::SpawnHellions()
 
 		// spawn em
 		idDict hellionpit;
-		idEntity *pit;
+		idEntity* pit;
 		hellionpit.Set( "classname", "object_hellionpit" );
 		hellionpit.SetVector( "origin", traceEnd + ( downward * trace.fraction ) );
-		if ( gameLocal.SpawnEntityDef( hellionpit, &pit ) )
+		if( gameLocal.SpawnEntityDef( hellionpit, &pit ) )
 		{
 			// reset danger time & origin
 			hellion_danger_time = gameLocal.time + HELLION_DANGER_TIME_MIN + ( gameLocal.random.RandomFloat() * ( HELLION_DANGER_TIME_MAX - HELLION_DANGER_TIME_MIN ) ) + HELLION_DANGER_RECOUP_TIME;
@@ -9904,7 +9905,7 @@ idPlayer::UpdateHudAutoMap
 */
 void idPlayer::UpdateHudAutoMap()
 {
-	idUserInterface* hudUI = (idUserInterface*) hud;
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
 	hudUI->SetStateFloat( "eoc_PlayerPosX", GetPhysics()->GetOrigin().x );
 	hudUI->SetStateFloat( "eoc_PlayerPosY", GetPhysics()->GetOrigin().y );
 }
@@ -9917,20 +9918,20 @@ idPlayer::AutoMapChange
 */
 void idPlayer::AutoMapChange( idStr mapFloor )
 {
-	idUserInterface* hudUI = (idUserInterface*) hud;
-	if ( !strcmp( mapFloor, "top" ) )
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
+	if( !strcmp( mapFloor, "top" ) )
 	{
 		hudUI->SetStateBool( "eoc_AutoMapShowTop", true );
 		hudUI->SetStateBool( "eoc_AutoMapShowMid", false );
 		hudUI->SetStateBool( "eoc_AutoMapShowBot", false );
 	}
-	else if ( !strcmp( mapFloor, "mid" ) )
+	else if( !strcmp( mapFloor, "mid" ) )
 	{
 		hudUI->SetStateBool( "eoc_AutoMapShowTop", false );
 		hudUI->SetStateBool( "eoc_AutoMapShowMid", true );
 		hudUI->SetStateBool( "eoc_AutoMapShowBot", false );
 	}
-	else if ( !strcmp( mapFloor, "bot" ) )
+	else if( !strcmp( mapFloor, "bot" ) )
 	{
 		hudUI->SetStateBool( "eoc_AutoMapShowTop", false );
 		hudUI->SetStateBool( "eoc_AutoMapShowMid", false );
@@ -10206,7 +10207,7 @@ void idPlayer::CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const 
 	int		armorSave;
 
 	damageDef->GetInt( "playerDamage", "-1", damage );
-	if ( damage == -1 )
+	if( damage == -1 )
 	{
 		damageDef->GetInt( "damage", "20", damage );
 	}
@@ -10502,7 +10503,7 @@ inflictor, attacker, dir, and point can be NULL for environmental effects
 ============
 */
 void idPlayer::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-					   const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
+					   const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint )
 {
 	idVec3		kick;
 	int			damage;
@@ -13235,10 +13236,10 @@ Zeroth
 idPlayer::ShowHudMessage
 ==============
 */
-void idPlayer::ShowHudMessage( const char *message )
+void idPlayer::ShowHudMessage( const char* message )
 {
-	idUserInterface* hudUI = (idUserInterface*) hud;
-	if ( hud )
+	idUserInterface* hudUI = ( idUserInterface* ) hud;
+	if( hud )
 	{
 		hudUI->SetStateString( "eoc_message", message );
 		hudUI->HandleNamedEvent( "eoc_MessageShow" );
@@ -13257,15 +13258,16 @@ Zeroth
 idPlayer::InventoryItemQty
 ==============
 */
-int idPlayer::InventoryItemQty( const char *name ) const
+int idPlayer::InventoryItemQty( const char* name ) const
 {
 	int qty = 0, i;
 
-	for ( i = 0; i < inventory.items.Num(); i++ ) {
-		const char *iname = inventory.items[i]->GetString( "inv_name" );
-		if ( iname && *iname )
+	for( i = 0; i < inventory.items.Num(); i++ )
+	{
+		const char* iname = inventory.items[i]->GetString( "inv_name" );
+		if( iname && *iname )
 		{
-			if ( idStr::Icmp( name, iname ) == 0 )
+			if( idStr::Icmp( name, iname ) == 0 )
 			{
 				qty++;
 			}
@@ -13277,7 +13279,7 @@ int idPlayer::InventoryItemQty( const char *name ) const
 
 int idPlayer::InventoryItemQty( int belt )
 {
-	if ( ArtifactVerify( belt ) )
+	if( ArtifactVerify( belt ) )
 	{
 		return InventoryItemQty( Artifact[belt]->GetString( "name" ) );
 	}
@@ -13318,25 +13320,25 @@ void idPlayer::SetClass( int classnum )
 		}
 	}
 
-	health						= spawnArgs.GetInt( idStr("health_")+clas, "44" );
-	inventory.maxHealth			= spawnArgs.GetInt( idStr("maxhealth_")+clas, "44" );
-	if ( health > inventory.maxHealth )
+	health						= spawnArgs.GetInt( idStr( "health_" ) + clas, "44" );
+	inventory.maxHealth			= spawnArgs.GetInt( idStr( "maxhealth_" ) + clas, "44" );
+	if( health > inventory.maxHealth )
 	{
 		health = inventory.maxHealth;
 	}
 
-	inventory.armor				= spawnArgs.GetInt( idStr("armor_")+clas, "44" );
-	inventory.maxarmor			= spawnArgs.GetInt( idStr("maxarmor_")+clas, "44" );
-	if ( inventory.armor > inventory.maxarmor )
+	inventory.armor				= spawnArgs.GetInt( idStr( "armor_" ) + clas, "44" );
+	inventory.maxarmor			= spawnArgs.GetInt( idStr( "maxarmor_" ) + clas, "44" );
+	if( inventory.armor > inventory.maxarmor )
 	{
 		inventory.armor = inventory.maxarmor;
 	}
 
-	inventory.deplete_armor		= spawnArgs.GetInt( idStr("deplete_armor_")+clas, "0" );
-	inventory.deplete_rate		= spawnArgs.GetFloat( idStr("deplete_rate_")+clas, "0" );
-	inventory.deplete_ammount	= spawnArgs.GetInt( idStr("deplete_ammount_")+clas, "0" );
+	inventory.deplete_armor		= spawnArgs.GetInt( idStr( "deplete_armor_" ) + clas, "0" );
+	inventory.deplete_rate		= spawnArgs.GetFloat( idStr( "deplete_rate_" ) + clas, "0" );
+	inventory.deplete_ammount	= spawnArgs.GetInt( idStr( "deplete_ammount_" ) + clas, "0" );
 
-	if ( hudManager != NULL )
+	if( hudManager != NULL )
 	{
 		UpdateHudStats( hudManager );
 	}
@@ -13350,19 +13352,19 @@ idPlayer::OpenCustomGui
 */
 void idPlayer::OpenCustomGui( idStr file )
 {
-	if ( file == "" )
+	if( file == "" )
 	{
 		return;
 	}
 
 	customGui = uiManager->FindGui( file, true, false, true );
 
-	if ( !customGui )
+	if( !customGui )
 	{
 		return;
 	}
 
-	if ( objectiveSystemOpen )
+	if( objectiveSystemOpen )
 	{
 		TogglePDA();
 	}

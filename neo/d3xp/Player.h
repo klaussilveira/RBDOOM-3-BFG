@@ -260,8 +260,14 @@ public:
 	{
 		return ( index >= 0 && index < MAX_WEAPONS ) ? clip[index].Get() : 0.0f;
 	}
-	void SetAmmo( int index, float amount ) { ammo[index] = amount; }
-	void SetClip(int index, float amount) { clip[index] = amount; }
+	void SetAmmo( int index, float amount )
+	{
+		ammo[index] = amount;
+	}
+	void SetClip( int index, float amount )
+	{
+		clip[index] = amount;
+	}
 };
 
 typedef struct
@@ -393,7 +399,7 @@ public:
 	int						speedMod;
 	bool					FreeMove;
 	int						leftWater;
-	idList<idDict *>		Artifact; // list of artifacts & quantities, and other artifact info
+	idList<idDict*>		Artifact;  // list of artifacts & quantities, and other artifact info
 	void					SetClass( const int classnum );
 	bool					beaten; // whether this eoc release has been beaten
 
@@ -530,7 +536,7 @@ public:
 	virtual void			DamageFeedback( idEntity* victim, idEntity* inflictor, int& damage );
 	void					CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const idDict* damageDef,
 			const float damageScale, const int location, int* health, int* armor );
-	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
+	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint );
 
 	// New damage path for instant client feedback.
 	void					ServerDealDamage( int damage, idEntity& inflictor, idEntity& attacker, const idVec3& dir, const char* damageDefName, const int location );     // Actually updates the player's health independent of feedback.
@@ -605,29 +611,32 @@ public:
 	void					UpdateHudActiveArtifacts();
 	bool					ArtifactVerify( int art ); // return whetherArtifact[art] is safe to use. Or if the artifact is Qty 0, delete it and return false.
 	void					CleanupArtifactItems(); // deletes allAartifactItem[] elements marked as to be.
-	int						InventoryItemQty( const char *name ) const;
+	int						InventoryItemQty( const char* name ) const;
 	int						InventoryItemQty( int belt ); // specifically for artifacts
 	void					SortArtifacts(); // sort belt items in ascending order of their "artifact" keys
-	void					ArtifactExec( int belt, char *func, bool remove );
+	void					ArtifactExec( int belt, char* func, bool remove );
 	void					ArtifactDrop( int belt, bool randomPos );
 	bool					ArtifactRemove( int belt );
 	void					ShowArtifactHud();
 	void					UpdateArtifactHudDescription();
 	int						FindArtifact( int art ); // returns the index inArtifact[] matching "artifact" spawnArg
 	bool					ActiveArtifact( int art );
-	bool					ActiveArtifact( const char *art );
+	bool					ActiveArtifact( const char* art );
 	void					ArtifactValidateSelection();
 	void					ArtifactScrollRight( int startfrom );
 	void					ArtifactScrollLeft( int startfrom );
-	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
+	int						Belt2Index( int belt_index ); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
 	// HEXEN : Zeroth
 	/*virtual*/ bool		StuckToSurface();
 	void					SpawnHellions();
 	void					UpdateHudAutoMap();
 	void					AutoMapChange( idStr mapFloor );
-	void					ShowHudMessage( const char *message );
+	void					ShowHudMessage( const char* message );
 	void					ShowHudMessage( idStr message );
-	bool					GetPowerTome() { return PowerTome; };
+	bool					GetPowerTome()
+	{
+		return PowerTome;
+	};
 
 	void					GivePDA( const idDeclPDA* pda, const char* securityItem );
 	void					GiveVideo( const idDeclVideo* video, const char* itemName );
@@ -1072,26 +1081,26 @@ private:
 	void					Event_SetHealth( const float amount );
 	void					Event_SetArmor( const float amount );
 	void					Event_GetClass();
-	void					Event_SetAmmo( const char *ammo_classname, const float amount );
-	void					Event_GetAmmo( const char *ammo_classname );
-	void					Event_GetFullAmmo( const char *ammo_classname );
+	void					Event_SetAmmo( const char* ammo_classname, const float amount );
+	void					Event_GetAmmo( const char* ammo_classname );
+	void					Event_GetFullAmmo( const char* ammo_classname );
 	void 					Event_SetInvincible( const float number );
 	void 					Event_GetInvincible();
 	void					Event_ChaosDevice();
 	void					Event_SetFreeMove( const float yesorno );
-	void					Event_SetViewAngles( idVec3 &vec );
+	void					Event_SetViewAngles( idVec3& vec );
 	void					Event_GetEyePos();
 	void					Event_SetPowerTome( float val );
 	void					Event_GetPowerTome();
 	void					Event_VecForwardP();
 	void					Event_VecFacingP();
-	void					Event_HudMessage( const char *message );
+	void					Event_HudMessage( const char* message );
 	void					Event_ArtifactUseFlash();
 
 	//the following are no longer used - perhaps they will be useful for something else, like sticky bombs of some kind
-    void                    Event_StickToSurface( const idVec3 &surfaceNormal );
-    void                    Event_UnstickToSurface();
-    void                    Event_StuckToSurface();
+	void                    Event_StickToSurface( const idVec3& surfaceNormal );
+	void                    Event_UnstickToSurface();
+	void                    Event_StuckToSurface();
 
 public:
 	idVec3					VecForwardP() const;

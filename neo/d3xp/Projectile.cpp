@@ -367,14 +367,14 @@ void idProjectile::Launch( const idVec3& start, const idVec3& dir, const idVec3&
 	randomVelocity				= spawnArgs.GetBool( "random_velocity" );
 
 	// HEXEN : Zeroth
-	if ( randomVelocity )
+	if( randomVelocity )
 	{
 		velocity.x *= gameLocal.random.RandomFloat() + 0.5f;
 		velocity.y *= gameLocal.random.RandomFloat() + 0.5f;
 		velocity.z *= gameLocal.random.RandomFloat() + 0.5f;
 	}
 	// HEXEN : Zeroth
-	if ( randomDirection )
+	if( randomDirection )
 	{
 		newDir.x = gameLocal.random.RandomInt( 360 ) - 180;
 		newDir.y = gameLocal.random.RandomInt( 360 ) - 180;
@@ -394,7 +394,7 @@ void idProjectile::Launch( const idVec3& start, const idVec3& dir, const idVec3&
 	randomAngular				= spawnArgs.GetFloat( "random_angular_velocity" );
 
 	// HEXEN : Zeroth
-	if ( randomAngular != 0.0f )
+	if( randomAngular != 0.0f )
 	{
 		angular_velocity.yaw += gameLocal.random.RandomInt( randomAngular );
 		angular_velocity.pitch += gameLocal.random.RandomInt( randomAngular );
@@ -416,7 +416,7 @@ void idProjectile::Launch( const idVec3& start, const idVec3& dir, const idVec3&
 
 	// HEXEN : Zeroth
 	fuse_random			= spawnArgs.GetVec2( "fuse_random" );
-	if ( fuse_random.y > 0.0f )
+	if( fuse_random.y > 0.0f )
 	{
 		fuse = gameLocal.random.CRandomFloat() * fuse_random.y + fuse_random.x;
 	}
@@ -489,7 +489,7 @@ void idProjectile::Launch( const idVec3& start, const idVec3& dir, const idVec3&
 	physicsObj.SetContents( contents );
 	physicsObj.SetClipMask( clipMask );
 
-	if ( spawnArgs.GetBool( "override_launch" ) )
+	if( spawnArgs.GetBool( "override_launch" ) )
 	{
 		physicsObj.SetLinearVelocity( velocity );
 		physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() );
@@ -2991,7 +2991,7 @@ void idDebris::Launch()
 	fuse_random			= spawnArgs.GetVec2( "fuse_random" );
 
 	// HEXEN : Zeroth
-	if ( fuse_random.y > 0.0f )
+	if( fuse_random.y > 0.0f )
 	{
 		fuse = gameLocal.random.CRandomFloat() * fuse_random.y + fuse_random.x;
 	}
@@ -3009,7 +3009,7 @@ void idDebris::Launch()
 	}
 
 	// HEXEN : Zeroth
-	if ( randomDirection )
+	if( randomDirection )
 	{
 		newDir.x = gameLocal.random.RandomInt( 360 ) - 180;
 		newDir.y = gameLocal.random.RandomInt( 360 ) - 180;
@@ -3019,7 +3019,7 @@ void idDebris::Launch()
 		velocity = velocity.Length() * newDir;
 	}
 
-	if ( randomPosition && randomPosInBounds )
+	if( randomPosition && randomPosInBounds )
 	{
 
 		// set origin to random position inside moveable's bounds
@@ -3034,7 +3034,7 @@ void idDebris::Launch()
 		GetPhysics()->SetOrigin( newDir );
 
 		// overrides "randomDirection"
-		if ( direction_from_spawner != 0 )
+		if( direction_from_spawner != 0 )
 		{
 			newDir = GetPhysics()->GetOrigin() - originBeforeAdjust;
 			newDir.Normalize();
@@ -3054,7 +3054,7 @@ void idDebris::Launch()
 	}
 
 	// HEXEN : Zeroth
-	if ( randomAngular != 0.0f )
+	if( randomAngular != 0.0f )
 	{
 		angular_velocity.yaw += gameLocal.random.RandomInt( randomAngular );
 		angular_velocity.pitch += gameLocal.random.RandomInt( randomAngular );
@@ -3063,8 +3063,8 @@ void idDebris::Launch()
 
 	// HEXEN : Zeroth - why shoulnt the angles ever be not random ?
 	SetAngles( idAngles( gameLocal.random.RandomInt( 360 * 2 ) - 360,
-						gameLocal.random.RandomInt( 360 * 2 ) - 360,
-						gameLocal.random.RandomInt( 360 * 2 ) - 360 ) );
+						 gameLocal.random.RandomInt( 360 * 2 ) - 360,
+						 gameLocal.random.RandomInt( 360 * 2 ) - 360 ) );
 
 
 	if( health )
@@ -3110,19 +3110,19 @@ void idDebris::Launch()
 	physicsObj.SetBouncyness( bounce );
 	physicsObj.SetGravity( gravVec * gravity );
 
-	if ( spawnArgs.GetBool ( "hascontents" ) )
+	if( spawnArgs.GetBool( "hascontents" ) )
 	{
-		if ( spawnArgs.GetFloat( "mass", "10", mass ) )
+		if( spawnArgs.GetFloat( "mass", "10", mass ) )
 		{
 			physicsObj.SetMass( mass );
 		}
 
-		if ( spawnArgs.GetBool( "noimpact" ) || spawnArgs.GetBool( "notPushable" )/** || IsType( idWood::Type )**/ ) // HEXEN : Zeroth, added idWood
+		if( spawnArgs.GetBool( "noimpact" ) || spawnArgs.GetBool( "notPushable" )/** || IsType( idWood::Type )**/ )  // HEXEN : Zeroth, added idWood
 		{
 			physicsObj.DisableImpact();
 		}
 
-		if ( spawnArgs.GetBool( "nonsolid" ) )
+		if( spawnArgs.GetBool( "nonsolid" ) )
 		{
 			physicsObj.SetContents( CONTENTS_CORPSE | CONTENTS_RENDERMODEL );
 			physicsObj.SetClipMask( MASK_SOLID | CONTENTS_CORPSE | CONTENTS_MOVEABLECLIP );
@@ -3350,7 +3350,7 @@ Zeroth
 idProjectile::Event_Launch
 ================
 */
-void idProjectile::Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower )
+void idProjectile::Event_Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower )
 {
 	Launch( start, dir, pushVelocity, timeSinceFire, launchPower, dmgPower );
 }

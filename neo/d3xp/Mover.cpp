@@ -1211,7 +1211,8 @@ Zeroth
 idMover::eoc_SetMoveTime
 ================
 */
-void idMover::eoc_SetMoveTime( float time ) {
+void idMover::eoc_SetMoveTime( float time )
+{
 	Event_SetMoveTime( time );
 }
 #endif
@@ -1270,7 +1271,7 @@ Zeroth
 idMover::SetPersistentPos
 ================
 */
-void idMover::SetPersistentPos( idVec3 &pos )
+void idMover::SetPersistentPos( idVec3& pos )
 {
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str, st;
@@ -1287,7 +1288,7 @@ Zeroth
 idMover::SetPersistentAng
 ================
 */
-void idMover::SetPersistentAng( idAngles &ang )
+void idMover::SetPersistentAng( idAngles& ang )
 {
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str, st;
@@ -1305,7 +1306,7 @@ Zeroth
 idMover::eoc_MoveToPos
 ================
 */
-void idMover::eoc_MoveToPos( const idVec3 &pos )
+void idMover::eoc_MoveToPos( const idVec3& pos )
 {
 	MoveToPos( pos );
 }
@@ -1736,7 +1737,8 @@ idMover::Event_Activate
 */
 void idMover::Event_Activate( idEntity* activator )
 {
-	if ( spawnArgs.GetBool( "NoActivateWhenTriggered", "0" ) ) {
+	if( spawnArgs.GetBool( "NoActivateWhenTriggered", "0" ) )
+	{
 		return;
 	}
 
@@ -1839,7 +1841,8 @@ HEXEN
 idMover::Event_EnableClip
 ================
 */
-void idMover::Event_EnableClip() {
+void idMover::Event_EnableClip()
+{
 	physicsObj.SetClipMask( MASK_SOLID );
 }
 
@@ -1849,7 +1852,8 @@ HEXEN
 idMover::Event_DisableClip
 ================
 */
-void idMover::Event_DisableClip() {
+void idMover::Event_DisableClip()
+{
 	physicsObj.SetClipMask( 0 );
 }
 
@@ -1859,7 +1863,8 @@ HEXEN
 idMover::Event_CanBecomeSolid
 ================
 */
-void idMover::Event_CanBecomeSolid() {
+void idMover::Event_CanBecomeSolid()
+{
 	idThread::ReturnFloat( CanBecomeSolid() );
 }
 
@@ -1869,28 +1874,33 @@ HEXEN
 idMover::CanBecomeSolid
 ================
 */
-bool idMover::CanBecomeSolid() {
+bool idMover::CanBecomeSolid()
+{
 	int			i;
 	int			num;
-	idEntity *	hit;
-	idClipModel *cm;
-	idClipModel *clipModels[ MAX_GENTITIES ];
+	idEntity* 	hit;
+	idClipModel* cm;
+	idClipModel* clipModels[ MAX_GENTITIES ];
 
 	num = gameLocal.clip.ClipModelsTouchingBounds( physicsObj.GetAbsBounds(), MASK_MONSTERSOLID, clipModels, MAX_GENTITIES );
-	for ( i = 0; i < num; i++ ) {
+	for( i = 0; i < num; i++ )
+	{
 		cm = clipModels[ i ];
 
 		// don't check render entities
-		if ( cm->IsRenderModel() ) {
+		if( cm->IsRenderModel() )
+		{
 			continue;
 		}
 
 		hit = cm->GetEntity();
-		if ( ( hit == this ) || !hit->fl.takedamage ) {
+		if( ( hit == this ) || !hit->fl.takedamage )
+		{
 			continue;
 		}
 
-		if ( physicsObj.ClipContents( cm ) ) {
+		if( physicsObj.ClipContents( cm ) )
+		{
 			return false;
 		}
 	}
@@ -1904,7 +1914,8 @@ HEXEN
 idMover::Event_BecomeSolid
 ================
 */
-void idMover::Event_BecomeSolid() {
+void idMover::Event_BecomeSolid()
+{
 	BecomeSolid( );
 }
 
@@ -1914,7 +1925,8 @@ HEXEN
 idMover::BecomeSolid
 ================
 */
-void idMover::BecomeSolid() {
+void idMover::BecomeSolid()
+{
 	physicsObj.SetContents( MASK_SOLID );
 }
 
@@ -1924,7 +1936,8 @@ HEXEN
 idMover::Event_BecomeNonSolid
 ================
 */
-void idMover::Event_BecomeNonSolid() {
+void idMover::Event_BecomeNonSolid()
+{
 	BecomeNonSolid();
 }
 
@@ -1934,7 +1947,8 @@ HEXEN
 idMover::BecomeSolid
 ================
 */
-void idMover::BecomeNonSolid() {
+void idMover::BecomeNonSolid()
+{
 	physicsObj.SetContents( 0 );
 }
 

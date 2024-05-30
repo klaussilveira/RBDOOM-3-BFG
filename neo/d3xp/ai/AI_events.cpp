@@ -3464,9 +3464,9 @@ Zeroth
 idAI::Event_GetReachableEntityPosition
 ================
 */
-void idAI::Event_IsEnemy( const idEntity *test )
+void idAI::Event_IsEnemy( const idEntity* test )
 {
-	idThread::ReturnFloat(IsEnemy( (idEntity *) test));
+	idThread::ReturnFloat( IsEnemy( ( idEntity* ) test ) );
 }
 
 /*
@@ -3491,7 +3491,7 @@ void idAI::Event_VecFacing()
 	// return proper facing direction (yaw only)
 	idVec3 dir = viewAxis[ 0 ] * physicsObj.GetGravityAxis();
 	dir.Normalize();
-	idThread::ReturnVector(dir);
+	idThread::ReturnVector( dir );
 }
 
 // HEXEN : Zeroth - no workie
@@ -3521,7 +3521,7 @@ void idAI::Event_VecForward()
 	// return proper forward vector for whatever way the AI is looking
 	idVec3 dir = deltaViewAngles.ToForward() * physicsObj.GetGravityAxis();
 	dir.Normalize();
-	idThread::ReturnVector(dir);
+	idThread::ReturnVector( dir );
 }
 
 /*

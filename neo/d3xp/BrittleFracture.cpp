@@ -867,19 +867,22 @@ void idBrittleFracture::DropShard( shard_t* shard, const idVec3& point, const id
 	float impulse = oimpulse; // HEXEN : Zeroth
 
 	// HEXEN : Zeroth
-	if ( dir.Length() < 5 ) { // 5 is just an (whats that word?)
-		dir = idVec3(0,0,-1) * spawnArgs.GetFloat( "forceIfZero", "0" );
+	if( dir.Length() < 5 )    // 5 is just an (whats that word?)
+	{
+		dir = idVec3( 0, 0, -1 ) * spawnArgs.GetFloat( "forceIfZero", "0" );
 		impulse = dir.Normalize();
 	}
 
 	// HEXEN : Zeroth
-	if ( spawnArgs.GetBool( "blastBothWays", "0" ) ) {
+	if( spawnArgs.GetBool( "blastBothWays", "0" ) )
+	{
 		dir = -dir;
 		//m = dir.Normalize();
 	}
 
 	// HEXEN : Zeroth
-	if ( spawnArgs.GetBool( "randomDir", "0" ) ) {
+	if( spawnArgs.GetBool( "randomDir", "0" ) )
+	{
 		float len = dir.Length();
 		dir.x = gameLocal.random.RandomFloat() - 0.5;
 		dir.y = gameLocal.random.RandomFloat() - 0.5;
@@ -931,20 +934,26 @@ void idBrittleFracture::DropShard( shard_t* shard, const idVec3& point, const id
 	shard->physicsObj.SetAxis( axis );
 	shard->physicsObj.SetBouncyness( bouncyness );
 	shard->physicsObj.SetFriction( 0.6f, 0.6f, friction );
-	
+
 	// HEXEN : Zeroth
 	float grv = spawnArgs.GetFloat( "shardGravity", "0" );
-	if ( grv ) {
+	if( grv )
+	{
 		shard->physicsObj.SetGravity( idVec3( 0, 0, -1 ) * grv );
-	} else {
+	}
+	else
+	{
 		shard->physicsObj.SetGravity( gameLocal.GetGravity() );
 	}
 
 	// HEXEN : Zeroth
 	float velScale = 1;
-	if ( spawnArgs.GetBool( "shardRandomVelocity", "0" ) ) {
+	if( spawnArgs.GetBool( "shardRandomVelocity", "0" ) )
+	{
 		velScale = gameLocal.random.RandomFloat();
-	} else {
+	}
+	else
+	{
 		velScale = 1;
 	}
 	shard->physicsObj.SetContents( CONTENTS_RENDERMODEL );
@@ -1028,7 +1037,8 @@ void idBrittleFracture::Shatter( const idVec3& point, const idVec3& impulse, con
 	}
 
 	// HEXEN : Zeroth
-	if ( spawnArgs.GetBool( "dropFloatingIsland", "1" ) ) {
+	if( spawnArgs.GetBool( "dropFloatingIsland", "1" ) )
+	{
 		DropFloatingIslands( point, dir, time ); // impulse changed to dir
 	}
 }

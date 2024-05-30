@@ -549,7 +549,7 @@ protected:
 	idProjectile*			LaunchProjectile( const char* jointname, idEntity* target, bool clampToAttackCone );
 	virtual void			DamageFeedback( idEntity* victim, idEntity* inflictor, int& damage );
 	void					DirectDamage( const char* meleeDefName, idEntity* ent );
-	bool					TestMelee( const idVec3 &iPoint ) const;
+	bool					TestMelee( const idVec3& iPoint ) const;
 	bool					AttackMelee( const char* meleeDefName );
 	void					BeginAttack( const char* name );
 	void					EndAttack();
@@ -717,14 +717,14 @@ protected:
 
 // HEXEN : Zeroth
 protected:
-	void					Event_IsEnemy( const idEntity *test );
+	void					Event_IsEnemy( const idEntity* test );
 	void					Event_NumGroundContacts();
 	void					Event_VecForward();
 	void					Event_VecFacing();
-	void					Event_SetFacingDir( idVec3 dir);
+	void					Event_SetFacingDir( idVec3 dir );
 	void					Event_IgnoreObstacles();
 	void					Event_GetRealEnemyPos();
-	void					Event_DirectMoveToPosition( const idVec3 &pos );
+	void					Event_DirectMoveToPosition( const idVec3& pos );
 	void					Event_MoveForward();
 
 // HEXEN : Zeroth
@@ -745,7 +745,7 @@ protected:
 //	bool					AI_DirectMoveToPosition( const idVec3 &pos );
 //	bool					AI_MoveForward();
 	void					MoveForward();
-	idVec3					GetJumpVelocity( const idVec3 &pos, float speed, float max_height );
+	idVec3					GetJumpVelocity( const idVec3& pos, float speed, float max_height );
 };
 
 class idCombatNode : public idEntity

@@ -104,9 +104,9 @@ protected:
 	void					Event_SetOwnerFromSpawnArgs();
 	void					Event_IsAtRest();
 	void					Event_EnableDamage( float enable );
-	void					Event_DirectDamage( idEntity *damageTarget, const char *damageDefName );
+	void					Event_DirectDamage( idEntity* damageTarget, const char* damageDefName );
 
-	void					DirectDamage( const char *meleeDefName, idEntity *ent );
+	void					DirectDamage( const char* meleeDefName, idEntity* ent );
 // HEXEN : Zeroth
 protected:
 	void					Event_BecomeSolid();
@@ -187,7 +187,7 @@ public:
 	virtual void			ClientThink( const int curTime, const float fraction, const bool predict );
 	virtual void			Think();
 	virtual void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-									const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
+									const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint );
 	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 
 	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
@@ -235,13 +235,14 @@ private:
 #if 0
 // HEXEN : Zeroth
 // for idWood and other entities with renderModels that need more vertex/face info
-class Destructible_FaceData_t {
+class Destructible_FaceData_t
+{
 public:
 	// this could be a bit more effiecient with idVec3 pointers that point to surface geometry...
 	idList< idVec3 > verts;
 	idVec3					center; // center of face
 	float					area;
-	idPlane *				plane;
+	idPlane* 				plane;
 	idList< int >			adjacent; // stores indexes of adjacent faces
 //	idVec3					worldCenter(void) const;
 //	idVec3					worldNotm(void) const;
@@ -256,7 +257,8 @@ public:
 //	return norm + physicsObj.GetOrigin() * physicsObj.GetAxis();
 //}
 
-class Destructible_ModelData_t {
+class Destructible_ModelData_t
+{
 public:
 	idList<Destructible_FaceData_t>		faces;
 	idVec3					center;
@@ -270,17 +272,18 @@ public:
 //}
 
 // HEXEN : Zeroth
-class idWood : public idMoveable {
+class idWood : public idMoveable
+{
 public:
 	CLASS_PROTOTYPE( idWood );
 
 	idWood::idWood();
 
 	void					Spawn();
-	virtual void			Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
-	void					Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, 
-									const char *damageDefName, const float damageScale, const int location, idVec3 &iPoint );
-	bool					CheckFloating( idWood *caller, idWood *chain[], int c );
+	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
+	void					Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
+									const char* damageDefName, const float damageScale, const int location, idVec3& iPoint );
+	bool					CheckFloating( idWood* caller, idWood* chain[], int c );
 
 	bool						geoConstructed;
 	Destructible_ModelData_t	geo;

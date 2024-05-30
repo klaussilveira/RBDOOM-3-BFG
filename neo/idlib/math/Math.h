@@ -443,11 +443,11 @@ public:
 
 	static int					FloatHash( const float* array, const int numFloats );
 
-/*
-// HEXEN : Zeroth
-	static idVec3				Vec45CtrClock( idVec3 vec );
-	static idVec3				Vec45Cloc( idVec3 vec );
-*/
+	/*
+	// HEXEN : Zeroth
+		static idVec3				Vec45CtrClock( idVec3 vec );
+		static idVec3				Vec45Cloc( idVec3 vec );
+	*/
 
 	static float				LerpToWithScale( const float cur, const float dest, const float scale );
 

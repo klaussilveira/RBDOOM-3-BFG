@@ -685,13 +685,13 @@ void idPhysics_Player::FlyMoveWithCollision()
 
 	scale = idPhysics_Player::CmdScale( command );
 
-	if ( !scale )
+	if( !scale )
 	{
 		wishvel = vec3_origin;
 	}
 	else
 	{
-		int upmove = ((command.buttons & BUTTON_JUMP) ? 127 : 0) - ((command.buttons & BUTTON_CROUCH) ? 127 : 0);
+		int upmove = ( ( command.buttons & BUTTON_JUMP ) ? 127 : 0 ) - ( ( command.buttons & BUTTON_CROUCH ) ? 127 : 0 );
 		wishvel = scale * ( viewForward * command.forwardmove + viewRight * command.rightmove );
 		wishvel -= scale * gravityNormal * upmove;
 	}
@@ -1090,20 +1090,20 @@ void idPhysics_Player::StuckToSurfaceMove()
 	current.velocity = ( gravityNormal * current.velocity ) * gravityNormal + wishvel;
 
 	upscale = ( -gravityNormal * viewForward + 0.5f ) * 2.5f;
-	if ( upscale > 1.0f )
+	if( upscale > 1.0f )
 	{
 		upscale = 1.0f;
 	}
-	else if ( upscale < -1.0f )
+	else if( upscale < -1.0f )
 	{
 		upscale = -1.0f;
 	}
 
 	scale = idPhysics_Player::CmdScale( command );
-	wishvel = -0.9f * gravityNormal * upscale * scale * (float) command.forwardmove;
+	wishvel = -0.9f * gravityNormal * upscale * scale * ( float ) command.forwardmove;
 
 	// strafe
-	if ( command.rightmove )
+	if( command.rightmove )
 	{
 		// right vector orthogonal to gravity
 		right = viewRight - ( gravityNormal * viewRight ) * gravityNormal;
@@ -1112,18 +1112,18 @@ void idPhysics_Player::StuckToSurfaceMove()
 		right.Normalize();
 
 		// if we are looking away from the ladder, reverse the right vector
-		if ( SurfaceNormal * viewForward > 0.0f )
+		if( SurfaceNormal * viewForward > 0.0f )
 		{
 			right = -right;
 		}
-		wishvel += 2.0f * right * scale * (float) command.rightmove;
+		wishvel += 2.0f * right * scale * ( float ) command.rightmove;
 	}
 
-	int upmove = ((command.buttons & BUTTON_JUMP) ? 127 : 0) - ((command.buttons & BUTTON_CROUCH) ? 127 : 0);
+	int upmove = ( ( command.buttons & BUTTON_JUMP ) ? 127 : 0 ) - ( ( command.buttons & BUTTON_CROUCH ) ? 127 : 0 );
 	// up down movement
-	if ( upmove )
+	if( upmove )
 	{
-		wishvel += -0.5f * gravityNormal * scale * (float) upmove;
+		wishvel += -0.5f * gravityNormal * scale * ( float ) upmove;
 	}
 
 	// accelerate
@@ -1132,21 +1132,21 @@ void idPhysics_Player::StuckToSurfaceMove()
 
 	// cap the vertical velocity
 	upscale = current.velocity * -gravityNormal;
-	if ( upscale < -PM_LADDERSPEED )
+	if( upscale < -PM_LADDERSPEED )
 	{
 		current.velocity += gravityNormal * ( upscale + PM_LADDERSPEED );
 	}
-	else if ( upscale > PM_LADDERSPEED )
+	else if( upscale > PM_LADDERSPEED )
 	{
 		current.velocity += gravityNormal * ( upscale - PM_LADDERSPEED );
 	}
 
-	if ( (wishvel * gravityNormal) == 0.0f )
+	if( ( wishvel * gravityNormal ) == 0.0f )
 	{
-		if ( current.velocity * gravityNormal < 0.0f )
+		if( current.velocity * gravityNormal < 0.0f )
 		{
 			current.velocity += gravityVector * frametime;
-			if ( current.velocity * gravityNormal > 0.0f )
+			if( current.velocity * gravityNormal > 0.0f )
 			{
 				current.velocity -= ( gravityNormal * current.velocity ) * gravityNormal;
 			}
@@ -1154,7 +1154,7 @@ void idPhysics_Player::StuckToSurfaceMove()
 		else
 		{
 			current.velocity -= gravityVector * frametime;
-			if ( current.velocity * gravityNormal < 0.0f )
+			if( current.velocity * gravityNormal < 0.0f )
 			{
 				current.velocity -= ( gravityNormal * current.velocity ) * gravityNormal;
 			}
@@ -1627,15 +1627,15 @@ void idPhysics_Player::EvalGravity()
 	idVec3 curGrav = gravityVector;
 
 	float curTime = MS2SEC( gameLocal.realClientTime );
-	if ( TransitionToGravity != idVec3(0,0,0) && GetGravityNormal() != TransitionToGravity && nextTransition < curTime )
+	if( TransitionToGravity != idVec3( 0, 0, 0 ) && GetGravityNormal() != TransitionToGravity && nextTransition < curTime )
 	{
 		double gravAmount = sqrt( curGrav.x * curGrav.x + curGrav.y * curGrav.y + curGrav.z * curGrav.z );
 		idVec3 gravDir =	TransitionToGravity		* curTransition +
 							TransitionFromGravity	* ( transitions - curTransition );
 		gravDir.Normalize();
-		idActor * owner = static_cast< idActor * >( masterEntity );
+		idActor* owner = static_cast< idActor* >( masterEntity );
 
-		if ( curTransition == transitions )
+		if( curTransition == transitions )
 		{
 			SetGravity( TransitionToGravity * gravAmount );
 			TransitionToGravity.Zero();
@@ -1650,8 +1650,9 @@ void idPhysics_Player::EvalGravity()
 
 		// flip viewAngles cuz ... things get screwey
 		// avoid getting stuck in wall
-		while ( groundPlane && !HasGroundContacts() ) // we must have ground contacts at all times that we have a groundPlane, else we risk falling through floor
-		{	current.origin = current.origin - gravityNormal;
+		while( groundPlane && !HasGroundContacts() )  // we must have ground contacts at all times that we have a groundPlane, else we risk falling through floor
+		{
+			current.origin = current.origin - gravityNormal;
 			CheckGround();
 		}
 	}
@@ -1714,7 +1715,7 @@ void idPhysics_Player::MovePlayer( int msec )
 	}
 
 	// freemove
-	if ( current.movementType == PM_FLY )
+	if( current.movementType == PM_FLY )
 	{
 		FlyMoveWithCollision();
 		idPhysics_Player::DropTimers(); // 404
@@ -1758,8 +1759,9 @@ void idPhysics_Player::MovePlayer( int msec )
 		// dead
 		idPhysics_Player::DeadMove();
 	}
-	else if ( StuckToSurface() ) // HEXEN : Zeroth
-	{    DoStuckToSurface(); 
+	else if( StuckToSurface() )  // HEXEN : Zeroth
+	{
+		DoStuckToSurface();
 		idPhysics_Player::StuckToSurfaceMove();
 	}
 	else if( ladder )
@@ -1794,7 +1796,7 @@ void idPhysics_Player::MovePlayer( int msec )
 
 	// HEXEN : Zeroth - test if we should modify players gravity
 	//idPlayer *player = static_cast<idPlayer *>( masterEntity );
-	if ( self->gravityMod )
+	if( self->gravityMod )
 	{
 		// grnd is not the ground the players feet are on, it's the surface directly below the player's origin
 		idVec3 myOrigin = GetOrigin();
@@ -1802,7 +1804,7 @@ void idPhysics_Player::MovePlayer( int msec )
 		trace_t grnd;
 		gameLocal.clip.TracePoint( grnd, myOrigin, myOrigin + GetGravityNormal() * grndDist, MASK_PLAYERSOLID, self );
 
-		if ( grnd.fraction < 1.0f && GetGravityNormal() != -grnd.c.normal && TransitionToGravity != -grnd.c.normal )
+		if( grnd.fraction < 1.0f && GetGravityNormal() != -grnd.c.normal && TransitionToGravity != -grnd.c.normal )
 		{
 			TransitionToGravity = -grnd.c.normal;
 			TransitionFromGravity = GetGravityNormal();
@@ -2706,9 +2708,9 @@ Do all the math and junk to stick to a wall. This function should be called prio
 */
 void idPhysics_Player::DoStuckToSurface()
 {
-    if ( StuckToSurface() )
+	if( StuckToSurface() )
 	{
-        idVec3 wishvel = -100.0f * SurfaceNormal;
-        current.velocity = ( gravityNormal * current.velocity ) * gravityNormal + wishvel;
-    }
+		idVec3 wishvel = -100.0f * SurfaceNormal;
+		current.velocity = ( gravityNormal * current.velocity ) * gravityNormal + wishvel;
+	}
 }

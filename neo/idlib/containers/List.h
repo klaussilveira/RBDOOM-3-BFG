@@ -158,7 +158,7 @@ public:
 	_type_* 		Ptr();												// returns a pointer to the list
 	const _type_* 	Ptr() const;										// returns a pointer to the list
 	_type_& 		Alloc();											// returns reference to a new data element at the end of the list
-	
+
 // HEXEN : Zeroth
 	int				New();										// append element
 
@@ -910,24 +910,25 @@ Returns the index of the new element.
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE int idList<_type_, _tag_>::New()
 {
-	if ( !list )
+	if( !list )
 	{
 		Resize( granularity );
 	}
 
-	if ( num == size )
+	if( num == size )
 	{
 		int newsize;
 
-		if ( granularity == 0 )
-		{	// this is a hack to fix our memset classes
+		if( granularity == 0 )
+		{
+			// this is a hack to fix our memset classes
 			granularity = 16;
 		}
 		newsize = size + granularity;
 		Resize( newsize - newsize % granularity );
 	}
 
-	list[ num ] = *(new type);
+	list[ num ] = *( new type );
 	num++;
 
 	return num - 1;
@@ -1261,7 +1262,7 @@ idList<_type_, _tag_>::Shuffle
 template< typename _type_, memTag_t _tag_ >
 ID_INLINE void idList<_type_, _tag_>::Shuffle()
 {
-	if ( !list )
+	if( !list )
 	{
 		return;
 	}
@@ -1269,7 +1270,7 @@ ID_INLINE void idList<_type_, _tag_>::Shuffle()
 	int i, rnd;
 	_type_ tmp;
 
-	for ( i = 0; i < num; i++ )
+	for( i = 0; i < num; i++ )
 	{
 		rnd = rand() % num;
 		tmp = list[rnd];

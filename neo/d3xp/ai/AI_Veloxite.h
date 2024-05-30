@@ -2,13 +2,15 @@
 #ifndef __AI_VELOXITE_H__
 #define __AI_VELOXITE_H__
 
-typedef enum v_stype {
+typedef enum v_stype
+{
 	v_none = 0,
 	v_slope = 1,
 	v_wall = 2
 };
 
-class idAI_Veloxite : public idAI {
+class idAI_Veloxite : public idAI
+{
 
 public:
 	CLASS_PROTOTYPE( idAI_Veloxite );
@@ -16,8 +18,8 @@ public:
 	void	Spawn();
 	void	Think();
 	void	LinkScriptVariables();
-	void	Save( idSaveGame *savefile ) const;
-	void	Restore( idRestoreGame *savefile );
+	void	Save( idSaveGame* savefile ) const;
+	void	Restore( idRestoreGame* savefile );
 
 // ***********************************************************
 
@@ -26,7 +28,7 @@ public:
 // ***********************************************************
 private:
 	ID_INLINE bool				onWall();
-	ID_INLINE bool				wallIsWalkable( idEntity *wall );
+	ID_INLINE bool				wallIsWalkable( idEntity* wall );
 	ID_INLINE v_stype			surfaceType( idVec3 normal );
 
 
@@ -41,7 +43,7 @@ private:
 	bool				checkSlope();
 	bool				checkLedge();
 	bool				checkWall();
-	void				getOnSurface( const idVec3 &norm, int numt = 0 );
+	void				getOnSurface( const idVec3& norm, int numt = 0 );
 	void				getOffSurface( bool fall );
 	void				doSurfaceTransition();
 	void				postSurfaceTransition();
@@ -73,16 +75,17 @@ private:
 	float	debuglevel;
 	idVec3	veloxMins;
 	idVec3	veloxMaxs;
-	idVec3	traceMins;float next;
+	idVec3	traceMins;
+	float next;
 	idVec3	traceMaxs;
 
-/* Debug Level:
-	1 - useful functions that dont happen every frame
-	5 - useful functions that happen every frame
-	10 - unuseful functions that happen every frame
-	15 - unuseful functions that may happen more than every frame
-	20 - things you'll functions never want to see
-*/
+	/* Debug Level:
+		1 - useful functions that dont happen every frame
+		5 - useful functions that happen every frame
+		10 - unuseful functions that happen every frame
+		15 - unuseful functions that may happen more than every frame
+		20 - things you'll functions never want to see
+	*/
 
 // ***********************************************************
 
@@ -102,7 +105,7 @@ private:
 	void				Event_doSurfaceChecks();
 	void				Event_doneLeaping();
 	void				Event_startLeaping();
-	void				Event_getVeloxJumpVelocity( float speed, float max_height, float channel, const char *animname );
+	void				Event_getVeloxJumpVelocity( float speed, float max_height, float channel, const char* animname );
 	void				Event_getOffWall( float fall );
 };
 

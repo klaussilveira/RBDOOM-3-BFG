@@ -1,6 +1,7 @@
 
 #if 0
-class idAI_Shadowspawn : public idAI {
+class idAI_Shadowspawn : public idAI
+{
 public:
 	CLASS_PROTOTYPE( idAI_Shadowspawn );
 	void		telleport();

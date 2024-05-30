@@ -79,10 +79,10 @@ public:
 
 // HEXEN : Zeroth
 public:
-	void					SetOwner( idPlayer *owner );
+	void					SetOwner( idPlayer* owner );
 	idPlayer*				GetOwner();
 	idPlayer*				GetLastOwner();
-	bool					CallFunc( char *funcName );
+	bool					CallFunc( char* funcName );
 
 	enum
 	{
@@ -155,7 +155,7 @@ private:
 // HEXEN : Zeroth
 private:
 	idDict					projectileDict;
-	idEntity				*projectileEnt;
+	idEntity*				projectileEnt;
 //	void Event_GetState();
 //	void Event_SetState( const char *name );
 //	void Event_SetNextState( const char *name );
@@ -171,7 +171,7 @@ private:
 // MultiModel
 	void					Event_HideMultiModel();
 public:
-	idEntity				*multimodel;
+	idEntity*				multimodel;
 };
 
 class idItemPowerup : public idItem

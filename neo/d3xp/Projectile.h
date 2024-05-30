@@ -180,7 +180,7 @@ private:
 
 // HEXEN : Zeroth
 private:
-	void					Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower );
+	void					Event_Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower );
 };
 
 class idGuidedProjectile : public idProjectile

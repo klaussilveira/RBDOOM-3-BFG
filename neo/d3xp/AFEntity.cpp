@@ -403,7 +403,7 @@ Pass damage to body at the bindjoint
 ============
 */
 void idAFAttachment::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-							 const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
+							 const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint )
 {
 
 	if( body )
@@ -1242,7 +1242,7 @@ void idAFEntity_Gibbable::Present()
 idAFEntity_Gibbable::Damage
 ================
 */
-void idAFEntity_Gibbable::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, idVec3 &iPoint )
+void idAFEntity_Gibbable::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, idVec3& iPoint )
 {
 	if( !fl.takedamage )
 	{

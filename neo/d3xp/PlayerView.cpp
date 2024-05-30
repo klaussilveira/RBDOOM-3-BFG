@@ -449,7 +449,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	}
 
 	// endgame dialog
-	if ( player->customGuiOpen && player->customGui != NULL )
+	if( player->customGuiOpen && player->customGui != NULL )
 	{
 		player->customGui->Redraw( gameLocal.time );
 		return;

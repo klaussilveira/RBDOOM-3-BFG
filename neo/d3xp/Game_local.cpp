@@ -1518,7 +1518,7 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	idRestoreGame savegame( pipelineFile, stringTableFile, saveGameVersion );
 
 	// a number to signify which release the save file belons to. this
-	// way we can make save games compatible with newer releases of 
+	// way we can make save games compatible with newer releases of
 	int eocnum;
 	savegame.ReadInt( eocnum );
 
@@ -2345,15 +2345,17 @@ For HEXEN
 idGameLocal::GetClientByName
 ================
 */
-idPlayer* idGameLocal::GetClientByName(const char* name) const
+idPlayer* idGameLocal::GetClientByName( const char* name ) const
 {
 	int i;
 	idEntity* ent;
-	for (i = 0; i < numClients; i++) {
+	for( i = 0; i < numClients; i++ )
+	{
 		ent = entities[i];
-		if (ent && ent->IsType(idPlayer::Type)) {
+		if( ent && ent->IsType( idPlayer::Type ) )
+		{
 			// if ( idStr::IcmpNoColor(name, userInfo[i].GetString("ui_name")) == 0 ) {
-				return static_cast<idPlayer*>(ent);
+			return static_cast<idPlayer*>( ent );
 			// }
 		}
 	}
@@ -2366,22 +2368,26 @@ For HEXEN
 idGameLocal::GetClientByCmdArgs
 ================
 */
-idPlayer* idGameLocal::GetClientByCmdArgs(const idCmdArgs& args) const
+idPlayer* idGameLocal::GetClientByCmdArgs( const idCmdArgs& args ) const
 {
 	idPlayer* player;
-	idStr client = args.Argv(1);
-	if (!client.Length()) {
+	idStr client = args.Argv( 1 );
+	if( !client.Length() )
+	{
 		return NULL;
 	}
 	// we don't allow numeric ui_name so this can't go wrong
-	if (client.IsNumeric()) {
-		player = GetClientByNum(atoi(client.c_str()));
+	if( client.IsNumeric() )
+	{
+		player = GetClientByNum( atoi( client.c_str() ) );
 	}
-	else {
-		player = GetClientByName(client.c_str());
+	else
+	{
+		player = GetClientByName( client.c_str() );
 	}
-	if (!player) {
-		common->Printf("Player '%s' not found\n", client.c_str());
+	if( !player )
+	{
+		common->Printf( "Player '%s' not found\n", client.c_str() );
 	}
 	return player;
 }
@@ -2799,12 +2805,12 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	const renderView_t* view;
 
 // HEXEN : Zeroth - for foliage rendering
-/*
-	idEntity *ent;
-	float	isFoliage=0;
-	idVec3	dist;
-	float	maxFoliageDist=2000;
-*/
+	/*
+		idEntity *ent;
+		float	isFoliage=0;
+		idVec3	dist;
+		float	maxFoliageDist=2000;
+	*/
 
 	if( g_recordTrace.GetBool() )
 	{
@@ -2833,18 +2839,18 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	player = GetLocalPlayer();
 #if 0
 // HEXEN : Zeroth - foliage rendering
-	for ( int i = 0; i < MAX_GENTITIES; i++ )
+	for( int i = 0; i < MAX_GENTITIES; i++ )
 	{
 		ent = entities[i];
-		if (ent)
+		if( ent )
 		{
 			ent = entities[i];
 			ent->spawnArgs.GetFloat( "foliage", "0", isFoliage );
-			if ( isFoliage )
+			if( isFoliage )
 			{
 				dist = ent->GetPhysics()->GetOrigin() - player->GetPhysics()->GetOrigin();
-					 
-				if ( sqrt( dist.x * dist.x + dist.y * dist.y + dist.z * dist.z ) > maxFoliageDist )
+
+				if( sqrt( dist.x * dist.x + dist.y * dist.y + dist.z * dist.z ) > maxFoliageDist )
 				{
 					ent->Hide();
 				}
@@ -2874,7 +2880,8 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 	{
 		do
 		{
-			if ( !paused ) {
+			if( !paused )
+			{
 				// update the game time
 				framenum++;
 				fast.previousTime = FRAME_TO_MSEC( framenum - 1 );
@@ -3380,12 +3387,16 @@ makes rendering and sound system calls
 */
 bool idGameLocal::Draw( int clientNum )
 {
-	
-	if ( s_music_vol.IsModified() ) {  //SnoopJeDi, fade that sound!
-		for ( int i = 0; i < musicSpeakers.Num(); i++ ) {
-			idSound* ent = static_cast<idSound *>(entities[ musicSpeakers[ i ] ]);
-			if (ent)
+
+	if( s_music_vol.IsModified() )     //SnoopJeDi, fade that sound!
+	{
+		for( int i = 0; i < musicSpeakers.Num(); i++ )
+		{
+			idSound* ent = static_cast<idSound*>( entities[ musicSpeakers[ i ] ] );
+			if( ent )
+			{
 				ent->FadeMusic( 0, s_music_vol.GetFloat(), 0 );
+			}
 		}
 		s_music_vol.ClearModified();
 	}
@@ -3418,54 +3429,71 @@ bool idGameLocal::Draw( int clientNum )
 
 #if 0
 #ifdef EOC_WIN32
-void idGameLocal::GetMainWindowHandle(void) {
+void idGameLocal::GetMainWindowHandle( void )
+{
 	extern HWND eoc_hwnd;
-	if (eoc_hwnd != 0)
+	if( eoc_hwnd != 0 )
+	{
 		return;
+	}
 	GUITHREADINFO winfo;
-	winfo.cbSize = sizeof(GUITHREADINFO);
-	GetGUIThreadInfo(GetCurrentThreadId(), &winfo);
+	winfo.cbSize = sizeof( GUITHREADINFO );
+	GetGUIThreadInfo( GetCurrentThreadId(), &winfo );
 	eoc_hwnd = winfo.hwndActive;
 }
 #endif
-void idGameLocal::GetDesktopResolution(int *X, int *Y) {
-	gameLocal.Printf("Entered");
-	#ifdef EOC_WIN32
-		RECT rect;
-		GetWindowRect(GetDesktopWindow(), &rect);
-		*X = (int) (rect.right - rect.left);
-		*Y = (int) (rect.bottom - rect.top);
-	#endif
+void idGameLocal::GetDesktopResolution( int* X, int* Y )
+{
+	gameLocal.Printf( "Entered" );
+#ifdef EOC_WIN32
+	RECT rect;
+	GetWindowRect( GetDesktopWindow(), &rect );
+	*X = ( int )( rect.right - rect.left );
+	*Y = ( int )( rect.bottom - rect.top );
+#endif
 }
-void idGameLocal::GetMouseCoord(int *X, int *Y) {
-	#ifdef EOC_WIN32
-		int width, height;
-		float posX, posY;
-		POINT pt;
-		RECT rect;
-		extern HWND eoc_hwnd;
-		GetDesktopResolution(&width, &height);
-		GetMainWindowHandle();
-		GetWindowRect(eoc_hwnd, &rect);
-		GetCursorPos(&pt);
-		gameLocal.Printf("\n\n------------------------------");
-		gameLocal.Printf("Doom Res: %d, %d\n", (rect.right - rect.left), (rect.bottom - rect.top) );
-		gameLocal.Printf("GetCursorPos: %d, %d\n", pt.x, pt.y);
-		posX = (float) pt.x; // convert to float so we don't lose precision
-		posY = (float) pt.y;
-		gameLocal.Printf("Subracting Left/Top: %d, %d\n", rect.left, rect.top);
-		posX -= rect.left;
-		posY -= rect.top;
-		if (posX < 0) posX=0;
-		if (posY < 0) posY=0;
-		if (posX > rect.right) posX=rect.right;
-		if (posY > rect.bottom) posY=rect.bottom;
-		gameLocal.Printf("Subracted: %f, %f\n", posX, posY);
-		*X = (int) posX;
-		*Y = (int) posY;
-		gameLocal.Printf("Converted to Int: %d, %d\n", *X, *Y );
-		gameLocal.Printf("------------------------------\n\n");
-		// scale down to dooms actual resolution
+void idGameLocal::GetMouseCoord( int* X, int* Y )
+{
+#ifdef EOC_WIN32
+	int width, height;
+	float posX, posY;
+	POINT pt;
+	RECT rect;
+	extern HWND eoc_hwnd;
+	GetDesktopResolution( &width, &height );
+	GetMainWindowHandle();
+	GetWindowRect( eoc_hwnd, &rect );
+	GetCursorPos( &pt );
+	gameLocal.Printf( "\n\n------------------------------" );
+	gameLocal.Printf( "Doom Res: %d, %d\n", ( rect.right - rect.left ), ( rect.bottom - rect.top ) );
+	gameLocal.Printf( "GetCursorPos: %d, %d\n", pt.x, pt.y );
+	posX = ( float ) pt.x; // convert to float so we don't lose precision
+	posY = ( float ) pt.y;
+	gameLocal.Printf( "Subracting Left/Top: %d, %d\n", rect.left, rect.top );
+	posX -= rect.left;
+	posY -= rect.top;
+	if( posX < 0 )
+	{
+		posX = 0;
+	}
+	if( posY < 0 )
+	{
+		posY = 0;
+	}
+	if( posX > rect.right )
+	{
+		posX = rect.right;
+	}
+	if( posY > rect.bottom )
+	{
+		posY = rect.bottom;
+	}
+	gameLocal.Printf( "Subracted: %f, %f\n", posX, posY );
+	*X = ( int ) posX;
+	*Y = ( int ) posY;
+	gameLocal.Printf( "Converted to Int: %d, %d\n", *X, *Y );
+	gameLocal.Printf( "------------------------------\n\n" );
+	// scale down to dooms actual resolution
 #endif
 }
 #endif
@@ -4418,9 +4446,11 @@ bool idGameLocal::RemoveEntityFromHash( const char* name, idEntity* ent )
 	int hash, i;
 
 	// HEXEN : Zeroth
-	hash = entypeHash.GenerateKey( ent->spawnArgs.GetString("spawnclass"), true );
-	for ( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) ) {
-		if ( entities[i] && entities[i] == ent && entities[i]->name.Icmp( name ) == 0 && !strcmp(entities[i]->GetClassname(), ent->GetClassname() ) ) {
+	hash = entypeHash.GenerateKey( ent->spawnArgs.GetString( "spawnclass" ), true );
+	for( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) )
+	{
+		if( entities[i] && entities[i] == ent && entities[i]->name.Icmp( name ) == 0 && !strcmp( entities[i]->GetClassname(), ent->GetClassname() ) )
+		{
 			entypeHash.Remove( hash, i );
 			break;
 		}
@@ -4544,13 +4574,16 @@ Zeroth
 idGameLocal::FindEntityType
 =============
 */
-idEntity *idGameLocal::FindEntityType( const idTypeInfo &type ) const {
+idEntity* idGameLocal::FindEntityType( const idTypeInfo& type ) const
+{
 	int hash, i;
 
 	// HEXEN : Zeroth
 	hash = entypeHash.GenerateKey( type.classname, true );
-	for ( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) ) {
-		if ( entities[i] && !strcmp(entities[i]->GetClassname(), type.classname ) ) {
+	for( i = entypeHash.First( hash ); i != -1; i = entypeHash.Next( i ) )
+	{
+		if( entities[i] && !strcmp( entities[i]->GetClassname(), type.classname ) )
+		{
 			return entities[i];
 		}
 	}
@@ -4864,7 +4897,7 @@ void idGameLocal::RadiusDamage( const idVec3& origin, idEntity* inflictor, idEnt
 		ent = entityList[ e ];
 		assert( ent );
 
-		if ( notlocalplayer && ent == GetLocalPlayer() )
+		if( notlocalplayer && ent == GetLocalPlayer() )
 		{
 			continue;
 		}
@@ -5023,7 +5056,7 @@ void idGameLocal::RadiusPush( const idVec3& origin, const float radius, const fl
 
 		ent = clipModel->GetEntity();
 
-		if ( notlocalplayer && ent == GetLocalPlayer() )
+		if( notlocalplayer && ent == GetLocalPlayer() )
 		{
 			continue;
 		}
@@ -5333,7 +5366,7 @@ void idGameLocal::SetCamera( idCamera* cam )
 	//		renderView_t *rv = camera->GetRenderView();
 	//		Printf( "= camera\n" );
 	//		if ( rv ) {
-	//			Printf( "==============[ %f, %f ]==============", rv->fov_x, rv->fov_y );	
+	//			Printf( "==============[ %f, %f ]==============", rv->fov_x, rv->fov_y );
 	//		}
 	//	} else {
 	//		Printf( "= no camera\n" );
@@ -5673,7 +5706,7 @@ Zeroth
 idGameLocal::SetLocalPlayerSpawnPoint
 ===========
 */
-void idGameLocal::SetLocalPlayerSpawnPoint(idStr point)
+void idGameLocal::SetLocalPlayerSpawnPoint( idStr point )
 {
 	eoc_LocalPlayerSpawnPoint = point;
 }
@@ -5699,7 +5732,10 @@ idEntity* idGameLocal::SelectInitialSpawnPoint( idPlayer* player )
 	{
 		// HEXEN : Zeroth
 		idStr point = "info_player_start_";
-		if ( eoc_LocalPlayerSpawnPoint == "" ) eoc_LocalPlayerSpawnPoint = "1";
+		if( eoc_LocalPlayerSpawnPoint == "" )
+		{
+			eoc_LocalPlayerSpawnPoint = "1";
+		}
 		point += eoc_LocalPlayerSpawnPoint;
 
 		spot.ent = FindEntity( point );
@@ -6440,37 +6476,40 @@ bool idGameLocal::SimulateProjectiles()
 }
 
 
-}
-
 /*
 ===============
 Zeroth
 idGameLocal::InitHub
 ===============
 */
-void idGameLocal::InitHub() {
+void idGameLocal::InitHub()
+{
 	idEntity* ent;
-	idStr name,tmp,name_str,st;
+	idStr name, tmp, name_str, st;
 	int nt = 0;
 	idVec3 vc;
 	idAngles ag;
 	idMat3 ax;
 
-	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+	for( int i = 0; i < MAX_GENTITIES; i++ )
+	{
 		ent = gameLocal.entities[i];
-		if ( ent ) {
+		if( ent )
+		{
 
 			name = ent->GetEntityDefName();
 
 			// find banish locations
-			if ( name == "speaker" || name == "light" || name.Left(8) == "trigger_" ||
-				name.Left(5) == "ammo_" ||	name.Left(5) == "path_" ) {
+			if( name == "speaker" || name == "light" || name.Left( 8 ) == "trigger_" ||
+					name.Left( 5 ) == "ammo_" ||	name.Left( 5 ) == "path_" )
+			{
 				BanishLocationList.AddUnique( new idVec3( ent->GetPhysics()->GetOrigin() ) );
 			}
 
 			// remove leaves //z.todo: this is a temporary fix for a clipping issue that
 			// causes the game to freeze after a savegame load (not crash)
-			if ( ent->IsType( idEntity_Leaf::Type ) ) {
+			if( ent->IsType( idEntity_Leaf::Type ) )
+			{
 				delete ent;
 				continue;
 			}
@@ -6482,9 +6521,10 @@ void idGameLocal::InitHub() {
 			name_str = tmp;
 			name_str += "_remove";
 
-			if ( persistentLevelInfo.GetInt( name_str ) ) {
+			if( persistentLevelInfo.GetInt( name_str ) )
+			{
 				delete ent;
-				gameLocal.entities[i]=NULL;
+				gameLocal.entities[i] = NULL;
 				continue;
 			}
 
@@ -6493,11 +6533,14 @@ void idGameLocal::InitHub() {
 			name_str += "_trig";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st == "on" ) {
-				static_cast<idTrigger *>(gameLocal.entities[i])->Enable();
+			if( st == "on" )
+			{
+				static_cast<idTrigger*>( gameLocal.entities[i] )->Enable();
 				continue;
-			} else if ( st == "off" ) {
-				static_cast<idTrigger *>(gameLocal.entities[i])->Disable();
+			}
+			else if( st == "off" )
+			{
+				static_cast<idTrigger*>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -6506,11 +6549,14 @@ void idGameLocal::InitHub() {
 			name_str += "_timer";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st == "on" ) {
-				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Enable();
+			if( st == "on" )
+			{
+				static_cast<idTrigger_Timer*>( gameLocal.entities[i] )->Enable();
 				continue;
-			} else if ( st == "off" ) {
-				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Disable();
+			}
+			else if( st == "off" )
+			{
+				static_cast<idTrigger_Timer*>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -6519,11 +6565,14 @@ void idGameLocal::InitHub() {
 			name_str += "_touch";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st == "on" ) {
-				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Enable();
+			if( st == "on" )
+			{
+				static_cast<idTrigger_Touch*>( gameLocal.entities[i] )->Enable();
 				continue;
-			} else if ( st == "off" ) {
-				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Disable();
+			}
+			else if( st == "off" )
+			{
+				static_cast<idTrigger_Touch*>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -6532,9 +6581,10 @@ void idGameLocal::InitHub() {
 			name_str += "_count_count";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st != "" ) {
+			if( st != "" )
+			{
 				nt = persistentLevelInfo.GetInt( name_str );
-				static_cast<idTrigger_Count *>( gameLocal.entities[i] )->SetCount( nt );
+				static_cast<idTrigger_Count*>( gameLocal.entities[i] )->SetCount( nt );
 				continue;
 			}
 
@@ -6543,9 +6593,10 @@ void idGameLocal::InitHub() {
 			name_str += "_count_goal";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st != "" ) {
+			if( st != "" )
+			{
 				nt = persistentLevelInfo.GetInt( name_str );
-				static_cast<idTrigger_Count *>(gameLocal.entities[i])->SetGoal( nt );
+				static_cast<idTrigger_Count*>( gameLocal.entities[i] )->SetGoal( nt );
 				continue;
 			}
 
@@ -6554,8 +6605,9 @@ void idGameLocal::InitHub() {
 			name_str += "_light_broken";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st == "1" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->BecomeBroken( NULL );
+			if( st == "1" )
+			{
+				static_cast<idLight*>( gameLocal.entities[i] )->BecomeBroken( NULL );
 				continue;
 			}
 
@@ -6564,11 +6616,14 @@ void idGameLocal::InitHub() {
 			name_str += "_light_on";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st == "on" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->On();
+			if( st == "on" )
+			{
+				static_cast<idLight*>( gameLocal.entities[i] )->On();
 				continue;
-			} else if ( st == "off" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->Off();
+			}
+			else if( st == "off" )
+			{
+				static_cast<idLight*>( gameLocal.entities[i] )->Off();
 				continue;
 			}
 
@@ -6577,10 +6632,11 @@ void idGameLocal::InitHub() {
 			name_str += "_mover_pos";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st != "" ) {
+			if( st != "" )
+			{
 				vc = persistentLevelInfo.GetVector( name_str );
-				static_cast<idMover *>(gameLocal.entities[i])->GetPhysics()->SetOrigin( vc );
-				static_cast<idMover *>(gameLocal.entities[i])->SetDestPos( vc );
+				static_cast<idMover*>( gameLocal.entities[i] )->GetPhysics()->SetOrigin( vc );
+				static_cast<idMover*>( gameLocal.entities[i] )->SetDestPos( vc );
 				continue;
 			}
 
@@ -6589,10 +6645,11 @@ void idGameLocal::InitHub() {
 			name_str += "_mover_pos";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st != "" ) {
+			if( st != "" )
+			{
 				ag = persistentLevelInfo.GetAngles( name_str );
 				ag.Normalize360();
-				static_cast<idPhysics_Parametric *>(static_cast<idMover *>(gameLocal.entities[i])->GetPhysics())->SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, ag, ang_zero, ang_zero );
+				static_cast<idPhysics_Parametric*>( static_cast<idMover*>( gameLocal.entities[i] )->GetPhysics() )->SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, ag, ang_zero, ang_zero );
 				continue;
 			}
 
@@ -6601,20 +6658,22 @@ void idGameLocal::InitHub() {
 			name_str += "_moveable_pos";
 			st = persistentLevelInfo.GetString( name_str );
 
-			if ( st != "" ) {
-				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetOrigin( persistentLevelInfo.GetVector( name_str ) );
+			if( st != "" )
+			{
+				static_cast<idPhysics_Parametric*>( static_cast<idMoveable*>( gameLocal.entities[i] )->GetPhysics() )->SetOrigin( persistentLevelInfo.GetVector( name_str ) );
 				name_str = tmp;
 				name_str += "_moveable_ang";
-				static_cast<idMoveable *>(gameLocal.entities[i])->SetAngles( persistentLevelInfo.GetAngles( name_str ) );
+				static_cast<idMoveable*>( gameLocal.entities[i] )->SetAngles( persistentLevelInfo.GetAngles( name_str ) );
 				name_str = tmp;
 				name_str += "_moveable_vel";
-				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetLinearVelocity( persistentLevelInfo.GetVector( name_str ) );
+				static_cast<idPhysics_Parametric*>( static_cast<idMoveable*>( gameLocal.entities[i] )->GetPhysics() )->SetLinearVelocity( persistentLevelInfo.GetVector( name_str ) );
 				continue;
 			}
 		}
 	}
 
-	if ( BanishLocationList.Num() > 0 ) {
+	if( BanishLocationList.Num() > 0 )
+	{
 		BanishLocationList.Shuffle();
 	}
 }
@@ -6625,11 +6684,13 @@ Zeroth
 idGameLocal::SendLocalUserHudMessage
 ===============
 */
-void idGameLocal::SendLocalUserHudMessage( const char *message ) {
+void idGameLocal::SendLocalUserHudMessage( const char* message )
+{
 	GetLocalPlayer()->ShowHudMessage( message );
 }
 
-void idGameLocal::SendLocalUserHudMessage( idStr message ) {
+void idGameLocal::SendLocalUserHudMessage( idStr message )
+{
 	GetLocalPlayer()->ShowHudMessage( message.c_str() );
 }
 
@@ -6640,32 +6701,41 @@ idGameLocal::UpdateFog
 Shows or hides fog based on r_fog.
 ===============
 */
-void idGameLocal::UpdateFog() {
+void idGameLocal::UpdateFog()
+{
 	idStr nam;
-	idStr fogprefix="fog_";
+	idStr fogprefix = "fog_";
 	bool eoc_fog = r_fog.GetBool();
 
 	int hash = gameLocal.entypeHash.GenerateKey( idLight::Type.classname, true );
-	idLight *light;
+	idLight* light;
 
-	for ( int i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) ) {
-		if ( gameLocal.entities[i] && !strcmp(gameLocal.entities[i]->GetClassname(), idLight::Type.classname ) ) {
-			if ( !gameLocal.entities[i]->IsType( idLight::Type ) ) {
+	for( int i = gameLocal.entypeHash.First( hash ); i != -1; i = gameLocal.entypeHash.Next( i ) )
+	{
+		if( gameLocal.entities[i] && !strcmp( gameLocal.entities[i]->GetClassname(), idLight::Type.classname ) )
+		{
+			if( !gameLocal.entities[i]->IsType( idLight::Type ) )
+			{
 				continue;
 			}
 
 			light = static_cast< idLight* >( gameLocal.entities[i] );
 
-			if ( !light ) {
+			if( !light )
+			{
 				continue;
 			}
 
 			nam = light->GetName();
 
-			if ( fogprefix == nam.Left(4) ) {
-				if ( eoc_fog ) {
+			if( fogprefix == nam.Left( 4 ) )
+			{
+				if( eoc_fog )
+				{
 					light->On();
-				} else {
+				}
+				else
+				{
 					light->Off();
 				}
 			}
@@ -6679,7 +6749,8 @@ Zeroth
 idGameLocal::SetPersistentRemove
 ===============
 */
-void idGameLocal::SetPersistentRemove( const char *name ) {
+void idGameLocal::SetPersistentRemove( const char* name )
+{
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str;
 
@@ -6697,7 +6768,8 @@ Zeroth
 idGameLocal::SetPersistentLightBroken
 ===============
 */
-void idGameLocal::SetPersistentLightBroken( const char *name ) {
+void idGameLocal::SetPersistentLightBroken( const char* name )
+{
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str;
 
@@ -6715,7 +6787,8 @@ Zeroth
 idGameLocal::SetPersistentLightOn
 ===============
 */
-void idGameLocal::SetPersistentLightOn( const char *name, bool state ) {
+void idGameLocal::SetPersistentLightOn( const char* name, bool state )
+{
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str, st;
 
@@ -6724,9 +6797,12 @@ void idGameLocal::SetPersistentLightOn( const char *name, bool state ) {
 	name_str += name;
 	name_str += "_light_on";
 
-	if ( state ) {
+	if( state )
+	{
 		st = "on";
-	} else {
+	}
+	else
+	{
 		st = "off";
 	}
 
@@ -6739,7 +6815,8 @@ Zeroth
 idGameLocal::SetPersistentTrigger
 ===============
 */
-void idGameLocal::SetPersistentTrigger( const char *type, const char *name, const bool state ) {
+void idGameLocal::SetPersistentTrigger( const char* type, const char* name, const bool state )
+{
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str, st;
 
@@ -6749,9 +6826,12 @@ void idGameLocal::SetPersistentTrigger( const char *type, const char *name, cons
 	name_str += "_";
 	name_str += type;
 
-	if ( state ) {
+	if( state )
+	{
 		st = "on";
-	} else {
+	}
+	else
+	{
 		st = "off";
 	}
 
@@ -6764,7 +6844,8 @@ Zeroth
 idGameLocal::SetPersistentTriggerInt
 ===============
 */
-void idGameLocal::SetPersistentTriggerInt( const char *type, const char *var, const char *name, int val ) {
+void idGameLocal::SetPersistentTriggerInt( const char* type, const char* var, const char* name, int val )
+{
 	// for removing items/creatures/etc after returning to a level (hubs)
 	idStr name_str, st;
 
@@ -6785,21 +6866,25 @@ Zeroth
 idGameLocal::SavePersistentMoveables
 ===============
 */
-void idGameLocal::SavePersistentMoveables(void) {
+void idGameLocal::SavePersistentMoveables( void )
+{
 	idEntity* ent;
 	idStr tmp, name_str, st, name;
 	int nt = 0;
 	// idVec3 vc;
 	idAngles ag;
 
-	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+	for( int i = 0; i < MAX_GENTITIES; i++ )
+	{
 		ent = gameLocal.entities[i];
-		if (ent) {
+		if( ent )
+		{
 
 			name = ent->GetEntityDefName();
 
 			// find moveables locations
-			if ( name.Left(9) == "moveable_" ) {
+			if( name.Left( 9 ) == "moveable_" )
+			{
 				/*
 				vc = ent->GetPhysics()->GetOrigin();
 				if ( vc == ent->spawnArgs.GetVector("origin") ) {
@@ -6807,7 +6892,8 @@ void idGameLocal::SavePersistentMoveables(void) {
 				}
 				*/
 
-				if ( static_cast<idMoveable *>( ent )->savePersistentInfo == false ) {
+				if( static_cast<idMoveable*>( ent )->savePersistentInfo == false )
+				{
 					continue;
 				}
 
@@ -6831,3 +6917,5 @@ void idGameLocal::SavePersistentMoveables(void) {
 			}
 		}
 	}
+
+}

@@ -2,7 +2,8 @@
 #ifndef __LEAF_H__
 #define __LEAF_H__
 
-class idEntity_Leaf : idMoveable {
+class idEntity_Leaf : idMoveable
+{
 public:
 	CLASS_PROTOTYPE( idEntity_Leaf );
 	void	Spawn();

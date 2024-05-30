@@ -118,10 +118,10 @@ void idMoveable::Spawn()
 	}
 
 	// HEXEN : Zeroth
-/**	if ( !clipModelName[0] && IsType( idWood::Type ) ) {
-		gameLocal.Error("idWood '%s': Please open map editor and re-save map.", name.c_str() );
-	}
-**/
+	/**	if ( !clipModelName[0] && IsType( idWood::Type ) ) {
+			gameLocal.Error("idWood '%s': Please open map editor and re-save map.", name.c_str() );
+		}
+	**/
 
 	if( !collisionModelManager->TrmFromModel( clipModelName, trm ) )
 	{
@@ -191,7 +191,7 @@ void idMoveable::Spawn()
 		physicsObj.SetMass( mass );
 	}
 
-	if ( spawnArgs.GetBool( "nodrop" ) /**|| IsType( idWood::Type ) **/ ) // HEXEN : Zeroth, added idWood
+	if( spawnArgs.GetBool( "nodrop" ) /**|| IsType( idWood::Type ) **/ )  // HEXEN : Zeroth, added idWood
 	{
 		physicsObj.PutToRest();
 	}
@@ -200,7 +200,7 @@ void idMoveable::Spawn()
 		physicsObj.DropToFloor();
 	}
 
-	if ( spawnArgs.GetBool( "noimpact" ) || spawnArgs.GetBool( "notPushable" ) /**|| IsType( idWood::Type )**/ ) // HEXEN : Zeroth, added idWood
+	if( spawnArgs.GetBool( "noimpact" ) || spawnArgs.GetBool( "notPushable" ) /**|| IsType( idWood::Type )**/ )  // HEXEN : Zeroth, added idWood
 	{
 		physicsObj.DisableImpact();
 	}
@@ -430,15 +430,16 @@ void idMoveable::Killed( idEntity* inflictor, idEntity* attacker, int damage, co
 	}
 
 	// HEXEN : Zeroth
-	const idSoundShader *shader = declManager->FindSound( spawnArgs.GetString( "snd_break" ) );
+	const idSoundShader* shader = declManager->FindSound( spawnArgs.GetString( "snd_break" ) );
 	this->StartSoundShader( shader, SND_CHANNEL_ANY, SSF_GLOBAL, false, NULL );
 
 	// HEXEN : Zeroth
-	const idDeclParticle *	smokeBreak = NULL;
+	const idDeclParticle* 	smokeBreak = NULL;
 	int						smokeBreakTime = 0;
-	const char *smokeName = spawnArgs.GetString( "smoke_break" );
-	if ( *smokeName != '\0' ) {
-		smokeBreak = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, smokeName ) );
+	const char* smokeName = spawnArgs.GetString( "smoke_break" );
+	if( *smokeName != '\0' )
+	{
+		smokeBreak = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, smokeName ) );
 		smokeBreakTime = gameLocal.time;
 
 		// get center of bounds on moveable
@@ -451,7 +452,8 @@ void idMoveable::Killed( idEntity* inflictor, idEntity* attacker, int damage, co
 	}
 
 	// HEXEN : Zeroth
-	if ( removeWhenBroken ) {
+	if( removeWhenBroken )
+	{
 		Hide();
 		gameLocal.SetPersistentRemove( name.c_str() );
 
@@ -459,7 +461,8 @@ void idMoveable::Killed( idEntity* inflictor, idEntity* attacker, int damage, co
 		CancelEvents( &EV_Explode );
 		CancelEvents( &EV_Activate );
 
-		if ( spawnArgs.GetBool( "triggerTargets" ) ) {
+		if( spawnArgs.GetBool( "triggerTargets" ) )
+		{
 			ActivateTargets( this );
 		}
 
@@ -467,9 +470,11 @@ void idMoveable::Killed( idEntity* inflictor, idEntity* attacker, int damage, co
 	}
 
 	// HEXEN : Zeroth
-	if ( scriptThread != NULL && brokenScript ) {
-		const function_t *func = GetScriptFunction( "broken" );
-		if ( !func ) {
+	if( scriptThread != NULL && brokenScript )
+	{
+		const function_t* func = GetScriptFunction( "broken" );
+		if( !func )
+		{
 			assert( 0 );
 			gameLocal.Error( "Can't find function use' in object '%s'", scriptObject.GetTypeName() );
 			return;
@@ -479,30 +484,33 @@ void idMoveable::Killed( idEntity* inflictor, idEntity* attacker, int damage, co
 		UpdateScript();
 	}
 
-	const idKeyValue *kv = spawnArgs.MatchPrefix( "def_debris" );
+	const idKeyValue* kv = spawnArgs.MatchPrefix( "def_debris" );
 	// bool first = true;
-	while ( kv ) {
-		const idDict *debris_args = gameLocal.FindEntityDefDict( kv->GetValue(), false );
-		if ( debris_args ) {
-			idEntity *ent;
+	while( kv )
+	{
+		const idDict* debris_args = gameLocal.FindEntityDefDict( kv->GetValue(), false );
+		if( debris_args )
+		{
+			idEntity* ent;
 			idVec3 dir;
-			idDebris *debris;
+			idDebris* debris;
 			// if ( first ) {
-				dir = physicsObj.GetAxis()[1];
+			dir = physicsObj.GetAxis()[1];
 			//	first = false;
 			// } else {
-				dir.x += gameLocal.random.CRandomFloat() * 4.0f;
-				dir.y += gameLocal.random.CRandomFloat() * 4.0f;
-				// dir.z = gameLocal.random.RandomFloat() * 8.0f;
+			dir.x += gameLocal.random.CRandomFloat() * 4.0f;
+			dir.y += gameLocal.random.CRandomFloat() * 4.0f;
+			// dir.z = gameLocal.random.RandomFloat() * 8.0f;
 			// }
 			dir.Normalize();
 
 			gameLocal.SpawnEntityDef( *debris_args, &ent, false );
-			if ( !ent || !ent->IsType( idDebris::Type ) ) {
+			if( !ent || !ent->IsType( idDebris::Type ) )
+			{
 				gameLocal.Error( "'projectile_debris' is not an idDebris" );
 			}
 
-			debris = static_cast<idDebris *>(ent);
+			debris = static_cast<idDebris*>( ent );
 			debris->randomPosInBounds = true;
 			debris->randomPosEnt = this;
 			debris->Create( this, physicsObj.GetOrigin(), dir.ToMat3() );
@@ -822,7 +830,7 @@ void idMoveable::Event_EnableDamage( float enable )
 idMoveable::Event_DirectDamage
 ================
 */
-void idMoveable::Event_DirectDamage( idEntity *damageTarget, const char *damageDefName )
+void idMoveable::Event_DirectDamage( idEntity* damageTarget, const char* damageDefName )
 {
 	DirectDamage( damageDefName, damageTarget );
 }
@@ -832,21 +840,21 @@ void idMoveable::Event_DirectDamage( idEntity *damageTarget, const char *damageD
 idMoveable::DirectDamage
 ================
 */
-void idMoveable::DirectDamage( const char *meleeDefName, idEntity *ent )
+void idMoveable::DirectDamage( const char* meleeDefName, idEntity* ent )
 {
-	const idDict *meleeDef;
-	const char *p;
-	const idSoundShader *shader;
+	const idDict* meleeDef;
+	const char* p;
+	const idSoundShader* shader;
 
 	meleeDef = gameLocal.FindEntityDefDict( meleeDefName, false );
-	if ( !meleeDef )
+	if( !meleeDef )
 	{
 		gameLocal.Error( "Unknown damage def '%s' on '%s'", meleeDefName, name.c_str() );
 	}
 
-	if ( !ent->fl.takedamage )
+	if( !ent->fl.takedamage )
 	{
-		const idSoundShader *shader = declManager->FindSound(meleeDef->GetString( "snd_miss" ));
+		const idSoundShader* shader = declManager->FindSound( meleeDef->GetString( "snd_miss" ) );
 		StartSoundShader( shader, SND_CHANNEL_DAMAGE, 0, false, NULL );
 		return;
 	}
@@ -855,7 +863,7 @@ void idMoveable::DirectDamage( const char *meleeDefName, idEntity *ent )
 	// do the damage
 	//
 	p = meleeDef->GetString( "snd_hit" );
-	if ( p && *p )
+	if( p && *p )
 	{
 		shader = declManager->FindSound( p );
 		StartSoundShader( shader, SND_CHANNEL_DAMAGE, 0, false, NULL );
@@ -1561,7 +1569,7 @@ idExplodingBarrel::Damage
 ================
 */
 void idExplodingBarrel::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
-								const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint )
+								const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint )
 {
 
 	const idDict* damageDef = gameLocal.FindEntityDefDict( damageDefName );
@@ -1727,12 +1735,15 @@ CLASS_DECLARATION( idMoveable, idWood )
 //	EVENT( EV_Touch,			idLiquid::Event_Touch )
 END_CLASS
 // HEXEN : Zeroth
-idWood::idWood() {
+idWood::idWood()
+{
 	geoConstructed = false;
 }
 // HEXEN : Zeroth
-void idWood::Spawn() {
-	if (!geoConstructed) {
+void idWood::Spawn()
+{
+	if( !geoConstructed )
+	{
 		ConstructGeo();
 	}
 
@@ -1741,15 +1752,19 @@ void idWood::Spawn() {
 // HEXEN : Zeroth
 // SDK does not contain information that allows us to access faces of models
 // like (*faces[face])[vertex], so we'll have to build that information here.
-void idWood::ConstructGeo() {
+void idWood::ConstructGeo()
+{
 	int i, v, f, v2, f2;
-	srfTriangles_t *surf = renderEntity.hModel->Surface(0)->geometry;
+	srfTriangles_t* surf = renderEntity.hModel->Surface( 0 )->geometry;
 	// assign vertices to geo.faces
-	for (i=0; i < (surf->numIndexes / 3); i++) {
+	for( i = 0; i < ( surf->numIndexes / 3 ); i++ )
+	{
 		f = geo.faces.New();
 		geo.faces[f].plane = &surf->facePlanes[i]; //z.todo: delete geta/b/c/d funcs.
-		for ( v=0; v < surf->numVerts; v++ ) {
-			if ( surf->facePlanes[i].Side(surf->verts[v].xyz, ON_EPSILON ) == PLANESIDE_ON ) {
+		for( v = 0; v < surf->numVerts; v++ )
+		{
+			if( surf->facePlanes[i].Side( surf->verts[v].xyz, ON_EPSILON ) == PLANESIDE_ON )
+			{
 				geo.faces[f].verts.Append( surf->verts[v].xyz ); //origin + winding[0].ToVec3() * axis;
 			}
 		}
@@ -1759,26 +1774,34 @@ void idWood::ConstructGeo() {
 //merge perpendicular faces that share 2+ verts
 //************
 	int same;
-	for (f=0; f < geo.faces.Num(); f++) {
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
 		int verts = geo.faces[f].verts.Num();
-		for ( f2=0; f2 < geo.faces.Num(); f2++ ) {
-			if ( f == f2 ) {
+		for( f2 = 0; f2 < geo.faces.Num(); f2++ )
+		{
+			if( f == f2 )
+			{
 				continue;
 			}
 			// perpendicular test
-			if ( geo.faces[f].plane->Normal() != geo.faces[f2].plane->Normal() ) {
+			if( geo.faces[f].plane->Normal() != geo.faces[f2].plane->Normal() )
+			{
 				continue;
 			}
 			// test if all vertices on plane
-			for ( v2=0; v2<geo.faces[f2].verts.Num(); v2++ ) {
-				if ( geo.faces[f].plane->Side( geo.faces[f2].verts[v2], ON_EPSILON ) != PLANESIDE_ON ) {
+			for( v2 = 0; v2 < geo.faces[f2].verts.Num(); v2++ )
+			{
+				if( geo.faces[f].plane->Side( geo.faces[f2].verts[v2], ON_EPSILON ) != PLANESIDE_ON )
+				{
 					continue;
 				}
 			}
 			// test if share 2 vertices
-			same=0;
-			for ( v2=0; v2 < geo.faces[f2].verts.Num() && same < 2; v2++ ) {
-				if ( geo.faces[f].verts.Find( geo.faces[f2].verts[v2] ) ) {
+			same = 0;
+			for( v2 = 0; v2 < geo.faces[f2].verts.Num() && same < 2; v2++ )
+			{
+				if( geo.faces[f].verts.Find( geo.faces[f2].verts[v2] ) )
+				{
 					same++;
 				}
 			}
@@ -1791,12 +1814,14 @@ void idWood::ConstructGeo() {
 //				}
 //			}
 //
-			if ( same >= 2 ){
-				for ( v2=0; v2 < geo.faces[f2].verts.Num(); v2++ ) {
+			if( same >= 2 )
+			{
+				for( v2 = 0; v2 < geo.faces[f2].verts.Num(); v2++ )
+				{
 					geo.faces[f].verts.Append( geo.faces[f2].verts[v2] );
 				}
 				geo.faces[f2].verts.Clear();
-				geo.faces.RemoveIndex(f2);
+				geo.faces.RemoveIndex( f2 );
 				geo.faces.Condense();
 				f2--;
 			}
@@ -1805,11 +1830,15 @@ void idWood::ConstructGeo() {
 //************
 //delete duplicate vertices
 //************
-	for (f=0; f < geo.faces.Num(); f++) {
-		for ( v=0; v < geo.faces[f].verts.Num(); v++ ) {
-			for ( i=v+1; i < geo.faces[f].verts.Num(); i++ ) {
-				if ( idVec3( geo.faces[f].verts[v] - geo.faces[f].verts[i] ).Length() < 0.00001 ) {
-					geo.faces[f].verts.RemoveIndex(i);
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
+		for( v = 0; v < geo.faces[f].verts.Num(); v++ )
+		{
+			for( i = v + 1; i < geo.faces[f].verts.Num(); i++ )
+			{
+				if( idVec3( geo.faces[f].verts[v] - geo.faces[f].verts[i] ).Length() < 0.00001 )
+				{
+					geo.faces[f].verts.RemoveIndex( i );
 					geo.faces[f].verts.Condense();
 					i--;
 				}
@@ -1827,26 +1856,30 @@ void idWood::ConstructGeo() {
 //************
 //sort vertices clockwise
 //************
-	for ( f=0; f < geo.faces.Num(); f++ ) {
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
 		bool DoneSorting;
-		idVec3 h,j;
-		for (i=0; i < geo.faces[f].verts.Num(); i++)
+		idVec3 h, j;
+		for( i = 0; i < geo.faces[f].verts.Num(); i++ )
 		{
 			DoneSorting = true;
-			for (v=0; v < geo.faces[f].verts.Num()-2; v++) {
-				h = geo.faces[f].verts[v+1] - geo.faces[f].verts[0];
-				j = geo.faces[f].verts[v+2] - geo.faces[f].verts[0];
-				j = h.Cross(j);
+			for( v = 0; v < geo.faces[f].verts.Num() - 2; v++ )
+			{
+				h = geo.faces[f].verts[v + 1] - geo.faces[f].verts[0];
+				j = geo.faces[f].verts[v + 2] - geo.faces[f].verts[0];
+				j = h.Cross( j );
 				j.Normalize();
-				if ( j * geo.faces[f].plane->Normal() < 0.0f ) {
+				if( j * geo.faces[f].plane->Normal() < 0.0f )
+				{
 					DoneSorting = false;
-					j = geo.faces[f].verts[v+2];
-					geo.faces[f].verts[v+2] = geo.faces[f].verts[v+1];
-					geo.faces[f].verts[v+1] = j;
+					j = geo.faces[f].verts[v + 2];
+					geo.faces[f].verts[v + 2] = geo.faces[f].verts[v + 1];
+					geo.faces[f].verts[v + 1] = j;
 				}
 			}
-			if (DoneSorting) {
-			  break;
+			if( DoneSorting )
+			{
+				break;
 			}
 		}
 	}
@@ -1854,10 +1887,12 @@ void idWood::ConstructGeo() {
 //get center of model
 //***********
 	geo.center.Zero();
-	int verts=0;
-	for ( f=0; f < geo.faces.Num(); f++ ) {
+	int verts = 0;
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
 		verts += geo.faces[f].verts.Num();
-		for ( v=0; v < geo.faces[f].verts.Num(); v++ ) {
+		for( v = 0; v < geo.faces[f].verts.Num(); v++ )
+		{
 			geo.center += geo.faces[f].verts[v];
 		}
 	}
@@ -1866,39 +1901,46 @@ void idWood::ConstructGeo() {
 //get average surface area per side
 //************
 	geo.area = 0;
-	float a,b,c,p;
-	for ( f=0; f < geo.faces.Num(); f++ ) {
+	float a, b, c, p;
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
 		// get center of the face
 		geo.faces[f].center.Zero();
-		for ( v=0; v < geo.faces[f].verts.Num(); v++ ) {
+		for( v = 0; v < geo.faces[f].verts.Num(); v++ )
+		{
 			geo.faces[f].center += geo.faces[f].verts[v];
 		}
 		geo.faces[f].center /= geo.faces[f].verts.Num();
 		// get area of each portion of face
 		geo.faces[f].area = 0;
-		for ( v=0; v < geo.faces[f].verts.Num() - 1; v++ ) {
+		for( v = 0; v < geo.faces[f].verts.Num() - 1; v++ )
+		{
 			a = ( geo.faces[f].center - geo.faces[f].verts[v] ).Length();
-			b = ( geo.faces[f].verts[v] - geo.faces[f].verts[v+1] ).Length();
-			c = ( geo.faces[f].verts[v+1] - geo.faces[f].center ).Length();
-			p = (a+b+c)/2;
+			b = ( geo.faces[f].verts[v] - geo.faces[f].verts[v + 1] ).Length();
+			c = ( geo.faces[f].verts[v + 1] - geo.faces[f].center ).Length();
+			p = ( a + b + c ) / 2;
 			geo.faces[f].area += idMath::Sqrt( p * ( p - a ) * ( p - b ) * ( p - c ) );
 		}
-		gameLocal.Printf("face %i area %f\n", f, geo.faces[f].area);
+		gameLocal.Printf( "face %i area %f\n", f, geo.faces[f].area );
 		geo.area += geo.faces[f].area;
 	}
 	geo.avgArea = geo.area / geo.faces.Num();
-	gameLocal.Printf("tot area %f\n", geo.area);
-	gameLocal.Printf("areaavg %f\n", geo.avgArea);
+	gameLocal.Printf( "tot area %f\n", geo.area );
+	gameLocal.Printf( "areaavg %f\n", geo.avgArea );
 //***********
 //store adjacent sides
 //***********
 	// faces sharing at least one vertice with one another are adjacent.
-	for ( f=0; f<geo.faces.Num(); f++ ) {
-		for ( f2=f+1; f2<geo.faces.Num(); f2++ ) {
-			for ( v2=0; v2<geo.faces[f2].verts.Num(); v2++) {
-				if ( geo.faces[f].verts.Find( geo.faces[f2].verts[v2] ) ) {
-					geo.faces[f].adjacent.Append(f2);
-					geo.faces[f2].adjacent.Append(f);
+	for( f = 0; f < geo.faces.Num(); f++ )
+	{
+		for( f2 = f + 1; f2 < geo.faces.Num(); f2++ )
+		{
+			for( v2 = 0; v2 < geo.faces[f2].verts.Num(); v2++ )
+			{
+				if( geo.faces[f].verts.Find( geo.faces[f2].verts[v2] ) )
+				{
+					geo.faces[f].adjacent.Append( f2 );
+					geo.faces[f2].adjacent.Append( f );
 					break;
 				}
 			}
@@ -1906,50 +1948,64 @@ void idWood::ConstructGeo() {
 	}
 	geoConstructed = true;
 }
-void idWood::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, 
-					 const char *damageDefName, const float damageScale, const int location, idVec3 &iPoint ) {
-	if ( !fl.takedamage ) {
+void idWood::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
+					 const char* damageDefName, const float damageScale, const int location, idVec3& iPoint )
+{
+	if( !fl.takedamage )
+	{
 		return;
 	}
-	if ( !inflictor ) {
+	if( !inflictor )
+	{
 		inflictor = gameLocal.world;
 	}
-	if ( !attacker ) {
+	if( !attacker )
+	{
 		attacker = gameLocal.world;
 	}
 	lastiPoint = iPoint;
-	const idDict *damageDef = gameLocal.FindEntityDefDict( damageDefName );
-	if ( !damageDef ) {
+	const idDict* damageDef = gameLocal.FindEntityDefDict( damageDefName );
+	if( !damageDef )
+	{
 		gameLocal.Error( "Unknown damageDef '%s'\n", damageDefName );
 	}
 	int	damage = damageDef->GetInt( "damage" );
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );
-	if ( damage ) {
+	if( damage )
+	{
 		// do the damage
 		health -= damage;
-		if ( health <= 0 ) {
-			if ( health < -999 ) {
+		if( health <= 0 )
+		{
+			if( health < -999 )
+			{
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-		} else {
+		}
+		else
+		{
 			Pain( inflictor, attacker, damage, dir, location );
 		}
 	}
 }
-bool idWood::CheckFloating( idWood *caller, idWood *chain[], int c ) {
+bool idWood::CheckFloating( idWood* caller, idWood* chain[], int c )
+{
 	// make sure we aren't caught in a recursive loop with the other touching entities
 	int numClipModels, t, i;
 	idBounds bounds;
-	idClipModel *cm, *clipModelList[ MAX_GENTITIES ];
+	idClipModel* cm, *clipModelList[ MAX_GENTITIES ];
 	idEntity* entity;
-	for ( i=0; i<c; i++ ) {
-		if ( chain[i] == this ) {
+	for( i = 0; i < c; i++ )
+	{
+		if( chain[i] == this )
+		{
 			return true;
 		}
 	}
-	if ( !this->GetPhysics()->GetClipModel() ) {
+	if( !this->GetPhysics()->GetClipModel() )
+	{
 		return false;
 	}
 	// add self to chain
@@ -1958,101 +2014,122 @@ bool idWood::CheckFloating( idWood *caller, idWood *chain[], int c ) {
 	bounds.FromTransformedBounds( this->GetPhysics()->GetClipModel()->GetBounds(), this->GetPhysics()->GetClipModel()->GetOrigin(), this->GetPhysics()->GetClipModel()->GetAxis() );
 	numClipModels = gameLocal.clip.ClipModelsTouchingBounds( bounds, -1, clipModelList, MAX_GENTITIES );
 	// check all touchers to see if they're NOT floating
-	for ( i = 0; i < numClipModels; i++ ) {
+	for( i = 0; i < numClipModels; i++ )
+	{
 		cm = clipModelList[ i ];
-		if ( !cm->IsTraceModel() ) {
+		if( !cm->IsTraceModel() )
+		{
 			continue;
 		}
 		entity = clipModelList[ i ]->GetEntity();
-		if ( !entity ) {
+		if( !entity )
+		{
 			continue;
 		}
-		if ( !gameLocal.clip.ContentsModel( cm->GetOrigin(), cm, cm->GetAxis(), -1, GetPhysics()->GetClipModel()->Handle(), GetPhysics()->GetClipModel()->GetOrigin(), GetPhysics()->GetClipModel()->GetAxis() ) ) {
+		if( !gameLocal.clip.ContentsModel( cm->GetOrigin(), cm, cm->GetAxis(), -1, GetPhysics()->GetClipModel()->Handle(), GetPhysics()->GetClipModel()->GetOrigin(), GetPhysics()->GetClipModel()->GetAxis() ) )
+		{
 			continue;
 		}
-		if ( !entity->IsType( idWood::Type ) ) {
+		if( !entity->IsType( idWood::Type ) )
+		{
 			return false;
 		}
-		if ( static_cast< idWood* >( entity ) == caller ) {
+		if( static_cast< idWood* >( entity ) == caller )
+		{
 			continue;
 		}
-		if ( static_cast< idWood* >( entity )->spawnArgs.GetBool("stopper") ) {
+		if( static_cast< idWood* >( entity )->spawnArgs.GetBool( "stopper" ) )
+		{
 			return false;
 		}
-		if ( static_cast< idWood* >( entity )->health <= 0 ) {
+		if( static_cast< idWood* >( entity )->health <= 0 )
+		{
 			return true;
 		}
-		if ( ! static_cast< idWood* >( entity )->CheckFloating( this, chain, c ) ) {
+		if( ! static_cast< idWood* >( entity )->CheckFloating( this, chain, c ) )
+		{
 			return false;
 		}
 	}
 	// if we haven't found a non-floater, we're floating
 	physicsObj.EnableImpact();
-	physicsObj.SetLinearVelocity( idVec3(0,0,-20) );
+	physicsObj.SetLinearVelocity( idVec3( 0, 0, -20 ) );
 	BecomeNonSolid();
 	return true;
 }
 
 
-bool idWood::CheckFloating( idWood &caller, idWood *chain, int c ) {
+bool idWood::CheckFloating( idWood& caller, idWood* chain, int c )
+{
 	// make sure we aren't caught in a recursive loop with the other touching entities
-	for ( i=0; i<c; i++ ) {
-		if ( chain[i] == this ) {
+	for( i = 0; i < c; i++ )
+	{
+		if( chain[i] == this )
+		{
 			return true;
 		}
 	}
 	int i, n;
-	idEntity *	entityList[ MAX_GENTITIES ];
+	idEntity* 	entityList[ MAX_GENTITIES ];
 	n = gameLocal.clip.EntitiesTouchingBounds( physicsObj.clipModel->bounds, -1, entityList, MAX_GENTITIES );
 	// if theres only one toucher, and it's the caller, we're floating
-	if ( n == 1 && entityList[0] == caller ) {
+	if( n == 1 && entityList[0] == caller )
+	{
 		physicsObj.EnableImpact();
-		physicsObj.SetLinearVelocity( idVec3(0,0,1) );
+		physicsObj.SetLinearVelocity( idVec3( 0, 0, 1 ) );
 		return true;
 	}
 	// if no touchers.. we're floating
-	if ( n == 0 ) {
+	if( n == 0 )
+	{
 		physicsObj.EnableImpact();
-		physicsObj.SetLinearVelocity( idVec3(0,0,1) );
+		physicsObj.SetLinearVelocity( idVec3( 0, 0, 1 ) );
 		return true;
 	}
 	// add self to chain
 	chain[n] = this;
 	c++;
 	// check all touchers to see if they're NOT floating
-	for ( i=0; i < n; i++ ) {
-		if ( !entityList[i]->IsType( idWood::Type ) ) {
+	for( i = 0; i < n; i++ )
+	{
+		if( !entityList[i]->IsType( idWood::Type ) )
+		{
 			return false;
 		}
-		if ( entityList[i] == caller ) {
+		if( entityList[i] == caller )
+		{
 			continue;
 		}
-		if ( ! static_cast< idWood* >( entityList[i] )->CheckFloating( this, chain, c ) ) {
+		if( ! static_cast< idWood* >( entityList[i] )->CheckFloating( this, chain, c ) )
+		{
 			return false;
 		}
 	}
 	// if we haven't found a non-floater, we're floating
 	physicsObj.EnableImpact();
-	physicsObj.SetLinearVelocity( idVec3(0,0,1) );
+	physicsObj.SetLinearVelocity( idVec3( 0, 0, 1 ) );
 	return true;
 }
 
 // HEXEN : Zeroth
-void idWood::Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
-	idEntity *impactor = NULL;
+void idWood::Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location )
+{
+	idEntity* impactor = NULL;
 	int f, v, r, end, op;
 	idVec3 ray;
 	float dist;
 	float oldDist = 0;
 	physicsObj.EnableImpact();
-	physicsObj.SetLinearVelocity( idVec3(0,0,-20) );
+	physicsObj.SetLinearVelocity( idVec3( 0, 0, -20 ) );
 	BecomeNonSolid();
-	idWood *	chain[ MAX_GENTITIES ];
+	idWood* 	chain[ MAX_GENTITIES ];
 	CheckFloating( this, chain, 0 );
-	if ( unbindOnDeath ) {
+	if( unbindOnDeath )
+	{
 		Unbind();
 	}
-	if ( renderEntity.gui[ 0 ] ) {
+	if( renderEntity.gui[ 0 ] )
+	{
 		renderEntity.gui[ 0 ] = NULL;
 	}
 	ActivateTargets( this );
@@ -2060,9 +2137,9 @@ void idWood::Killed( idEntity *inflictor, idEntity *attacker, int damage, const 
 
 	// spawn new log (for one half)
 
-/****************************************************
-for trying to create a new one on teh fly, or using the default model
-*****************************************************/
+	/****************************************************
+	for trying to create a new one on teh fly, or using the default model
+	*****************************************************/
 	idDict newDebris;
 	//newDebris.Copy(spawnArgs);
 //	newDebris.Set("material", spawnArgs.GetString("material") );
@@ -2072,7 +2149,7 @@ for trying to create a new one on teh fly, or using the default model
 //	newDebris.Set( "model", nrend->hModel->Name() );
 	//newDebris.Delete("name");
 	//newDebris.Delete("clipmodel");
-	idWood *deb = static_cast< idWood * >( gameLocal.SpawnEntityType(idMoveable::Type, &newDebris) );
+	idWood* deb = static_cast< idWood* >( gameLocal.SpawnEntityType( idMoveable::Type, &newDebris ) );
 	idVec3 org( physicsObj.GetOrigin() );
 	deb->GetPhysics()->SetOrigin( org );
 	deb->GetPhysics()->SetAxis( physicsObj.GetAxis() );
@@ -2087,53 +2164,56 @@ for trying to create a new one on teh fly, or using the default model
 //	mod->AddSurface( *renderEntity.hModel->Surface(0) );
 //	mod->FinishSurfaces();
 //	mod->FreeVertexCache();
-	idRenderModel *mod;
+	idRenderModel* mod;
 	mod = renderModelManager->AllocModel();
 	mod->LoadModel();
 	deb->SetModel( mod->Name() );
 	deb->UpdateModel();
 	deb->UpdateModelTransform();
 	deb->UpdateVisuals();
-	srfTriangles_t *debsgeo = deb->renderEntity.hModel->Surface(0)->geometry;
-	srfTriangles_t *sgeo = renderEntity.hModel->Surface(0)->geometry;
-/****************************************************
-	using woodbreak entity
-****************************************************/
-	idWood *deb = static_cast< idWood* >( gameLocal.FindEntity("woodbreak") );
-	if ( !deb ) {
+	srfTriangles_t* debsgeo = deb->renderEntity.hModel->Surface( 0 )->geometry;
+	srfTriangles_t* sgeo = renderEntity.hModel->Surface( 0 )->geometry;
+	/****************************************************
+		using woodbreak entity
+	****************************************************/
+	idWood* deb = static_cast< idWood* >( gameLocal.FindEntity( "woodbreak" ) );
+	if( !deb )
+	{
 		return;
 	}
 	//srfTriangles_t *debsgeo = deb->renderEntity.hModel->Surface(0)->geometry;
-	srfTriangles_t *sgeo = renderEntity.hModel->Surface(0)->geometry;
-/**********************************************
-	add splinters to wood
-***********************************************/
+	srfTriangles_t* sgeo = renderEntity.hModel->Surface( 0 )->geometry;
+	/**********************************************
+		add splinters to wood
+	***********************************************/
 	// find the smallest face (short end of the wood)
-	for ( end=0, f=1; f<geo.faces.Num(); f++ ) {
-		if ( geo.faces[f].area < geo.faces[end].area ) {
+	for( end = 0, f = 1; f < geo.faces.Num(); f++ )
+	{
+		if( geo.faces[f].area < geo.faces[end].area )
+		{
 			end = f;
 		}
 	}
-/*
-	int j, k;
-	idDrawVert vv;
-	idVec3 newFace[3];
-	newFace[0] = geo.faces[end].verts[0];
-	newFace[1] = geo.faces[end].verts[1];
-	newFace[2] = geo.faces[end].verts[1] + geo.faces[end].plane->Normal() * 10 ;
-	idFixedWinding w;
-	w.Clear();
-	vv = sgeo->verts[ sgeo->indexes[ 0 ] ];
-	w.AddPoint( newFace[0] );
-	w[0].s = vv.st[0];
-	w[0].t = vv.st[1];
-	w.AddPoint( newFace[1] );
-	w[1].s = vv.st[0];
-	w[1].t = vv.st[1];
-	w.AddPoint( newFace[2] );
-	w[2].s = vv.st[0];
-	w[2].t = vv.st[1];
-*/
+	/*
+		int j, k;
+		idDrawVert vv;
+		idVec3 newFace[3];
+		newFace[0] = geo.faces[end].verts[0];
+		newFace[1] = geo.faces[end].verts[1];
+		newFace[2] = geo.faces[end].verts[1] + geo.faces[end].plane->Normal() * 10 ;
+		idFixedWinding w;
+		w.Clear();
+		vv = sgeo->verts[ sgeo->indexes[ 0 ] ];
+		w.AddPoint( newFace[0] );
+		w[0].s = vv.st[0];
+		w[0].t = vv.st[1];
+		w.AddPoint( newFace[1] );
+		w[1].s = vv.st[0];
+		w[1].t = vv.st[1];
+		w.AddPoint( newFace[2] );
+		w[2].s = vv.st[0];
+		w[2].t = vv.st[1];
+	*/
 	/** this DEFINITELY doesnt owrk
 	sgeo->numVerts += 3;
 	realloc( sgeo->verts, sgeo->numVerts * sizeof( sgeo->verts ) );
@@ -2143,96 +2223,109 @@ for trying to create a new one on teh fly, or using the default model
 	sgeo->verts[ sgeo->numVerts - 1 ].xyz = newFace[2];
 	sgeo->facePlanes[ ( sgeo->numVerts / 3 ) - 1 ] = sgeo->facePlanes[ ( sgeo->numVerts / 3 ) - 2 ];
 	**/
-/** // using shards... need to figure out how to use them properly.
-	shard_t *shard = new shard_t;
-	shard->clipModel = 	GetPhysics()->GetClipModel();
-	shard->droppedTime = -1;
-	shard->winding = w;
-	shard->decals.Clear();
-	shard->edgeHasNeighbour.AssureSize( w.GetNumPoints(), false );
-	shard->neighbours.Clear();
-	shard->atEdge = false;
-	// setup the physics
-	shard->physicsObj.SetSelf( this );
-	shard->physicsObj.SetClipModel( shard->clipModel, 1 );
-	shard->physicsObj.SetMass( 	GetPhysics()->GetMass() );
-	shard->physicsObj.SetOrigin( 	GetPhysics()->GetOrigin() );
-	shard->physicsObj.SetAxis( 	GetPhysics()->GetAxis() );
-	shard->physicsObj.SetBouncyness( 1 );
-	shard->physicsObj.SetFriction( 0.6f, 0.6f, 1 );
-	shard->droppedTime = gameLocal.time;
-	shard->physicsObj.SetContents( CONTENTS_RENDERMODEL );
-	shard->physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
-	//shard->clipModel->SetId( shard->clipModel->GetId(); );
-	BecomeActive( TH_PHYSICS );
-*/
-/**********************************************
-	match up geo
-***********************************************/
+	/** // using shards... need to figure out how to use them properly.
+		shard_t *shard = new shard_t;
+		shard->clipModel = 	GetPhysics()->GetClipModel();
+		shard->droppedTime = -1;
+		shard->winding = w;
+		shard->decals.Clear();
+		shard->edgeHasNeighbour.AssureSize( w.GetNumPoints(), false );
+		shard->neighbours.Clear();
+		shard->atEdge = false;
+		// setup the physics
+		shard->physicsObj.SetSelf( this );
+		shard->physicsObj.SetClipModel( shard->clipModel, 1 );
+		shard->physicsObj.SetMass( 	GetPhysics()->GetMass() );
+		shard->physicsObj.SetOrigin( 	GetPhysics()->GetOrigin() );
+		shard->physicsObj.SetAxis( 	GetPhysics()->GetAxis() );
+		shard->physicsObj.SetBouncyness( 1 );
+		shard->physicsObj.SetFriction( 0.6f, 0.6f, 1 );
+		shard->droppedTime = gameLocal.time;
+		shard->physicsObj.SetContents( CONTENTS_RENDERMODEL );
+		shard->physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
+		//shard->clipModel->SetId( shard->clipModel->GetId(); );
+		BecomeActive( TH_PHYSICS );
+	*/
+	/**********************************************
+		match up geo
+	***********************************************/
 	idList <bool> oneClock;
 	idList <bool> twoClock;
-	idVec3 h,j;
+	idVec3 h, j;
 	// store vertices in the same direction. doesnt seem to accomplish anything
-	for ( f=0, r=0; r < sgeo->numVerts; r+=3, f++ ) {
-		oneClock.Append(true);
+	for( f = 0, r = 0; r < sgeo->numVerts; r += 3, f++ )
+	{
+		oneClock.Append( true );
 		// check if side is stored clockwise
-		h = sgeo->verts[r+1].xyz - sgeo->verts[r].xyz;
-		j = sgeo->verts[r+2].xyz - sgeo->verts[r].xyz;
-		j = h.Cross(j);
+		h = sgeo->verts[r + 1].xyz - sgeo->verts[r].xyz;
+		j = sgeo->verts[r + 2].xyz - sgeo->verts[r].xyz;
+		j = h.Cross( j );
 		j.Normalize();
-		if ( j * sgeo->facePlanes[f].Normal() < 0.0f ) {
+		if( j * sgeo->facePlanes[f].Normal() < 0.0f )
+		{
 			oneClock[f] = false;
 		}
 	}
-	for ( f=0, r=0; r < debsgeo->numVerts; r+=3, f++ ) {
-		twoClock.Append(true);
+	for( f = 0, r = 0; r < debsgeo->numVerts; r += 3, f++ )
+	{
+		twoClock.Append( true );
 		// check if side is stored clockwise
-		h = debsgeo->verts[r+1].xyz - debsgeo->verts[r].xyz;
-		j = debsgeo->verts[r+2].xyz - debsgeo->verts[r].xyz;
-		j = h.Cross(j);
+		h = debsgeo->verts[r + 1].xyz - debsgeo->verts[r].xyz;
+		j = debsgeo->verts[r + 2].xyz - debsgeo->verts[r].xyz;
+		j = h.Cross( j );
 		j.Normalize();
-		if ( j * debsgeo->facePlanes[f].Normal() < 0.0f ) {
+		if( j * debsgeo->facePlanes[f].Normal() < 0.0f )
+		{
 			twoClock[f] = false;
 		}
 	}
-	for ( f=0, r=0; r < sgeo->numVerts; r+=3, f++ ) {
-		if ( oneClock[f] == twoClock[f] ) {
+	for( f = 0, r = 0; r < sgeo->numVerts; r += 3, f++ )
+	{
+		if( oneClock[f] == twoClock[f] )
+		{
 			debsgeo->verts[r].xyz = sgeo->verts[r].xyz;
-			debsgeo->verts[r+1].xyz = sgeo->verts[r+1].xyz;
-			debsgeo->verts[r+2].xyz = sgeo->verts[r+2].xyz;
-		} else {
-			debsgeo->verts[r].xyz = sgeo->verts[r+2].xyz;
-			debsgeo->verts[r+1].xyz = sgeo->verts[r+1].xyz;
-			debsgeo->verts[r+2].xyz = sgeo->verts[r].xyz;
+			debsgeo->verts[r + 1].xyz = sgeo->verts[r + 1].xyz;
+			debsgeo->verts[r + 2].xyz = sgeo->verts[r + 2].xyz;
+		}
+		else
+		{
+			debsgeo->verts[r].xyz = sgeo->verts[r + 2].xyz;
+			debsgeo->verts[r + 1].xyz = sgeo->verts[r + 1].xyz;
+			debsgeo->verts[r + 2].xyz = sgeo->verts[r].xyz;
 		}
 	}
 	// match vertices
-	for ( r=0; r < sgeo->numVerts; r++ ) {
+	for( r = 0; r < sgeo->numVerts; r++ )
+	{
 		debsgeo->verts[r].xyz = sgeo->verts[r].xyz;
 	}
 	// also seems to not help
 	// match faces
-	for ( r=0; r < sgeo->numVerts; r+=3 ) {
+	for( r = 0; r < sgeo->numVerts; r += 3 )
+	{
 		debsgeo->facePlanes[r].SetDist( sgeo->facePlanes[r].Dist() );
 		debsgeo->facePlanes[r].SetNormal( sgeo->facePlanes[r].Normal() );
 	}
 	Hide();
 	// match indexed
-	for ( r=0; r <sgeo->numIndexes; r+=3 ) {
-		for ( v = 0; v < 3; v++ ) {
+	for( r = 0; r < sgeo->numIndexes; r += 3 )
+	{
+		for( v = 0; v < 3; v++ )
+		{
 			debsgeo->verts[ sgeo->indexes[ r + 2 - v ] ].st[0] = sgeo->verts[ sgeo->indexes[ r + 2 - v ] ].st[0];
 			debsgeo->verts[ sgeo->indexes[ r + 2 - v ] ].st[1] = sgeo->verts[ sgeo->indexes[ r + 2 - v ] ].st[1];
 		}
 	}
 	// match tangents and normal
-	for ( r=0; r <sgeo->numIndexes; r+=3 ) {
+	for( r = 0; r < sgeo->numIndexes; r += 3 )
+	{
 		debsgeo->verts[r].tangents[0] = sgeo->verts[r].tangents[0];
 		debsgeo->verts[r].tangents[1] = sgeo->verts[r].tangents[1];
 		debsgeo->verts[r].normal = sgeo->verts[r].normal;
 	}
 	// deb->renderEntity.customShader
 	// deb->renderEntity.hModel->Surface(0)->shader
-	deb->renderEntity.customShader = renderEntity.hModel->Surface(0)->shader;
+	deb->renderEntity.customShader = renderEntity.hModel->Surface( 0 )->shader;
 	deb->GetPhysics()->SetClipModel( new idClipModel( GetPhysics()->GetClipModel() ), spawnArgs.GetFloat( "density", "0.5" ), 0, true );
 	deb->GetPhysics()->SetOrigin( physicsObj.GetOrigin() );
 	deb->GetPhysics()->SetAxis( physicsObj.GetAxis() );
@@ -2242,28 +2335,35 @@ for trying to create a new one on teh fly, or using the default model
 	deb->UpdateVisuals();
 	deb->Show();
 
-/**********************************************
-	Split in half
-***********************************************/
+	/**********************************************
+		Split in half
+	***********************************************/
 	// find the smallest face (short end of the wood)
-	for ( end=0, f=1; f<geo.faces.Num(); f++ ) {
-		if ( geo.faces[f].area < geo.faces[end].area ) {
+	for( end = 0, f = 1; f < geo.faces.Num(); f++ )
+	{
+		if( geo.faces[f].area < geo.faces[end].area )
+		{
 			end = f;
 		}
 	}
 	// find opposing face. the side with the center furthest from end is the opposing side (unless the wood is shaped REAL funny)
-	for ( oldDist = 0, f=0; f<geo.faces.Num(); f++ ) {
+	for( oldDist = 0, f = 0; f < geo.faces.Num(); f++ )
+	{
 		dist = idVec3( geo.faces[f].center - geo.faces[end].center ).Length();
-		if ( dist > oldDist ) {
+		if( dist > oldDist )
+		{
 			op = f;
 		}
 	}
 	// move shortest face half way to opposing face
-	for ( v=0; v<geo.faces[end].verts.Num(); v++ ) {
+	for( v = 0; v < geo.faces[end].verts.Num(); v++ )
+	{
 		// update verts in the render entity
-		for ( r=0; r < sgeo->numVerts; r++ ) {
+		for( r = 0; r < sgeo->numVerts; r++ )
+		{
 			//sgeo->verts[r].xyz /= 2;
-			if ( sgeo->verts[r].xyz != geo.faces[end].verts[v] ) {
+			if( sgeo->verts[r].xyz != geo.faces[end].verts[v] )
+			{
 				continue;
 			}
 			sgeo->verts[r].xyz += ( geo.faces[op].center - geo.faces[end].center ) / 2;
@@ -2281,7 +2381,7 @@ for trying to create a new one on teh fly, or using the default model
 //		deb->geo.faces[op].verts[v] += ( deb->geo.faces[end].center - deb->geo.faces[op].center ) / 2;
 //	}
 	// store distance
-	dist = idVec3(geo.faces[end].center - geo.faces[op].center).Length();
+	dist = idVec3( geo.faces[end].center - geo.faces[op].center ).Length();
 	// update center now
 	geo.faces[end].center += ( geo.faces[op].center - geo.faces[end].center ) / 2;
 	deb->geo.faces[op].center += ( deb->geo.faces[end].center - deb->geo.faces[op].center ) / 2;
@@ -2334,21 +2434,40 @@ for trying to create a new one on teh fly, or using the default model
 	deb->UpdateModelTransform();
 	deb->UpdateVisuals();
 	// other side: update render model's bounds
-	srfTriangles_t *suu = sgeo;
-	int mins=0, maxs=0;
+	srfTriangles_t* suu = sgeo;
+	int mins = 0, maxs = 0;
 	idVec3 min, max;
 	max.x = min.x = suu->verts[0].xyz.x;
 	max.y = min.y = suu->verts[0].xyz.y;
 	max.z = min.z = suu->verts[0].xyz.z;
-	for ( v=1; v < suu->numVerts; v++ ) {
-		if ( suu->verts[v].xyz.x < min.x ) { min.x = suu->verts[v].xyz.x; }
-		if ( suu->verts[v].xyz.y < min.y ) { min.y = suu->verts[v].xyz.y; }
-		if ( suu->verts[v].xyz.z < min.z ) { min.z = suu->verts[v].xyz.z; }
-		if ( suu->verts[v].xyz.x > max.x ) { max.x = suu->verts[v].xyz.x; }
-		if ( suu->verts[v].xyz.y > max.y ) { max.y = suu->verts[v].xyz.y; }
-		if ( suu->verts[v].xyz.z > max.z ) { max.z = suu->verts[v].xyz.z; }
+	for( v = 1; v < suu->numVerts; v++ )
+	{
+		if( suu->verts[v].xyz.x < min.x )
+		{
+			min.x = suu->verts[v].xyz.x;
+		}
+		if( suu->verts[v].xyz.y < min.y )
+		{
+			min.y = suu->verts[v].xyz.y;
+		}
+		if( suu->verts[v].xyz.z < min.z )
+		{
+			min.z = suu->verts[v].xyz.z;
+		}
+		if( suu->verts[v].xyz.x > max.x )
+		{
+			max.x = suu->verts[v].xyz.x;
+		}
+		if( suu->verts[v].xyz.y > max.y )
+		{
+			max.y = suu->verts[v].xyz.y;
+		}
+		if( suu->verts[v].xyz.z > max.z )
+		{
+			max.z = suu->verts[v].xyz.z;
+		}
 	}
-	suu->bounds = idBounds(min, max);
+	suu->bounds = idBounds( min, max );
 	// create a new clip model based on the new bounds
 	float density = spawnArgs.GetFloat( "density", "0.5" );
 	physicsObj.SetClipModel( new idClipModel( idTraceModel( suu->bounds ) ), density );
@@ -2386,120 +2505,141 @@ test code for trying to create new logs
 ///////////////////////////////////////////////////////////////*/
 
 
-	/********************************
-	remove old model and spawn two halves
-	********************************/
-	int f,f2,v,v2,num,lst,end;
-	// find the smallest face (short end of the wood)
-	for ( end=0, f=1; f<geo.faces.Num(); f++ ) {
-		if ( geo.faces[f].area < geo.faces[end].area ) {
-			end = f;
+/********************************
+remove old model and spawn two halves
+********************************/
+int f, f2, v, v2, num, lst, end;
+// find the smallest face (short end of the wood)
+for( end = 0, f = 1; f < geo.faces.Num(); f++ )
+{
+	if( geo.faces[f].area < geo.faces[end].area )
+	{
+		end = f;
+	}
+}
+idList< int >	adjs;
+idList< idVec3 > ver;
+idList< idVec3 > ver2;
+idList< idVec3 > ver3;
+// find all adjacent sides to end
+for( f = 0; f < geo.faces.Num(); f++ )
+{
+	if( end == f )
+	{
+		continue;
+	}
+	if( geo.faces[f].adjacent.Find( end ) )
+	{
+		adjs.Append( f );
+		for( v = 0; v < geo.faces[f].verts.Num(); v++ )
+		{
+			ver.Append( geo.faces[f].verts[v] );
 		}
 	}
-	idList< int >	adjs;
-	idList< idVec3 > ver;
-	idList< idVec3 > ver2;
-	idList< idVec3 > ver3;
-	// find all adjacent sides to end
-	for ( f=0; f<geo.faces.Num(); f++ ) {
-		if ( end == f ) {
-			continue;
-		}
-		if ( geo.faces[f].adjacent.Find(end) ) {
-			adjs.Append(f);
-			for ( v=0; v<geo.faces[f].verts.Num(); v++ ) {
-				ver.Append( geo.faces[f].verts[v] );
+}
+// ver2: will contain vertices of the beginning face (the lower ring of vertices on the log)
+ver2.Clear();
+for( v = 0; v < geo.faces[end].verts.Num(); v++ )
+{
+	ver2.Append( geo.faces[end].verts[v] );
+}
+// ver: will contain vertices from the search that weren't in the beginning face (the upper ring of vertices on the log)
+for( v = 0; v < ver.Num(); v++ )
+{
+	if( geo.faces[end].verts.Find( ver[v] ) )
+	{
+		ver.RemoveIndex( v );
+		ver.Condense();
+		v--;
+	}
+}
+// we must have at least half of the faces in order to shorten
+while( adjs.Num() + 1 < geo.faces.Num() / 2 )
+{
+	// all the while, keep a list of vertices from the current run that aren't attached to the previous.
+	//ver.Clear();
+	//ver.Append(geo.faces[f].verts[v] );
+	// find adjacent sides to each side in our list, and store it in our list.
+	lst = adjs.Num();
+	for( i = 0; i < lst; i++ )
+	{
+		for( f = 0; f < geo.faces.Num(); f++ )
+		{
+			if( i == f )
+			{
+				continue;
+			}
+			if( geo.faces[f].adjacent.Find( i ) )
+			{
+				adjs.Append( f );
+				for( v = 0; v < geo.faces[f].verts.Num(); v++ )
+				{
+					ver3.Append( geo.faces[f].verts[v] );
+				}
 			}
 		}
 	}
-	// ver2: will contain vertices of the beginning face (the lower ring of vertices on the log)
+	// ver2: will contain vertices that were both in ver and ver3 (the lower ring of vertices on the log)
 	ver2.Clear();
-	for ( v=0; v<geo.faces[end].verts.Num(); v++ ) {
-		ver2.Append( geo.faces[end].verts[v] );
-	}
-	// ver: will contain vertices from the search that weren't in the beginning face (the upper ring of vertices on the log)
-	for ( v=0; v<ver.Num(); v++ ) {
-		if ( geo.faces[end].verts.Find( ver[v] ) ) {
-			ver.RemoveIndex(v);
-			ver.Condense();
-			v--;
+	for( v = 0; v < ver3.Num(); v++ )
+	{
+		if( ver.Find( ver3[v] ) )
+		{
+			ver2.Append( ver3[v] );
 		}
 	}
-	// we must have at least half of the faces in order to shorten
-	while ( adjs.Num() + 1 < geo.faces.Num() / 2 ) {
-		// all the while, keep a list of vertices from the current run that aren't attached to the previous.
-		//ver.Clear();
-		//ver.Append(geo.faces[f].verts[v] );
-		// find adjacent sides to each side in our list, and store it in our list.
-		lst=adjs.Num();
-		for ( i=0; i<lst; i++ ) {
-			for ( f=0; f<geo.faces.Num(); f++ ) {
-				if ( i == f ) {
-					continue;
-				}
-				if ( geo.faces[f].adjacent.Find(i) ) {
-					adjs.Append(f);
-					for ( v=0; v<geo.faces[f].verts.Num(); v++ ) {
-						ver3.Append( geo.faces[f].verts[v] );
-					}
-				}
-			}
-		}
-		// ver2: will contain vertices that were both in ver and ver3 (the lower ring of vertices on the log)
-		ver2.Clear();
-		for ( v=0; v<ver3.Num(); v++ ) {
-			if ( ver.Find( ver3[v] ) ) {
-				ver2.Append( ver3[v] );
-			}
-		}
-		// ver: will contain vertices from ver3 that weren't in ver (the upper ring of vertices on the log)
-		ver.Clear();
-		for ( v=0; v<ver3.Num(); v++ ) {
-			if ( !ver.Find( ver3[v] ) ) {
-				ver.Append( ver3[v] );
-			}
-		}
-		ver3.Clear();
-	}
-	// we now have enough info for log shrinkage (heh)
-	// spawn new log
-	idDict newDebris;
-	newDebris.Copy(spawnArgs);
-	newDebris.Delete("name");
-	newDebris.Set("mins", "-5 -5 -5");
-	newDebris.Set("maxs", "5 5 5");
-	idWood *deb = static_cast< idWood * >( gameLocal.SpawnEntityType(idWood::Type, &newDebris) );
-	idVec3 org( physicsObj.GetOrigin() );
-	org.z += 50;
-	deb->GetPhysics()->SetOrigin( org );
-	deb->GetPhysics()->SetAxis( physicsObj.GetAxis() );
-	srfTriangles_t *surf = deb->GetRenderEntity()->hModel->Surface(0)->geometry;
-	int idx;
-	idVec3 nw;
-	// shorten the new log
-	// z.todo: we're only ASSUMING that ver and ver2 indexes aren't in mismatched order
-	for ( v=0; v < surf->numVerts; v++ ) {
-		idx = ver.FindIndex( surf->verts[v].xyz );
-		if ( idx != -1 ) {
-/*
-			// get direction fro upper ring vert to lower ring vert
-			nw = ver2[idx] - ver[idx];
-			// make the vector about half the length of the log
-			nw.Normalize();
-			nw *= idMath::Sqrt( geo.area / 2 ); // sqrt( area / 2 ) is close enough to half the length of the log
-			surf->verts[v].xyz += nw;
-*/
+	// ver: will contain vertices from ver3 that weren't in ver (the upper ring of vertices on the log)
+	ver.Clear();
+	for( v = 0; v < ver3.Num(); v++ )
+	{
+		if( !ver.Find( ver3[v] ) )
+		{
+			ver.Append( ver3[v] );
 		}
 	}
-	// remove the old log
-	// ...
-	//gameLocal.Printf("adjs: %i+ 1 = %i\n", adjs.Num(),adjs.Num()+1);
-	//gameLocal.Printf("faces: %i / 2 = %i\n", geo.faces.Num(), geo.faces.Num() / 2);
+	ver3.Clear();
+}
+// we now have enough info for log shrinkage (heh)
+// spawn new log
+idDict newDebris;
+newDebris.Copy( spawnArgs );
+newDebris.Delete( "name" );
+newDebris.Set( "mins", "-5 -5 -5" );
+newDebris.Set( "maxs", "5 5 5" );
+idWood* deb = static_cast< idWood* >( gameLocal.SpawnEntityType( idWood::Type, &newDebris ) );
+idVec3 org( physicsObj.GetOrigin() );
+org.z += 50;
+deb->GetPhysics()->SetOrigin( org );
+deb->GetPhysics()->SetAxis( physicsObj.GetAxis() );
+srfTriangles_t* surf = deb->GetRenderEntity()->hModel->Surface( 0 )->geometry;
+int idx;
+idVec3 nw;
+// shorten the new log
+// z.todo: we're only ASSUMING that ver and ver2 indexes aren't in mismatched order
+for( v = 0; v < surf->numVerts; v++ )
+{
+	idx = ver.FindIndex( surf->verts[v].xyz );
+	if( idx != -1 )
+	{
+		/*
+					// get direction fro upper ring vert to lower ring vert
+					nw = ver2[idx] - ver[idx];
+					// make the vector about half the length of the log
+					nw.Normalize();
+					nw *= idMath::Sqrt( geo.area / 2 ); // sqrt( area / 2 ) is close enough to half the length of the log
+					surf->verts[v].xyz += nw;
+		*/
+	}
+}
+// remove the old log
+// ...
+//gameLocal.Printf("adjs: %i+ 1 = %i\n", adjs.Num(),adjs.Num()+1);
+//gameLocal.Printf("faces: %i / 2 = %i\n", geo.faces.Num(), geo.faces.Num() / 2);
 
 
-	/****************************************
-	CRAP
-	*****************************************/
+/****************************************
+CRAP
+*****************************************/
 /*
 	idList< int > hits;
 	int bestHit;
@@ -2542,9 +2682,9 @@ test code for trying to create new logs
 		idPlane plane( geo.faces[i].plane->Normal(), dist)
 		*/
 
-		//pa = physicsObj.GetOrigin() * physicsObj.GetAxis() + 
+//pa = physicsObj.GetOrigin() * physicsObj.GetAxis() +
 
-		// make a plane that is where the face is in the world
+// make a plane that is where the face is in the world
 
 /*
 		gameLocal.Printf("origin: %f,%f,%f\n", physicsObj.GetOrigin().x, physicsObj.GetOrigin().y, physicsObj.GetOrigin().z);
@@ -2576,7 +2716,7 @@ test code for trying to create new logs
 			gameLocal.Printf("hit\n");
 			hits.Append(i); // mark it as a hit
 		} */
-	//}
+//}
 
 //	if ( hits.Num() < 1 ) {
 //		return; // this should never happen
@@ -2595,18 +2735,18 @@ test code for trying to create new logs
 */
 //	i=0;
 
-	// if hit on the long side, break it
-	//if ( geo.faces[i].area > geo.avgArea * (2/3) ) {
+// if hit on the long side, break it
+//if ( geo.faces[i].area > geo.avgArea * (2/3) ) {
 //		gameLocal.Printf("Break, side %i, area %f\n", i, geo.faces[i].area);
 
 //		const idDeclParticle *splashParticleTiny = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, "water_body_splash_tiny" ) );
 //		gameLocal.smokeParticles->EmitSmoke( splashParticleTiny, gameLocal.time, gameLocal.random.CRandomFloat(), lastiPoint, idAngles( 0, gameLocal.random.CRandomFloat() * 360, 0 ).ToMat3() );
 
-		///	spawn two halves, touching where hit occured. same texture. do some math to figure out shape.
-		///	spawn some shards with somewhat random vertices so they're shaped differently
-		///	spawn some shards attached to board halves where hit occured (for splints)
-		///	spawn some brittle fracture
-		///	remove board
+///	spawn two halves, touching where hit occured. same texture. do some math to figure out shape.
+///	spawn some shards with somewhat random vertices so they're shaped differently
+///	spawn some shards attached to board halves where hit occured (for splints)
+///	spawn some brittle fracture
+///	remove board
 /*	} else {
 		// just spawn some chipped debris
 		gameLocal.Printf("Cip, side %i, area %f\n", i, geo.faces[i].area);
@@ -2617,8 +2757,8 @@ test code for trying to create new logs
 */
 
 
-	// * amount of debris dependant upon size
-	// * health dependant upon size
+// * amount of debris dependant upon size
+// * health dependant upon size
 
 
 
@@ -2704,7 +2844,7 @@ Test code for trying to create clip models on the fly
 **/
 
 
-/*/ // method 2: remove surfaces, add new ones, 
+/*/ // method 2: remove surfaces, add new ones,
 	asds
 	// allocate new surface ( contains all faces of model, init with previous model )
 	modelSurface_t sur( *renderEntity.hModel->Surface(0) );

@@ -9,7 +9,8 @@ const int OBJECT_TREE_MAX_WIND_SPEED	= 10;
 const int OBJECT_TREE_JOINT_ANGLE_TRANSITIONS_PER_SEC = 12; // this is about all we're gunna get. the joints don't update quick enough (at least on my system, but I assume it's time-based so it shouldnt matter). regardless, each transition is another calculation.
 const int OBJECT_TREE_MAX_RANDOM_JOINT_ANGLE = 2;
 
-class idAnimated_Tree : idAnimated {
+class idAnimated_Tree : idAnimated
+{
 public:
 	CLASS_PROTOTYPE( idAnimated_Tree );
 	void		Spawn();

@@ -4611,28 +4611,28 @@ HEXEN
 idAnimator::eoc_TransitionJointAngle
 =====================
 */
-void idAnimator::eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles &to, idAngles &from, float seconds, float transitions )
+void idAnimator::eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles& to, idAngles& from, float seconds, float transitions )
 {
 	int i, c;
 
 	// find the joint if it's already got a transition going on
-	for ( i = 0; i < jointTransitions.Num(); i++ )
+	for( i = 0; i < jointTransitions.Num(); i++ )
 	{
-		if ( jointTransitions[i].GetInt( "jointnum" ) == jointnum )
+		if( jointTransitions[i].GetInt( "jointnum" ) == jointnum )
 		{
 			break;
 		}
 	}
 
 	// add the joint to our transition list if its not already there
-	if ( i == jointTransitions.Num() )
+	if( i == jointTransitions.Num() )
 	{
 		jointTransitions.Append( idDict() );
-		jointTransitions[i].SetInt( "jointnum", (int) jointnum );
+		jointTransitions[i].SetInt( "jointnum", ( int ) jointnum );
 	}
 
-	jointTransitions[i].SetInt( "transform_type", (int) transform_type );
-	jointTransitions[i].SetInt( "transitions", (int) transitions );
+	jointTransitions[i].SetInt( "transform_type", ( int ) transform_type );
+	jointTransitions[i].SetInt( "transitions", ( int ) transitions );
 
 	// do position and calculations beforehand.
 	float curTime = gameLocal.time;
@@ -4648,7 +4648,7 @@ void idAnimator::eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTrans
 //							b	* (TJPtransitions-TJPcurTransition);
 //		idAngles inc = newVec.ToAngles();
 
-	for ( c = 0; c < transitions; c++ )
+	for( c = 0; c < transitions; c++ )
 	{
 		jointTransitions[ i ].SetFloat( va( "time_%i", c ), curTime + ( tranLen * c ) );
 		jointTransitions[ i ].SetAngles( va( "angle_%i", c ), inc * c + from );
@@ -6337,8 +6337,9 @@ Zeroth
 idAnimator::transitionJoints
 =====================
 */
-void idAnimator::transitionJoints(){
-	for ( int i = 0; i < jointTransitions.Num(); i++ )
+void idAnimator::transitionJoints()
+{
+	for( int i = 0; i < jointTransitions.Num(); i++ )
 	{
 		int t;
 		int transitions = jointTransitions[i].GetInt( "transitions" );
@@ -6347,9 +6348,9 @@ void idAnimator::transitionJoints(){
 		float time = jointTransitions[i].GetFloat( va( "time_%i", nextTran ) );
 
 		// make sure we aren't lagging behind the time.
-		for ( t = nextTran; t < transitions; t++ )
+		for( t = nextTran; t < transitions; t++ )
 		{
-			if ( curTime < time )
+			if( curTime < time )
 			{
 				// t is the transition we're on for the current time.
 				break;
@@ -6362,7 +6363,7 @@ void idAnimator::transitionJoints(){
 		}
 
 		// if we've cycled all the transitions and all of them are in the past, just set this to the last transition
-		if ( t == transitions )
+		if( t == transitions )
 		{
 			t = transitions - 1;
 		}
@@ -6370,17 +6371,17 @@ void idAnimator::transitionJoints(){
 		// get the angle we need to set to
 		idAngles ang = jointTransitions[i].GetAngles( va( "angle_%i", t ) );
 
-		SetJointAxis(	(jointHandle_t)			jointTransitions[i].GetInt( "jointnum" ),
-						(jointModTransform_t)	jointTransitions[i].GetInt( "transform_type" ),
+		SetJointAxis(	( jointHandle_t )			jointTransitions[i].GetInt( "jointnum" ),
+						( jointModTransform_t )	jointTransitions[i].GetInt( "transform_type" ),
 						ang.ToMat3() );
 
 		// only up the transition if the current time is greater than the time to apply the current transition
-		if ( t < transitions && curTime > jointTransitions[i].GetFloat( va( "time_%i", t - 1 ) ) )
+		if( t < transitions && curTime > jointTransitions[i].GetFloat( va( "time_%i", t - 1 ) ) )
 		{
 			t++;
 		}
 
-		if ( t == transitions )
+		if( t == transitions )
 		{
 			jointTransitions.RemoveIndex( i );
 		}

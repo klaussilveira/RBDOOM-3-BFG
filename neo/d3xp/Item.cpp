@@ -119,7 +119,7 @@ idItem::~idItem()
 		gameRenderWorld->FreeEntityDef( itemShellHandle );
 	}
 
-	if ( multimodel )
+	if( multimodel )
 	{
 		delete multimodel;
 	}
@@ -138,10 +138,10 @@ idItem::Hide
 */
 void idItem::Hide()
 {
-	if ( !idEntity::IsHidden() )
+	if( !idEntity::IsHidden() )
 	{
 		idEntity::Hide();
-		if ( multimodel )
+		if( multimodel )
 		{
 			multimodel->Hide();
 		}
@@ -156,11 +156,11 @@ idItem::Event_ArtifactStart
 */
 void idItem::Event_ArtifactStart()
 {
-	if ( owner != NULL )
+	if( owner != NULL )
 	{
-       	Processing = true;
+		Processing = true;
 
-		owner->RemoveInventoryItem(spawnArgs.GetString("inv_name"));
+		owner->RemoveInventoryItem( spawnArgs.GetString( "inv_name" ) );
 		owner->UpdateHudArtifacts();
 	}
 }
@@ -173,7 +173,7 @@ idItem::Event_ArtifactDone
 */
 void idItem::Event_ArtifactDone()
 {
-	if ( owner != NULL )
+	if( owner != NULL )
 	{
 		Cooling = false;
 		DeleteMe = true;
@@ -188,7 +188,7 @@ idItem::Event_ArtifactCoolDown
 */
 void idItem::Event_ArtifactCoolDown()
 {
-	if ( owner != NULL )
+	if( owner != NULL )
 	{
 		Cooling = true;
 		owner->UpdateHudActiveArtifacts();
@@ -203,9 +203,9 @@ idItem::Event_SetArtifactActive
 */
 void idItem::Event_SetArtifactActive( const float yesorno )
 {
-	if ( owner != NULL )
+	if( owner != NULL )
 	{
-		if ( yesorno )
+		if( yesorno )
 		{
 			ArtifactActive = true;
 			owner->UpdateHudActiveArtifacts();
@@ -248,7 +248,7 @@ void idItem::Save( idSaveGame* savefile ) const
 	savefile->WriteInt( inViewTime );
 	savefile->WriteInt( lastCycle );
 	savefile->WriteInt( lastRenderViewTime );
-	
+
 	// HEXEN : Zeroth
 	savefile->WriteObject( scriptThread );
 	savefile->WriteString( waitState );
@@ -256,7 +256,7 @@ void idItem::Save( idSaveGame* savefile ) const
 	//FIXME: this is unneccesary
 	idToken token;
 	// HEXEN : Zeroth
-	if ( state )
+	if( state )
 	{
 		idLexer src( state->Name(), idStr::Length( state->Name() ), "idItem::Save" );
 
@@ -272,7 +272,7 @@ void idItem::Save( idSaveGame* savefile ) const
 	}
 
 	// HEXEN : Zeroth
-	if ( idealState )
+	if( idealState )
 	{
 		idLexer src( idealState->Name(), idStr::Length( idealState->Name() ), "idItem::Save" );
 
@@ -315,27 +315,27 @@ void idItem::Restore( idRestoreGame* savefile )
 	itemShellHandle = -1;
 
 	// HEXEN : Zeroth
-	savefile->ReadObject( reinterpret_cast<idClass *&>( scriptThread ) );
+	savefile->ReadObject( reinterpret_cast<idClass*&>( scriptThread ) );
 	savefile->ReadString( waitState );
 	idStr statename;
 
 	// HEXEN : Zeroth
 	savefile->ReadString( statename );
-	if ( statename.Length() > 0 )
+	if( statename.Length() > 0 )
 	{
 		state = GetScriptFunction( statename );
 	}
 
 	// HEXEN : Zeroth
 	savefile->ReadString( statename );
-	if ( statename.Length() > 0 )
+	if( statename.Length() > 0 )
 	{
 		idealState = GetScriptFunction( statename );
 	}
 
 	// HEXEN : Zeroth
-	const idDeclEntityDef *projectileDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_projectile" ), false );
-	if ( projectileDef )
+	const idDeclEntityDef* projectileDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_projectile" ), false );
+	if( projectileDef )
 	{
 		projectileDict = projectileDef->dict;
 	}
@@ -345,8 +345,8 @@ void idItem::Restore( idRestoreGame* savefile )
 	}
 
 	// HEXEN : Zeroth
-	savefile->ReadObject( reinterpret_cast<idClass *&>( projectileEnt ) );
-	savefile->ReadObject( reinterpret_cast<idClass *&>( multimodel ) );
+	savefile->ReadObject( reinterpret_cast<idClass*&>( projectileEnt ) );
+	savefile->ReadObject( reinterpret_cast<idClass*&>( multimodel ) );
 }
 
 /*
@@ -479,7 +479,7 @@ void idItem::Think()
 
 	Present();
 
-	if ( !IsHidden() && multimodel )
+	if( !IsHidden() && multimodel )
 	{
 		multimodel->GetPhysics()->SetOrigin( GetPhysics()->GetOrigin() ); // bob up and down in unison
 		multimodel->SetAngles( -GetAngles() ); // make it spin the opposite direction
@@ -529,7 +529,7 @@ void idItem::Spawn()
 	idStr		giveTo;
 	idEntity* 	ent;
 	float		tsize;
-	const char	*projectileName;
+	const char*	projectileName;
 
 	state		= NULL;
 	idealState	= NULL;
@@ -539,20 +539,20 @@ void idItem::Spawn()
 	projectileDict.Clear();
 
 	projectileName = spawnArgs.GetString( "def_projectile" );
-	if ( projectileName[0] != '\0' )
+	if( projectileName[0] != '\0' )
 	{
-		const idDeclEntityDef *projectileDef = gameLocal.FindEntityDef( projectileName, false );
-		if ( !projectileDef )
+		const idDeclEntityDef* projectileDef = gameLocal.FindEntityDef( projectileName, false );
+		if( !projectileDef )
 		{
-			gameLocal.Warning( "Unknown projectile '%s' in item '%s'", projectileName, spawnArgs.GetString("inv_name") );
+			gameLocal.Warning( "Unknown projectile '%s' in item '%s'", projectileName, spawnArgs.GetString( "inv_name" ) );
 		}
 		else
 		{
-			const char *spawnclass = projectileDef->dict.GetString( "spawnclass" );
-			idTypeInfo *cls = idClass::GetClass( spawnclass );
-			if ( !cls || !cls->IsType( idProjectile::Type ) )
+			const char* spawnclass = projectileDef->dict.GetString( "spawnclass" );
+			idTypeInfo* cls = idClass::GetClass( spawnclass );
+			if( !cls || !cls->IsType( idProjectile::Type ) )
 			{
-				gameLocal.Warning( "Invalid spawnclass '%s' on projectile '%s' (used by item '%s')", spawnclass, projectileName, spawnArgs.GetString("inv_name") );
+				gameLocal.Warning( "Invalid spawnclass '%s' on projectile '%s' (used by item '%s')", spawnclass, projectileName, spawnArgs.GetString( "inv_name" ) );
 			}
 			else
 			{
@@ -615,14 +615,14 @@ void idItem::Spawn()
 	itemShellHandle = -1;
 	shellMaterial = declManager->FindMaterial( "itemHighlightShell" );
 
-	
+
 	multimodel = NULL;
 	idStr mstr = spawnArgs.GetString( "multimodel" );
 
-	if ( mstr != "" )
+	if( mstr != "" )
 	{
-		const idDict *multimodeldef = gameLocal.FindEntityDefDict( mstr.c_str() );
-		if ( gameLocal.SpawnEntityDef( *multimodeldef, &multimodel ) && multimodel )
+		const idDict* multimodeldef = gameLocal.FindEntityDefDict( mstr.c_str() );
+		if( gameLocal.SpawnEntityDef( *multimodeldef, &multimodel ) && multimodel )
 		{
 			multimodel->GetPhysics()->SetOrigin( GetPhysics()->GetOrigin() ); // bob up and down in unison
 			multimodel->SetAngles( -GetAngles() ); // make it spin the opposite direction
@@ -674,11 +674,11 @@ bool idItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 		val = player->GiveItem( this, ITEM_GIVE_FEEDBACK );
 	}
 
-	if ( val )
+	if( val )
 	{
-		if ( spawnArgs.GetString("scriptobject") != "" )
+		if( spawnArgs.GetString( "scriptobject" ) != "" )
 		{
-			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool("dontNotifyOnPickup") )
+			if( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool( "dontNotifyOnPickup" ) )
 			{
 				CallFunc( "pickup_message" );
 			}
@@ -716,7 +716,7 @@ bool idItem::Pickup( idPlayer* player )
 	}
 
 	// play pickup sound
-	if ( !g_noPickupNotification.GetBool() )
+	if( !g_noPickupNotification.GetBool() )
 	{
 		StartSound( "snd_acquire", SND_CHANNEL_ITEM, 0, false, NULL );
 	}
@@ -909,7 +909,7 @@ void idItem::Event_Touch( idEntity* other, trace_t* trace )
 		return;
 	}
 
-	player = static_cast<idPlayer *>( other );
+	player = static_cast<idPlayer*>( other );
 
 	if( !canPickUp )
 	{
@@ -920,29 +920,35 @@ void idItem::Event_Touch( idEntity* other, trace_t* trace )
 
 	// pickup delay for this player, to prevent instant pickup after drop.
 
-	if ( player == lastOwner && spawnArgs.GetBool( "eoc_dropped" ) ) {
-		if ( PickupDelayTime < MS2SEC( gameLocal.realClientTime ) ) {
+	if( player == lastOwner && spawnArgs.GetBool( "eoc_dropped" ) )
+	{
+		if( PickupDelayTime < MS2SEC( gameLocal.realClientTime ) )
+		{
 			return;
 		}
 	}
 
 	// I don't know why this happens, but it does. seems the player can hit an item multiple times and trigger this pickupevent before he has a chance to disappear after picking it up the first time.
-	if ( player == owner ) {
+	if( player == owner )
+	{
 		return;
 	}
 
-	if ( spawnArgs.GetBool( "instantEffect" ) && player->ActiveArtifact( spawnArgs.GetString( "inv_name" ) ) ) {
+	if( spawnArgs.GetBool( "instantEffect" ) && player->ActiveArtifact( spawnArgs.GetString( "inv_name" ) ) )
+	{
 		return;
 	}
 
 	// don't pickup if we're full on 'em
-	if ( spawnArgs.FindKey("artifact") ) {
-		if ( spawnArgs.GetInt( "max_inventory" ) > 0 && player->InventoryItemQty(spawnArgs.GetString( "inv_name" )) >= spawnArgs.GetInt( "max_inventory" ) ) {
+	if( spawnArgs.FindKey( "artifact" ) )
+	{
+		if( spawnArgs.GetInt( "max_inventory" ) > 0 && player->InventoryItemQty( spawnArgs.GetString( "inv_name" ) ) >= spawnArgs.GetInt( "max_inventory" ) )
+		{
 			return;
 		}
 	}
 
-	Pickup( static_cast<idPlayer *>( other ) );
+	Pickup( static_cast<idPlayer*>( other ) );
 }
 
 /*
@@ -1087,9 +1093,10 @@ HEXEN
 idItem::Event_OwnerLaunchProjectiles
 ================
 */
-void idItem::Event_OwnerLaunchProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower ) {
-	idProjectile	*proj;
-	idEntity		*ent;
+void idItem::Event_OwnerLaunchProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower )
+{
+	idProjectile*	proj;
+	idEntity*		ent;
 	int				i;
 	idVec3			dir;
 	float			ang;
@@ -1112,27 +1119,28 @@ void idItem::Event_OwnerLaunchProjectiles( int num_projectiles, float spread, fl
 	playerViewOrigin = owner->firstPersonViewOrigin;
 	playerViewAxis = owner->firstPersonViewAxis;
 
-	if ( !projectileDict.GetNumKeyVals() ) {
-		const char *classname = this->spawnArgs.GetString("inv_name");
+	if( !projectileDict.GetNumKeyVals() )
+	{
+		const char* classname = this->spawnArgs.GetString( "inv_name" );
 		gameLocal.Warning( "No projectile defined on '%s'", classname );
 		return;
 	}
 
-	if ( common->IsClient() )
+	if( common->IsClient() )
 	{
 		// predict instant hit projectiles
-		if ( projectileDict.GetBool( "net_instanthit" ) )
+		if( projectileDict.GetBool( "net_instanthit" ) )
 		{
 			float spreadRad = DEG2RAD( spread );
 			muzzle_pos = playerViewOrigin + playerViewAxis[ 0 ] * 2.0f;
-			for ( i = 0; i < num_projectiles; i++ )
+			for( i = 0; i < num_projectiles; i++ )
 			{
 				ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
-				spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
+				spin = ( float )DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 				dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
 				dir.Normalize();
 				gameLocal.clip.Translation( tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
-				if ( tr.fraction < 1.0f )
+				if( tr.fraction < 1.0f )
 				{
 					idProjectile::ClientPredictionCollide( this, projectileDict, tr, vec3_origin, true );
 				}
@@ -1147,14 +1155,14 @@ void idItem::Event_OwnerLaunchProjectiles( int num_projectiles, float spread, fl
 		owner->AddProjectilesFired( num_projectiles );
 
 		float spreadRad = DEG2RAD( spread );
-		for ( i = 0; i < num_projectiles; i++ )
+		for( i = 0; i < num_projectiles; i++ )
 		{
 			ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
-			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
+			spin = ( float )DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
 			dir.Normalize();
 
-			if ( projectileEnt )
+			if( projectileEnt )
 			{
 				ent = projectileEnt;
 				ent->Show();
@@ -1166,28 +1174,28 @@ void idItem::Event_OwnerLaunchProjectiles( int num_projectiles, float spread, fl
 				gameLocal.SpawnEntityDef( projectileDict, &ent, false );
 			}
 
-			if ( !ent || !ent->IsType( idProjectile::Type ) )
+			if( !ent || !ent->IsType( idProjectile::Type ) )
 			{
-				const char *projectileName = this->spawnArgs.GetString( "def_projectile" );
+				const char* projectileName = this->spawnArgs.GetString( "def_projectile" );
 				gameLocal.Error( "'%s' is not an idProjectile", projectileName );
 			}
 
-			if ( projectileDict.GetBool( "net_instanthit" ) )
+			if( projectileDict.GetBool( "net_instanthit" ) )
 			{
 				// don't synchronize this on top of the already predicted effect
 				ent->fl.networkSync = false;
 			}
 
-			proj = static_cast<idProjectile *>(ent);
+			proj = static_cast<idProjectile*>( ent );
 			proj->Create( owner, playerViewOrigin, dir );
 
 			projBounds = proj->GetPhysics()->GetBounds().Rotate( proj->GetPhysics()->GetAxis() );
 
 			// make sure the projectile starts inside the bounding box of the owner
-			if ( i == 0 )
+			if( i == 0 )
 			{
 				muzzle_pos = playerViewOrigin + playerViewAxis[ 0 ] * 2.0f;
-				if ( ( ownerBounds - projBounds).RayIntersection( muzzle_pos, playerViewAxis[0], distance ) )
+				if( ( ownerBounds - projBounds ).RayIntersection( muzzle_pos, playerViewAxis[0], distance ) )
 				{
 					start = muzzle_pos + distance * playerViewAxis[0];
 				}
@@ -1211,12 +1219,13 @@ HEXEN
 idItem::Event_OwnerCreateProjectile
 ================
 */
-void idItem::Event_OwnerCreateProjectile() {
-	if ( !common->IsClient() )
+void idItem::Event_OwnerCreateProjectile()
+{
+	if( !common->IsClient() )
 	{
 		projectileEnt = NULL;
 		gameLocal.SpawnEntityDef( projectileDict, &projectileEnt, false );
-		if ( projectileEnt )
+		if( projectileEnt )
 		{
 			projectileEnt->SetOrigin( GetPhysics()->GetOrigin() );
 			projectileEnt->Bind( owner, false );
@@ -2919,7 +2928,7 @@ HEXEN
 idItem::SetOwner
 ================
 */
-void idItem::SetOwner( idPlayer *_owner )
+void idItem::SetOwner( idPlayer* _owner )
 {
 	assert( !owner );
 	owner = _owner;
@@ -2937,10 +2946,10 @@ HEXEN
 idItem::CallFunc
 ================
 */
-bool idItem::CallFunc( char *funcName )
+bool idItem::CallFunc( char* funcName )
 {
-	const function_t *func = GetScriptFunction( (const char*) funcName );
-	if ( !func )
+	const function_t* func = GetScriptFunction( ( const char* ) funcName );
+	if( !func )
 	{
 		assert( 0 );
 		gameLocal.Error( "Can't find function use' in object '%s'", scriptObject.GetTypeName() );
@@ -2960,7 +2969,7 @@ idItem::Event_HideMultiModel
 */
 void idItem::Event_HideMultiModel()
 {
-	if ( multimodel )
+	if( multimodel )
 	{
 		multimodel->Hide();
 	}

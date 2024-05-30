@@ -141,10 +141,10 @@ void idSound::Spawn()
 	// HEXEN : Zeroth
 	// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
 
-    if ( spawnArgs.GetBool( "s_music" ) )                  //SnoopJeDi
+	if( spawnArgs.GetBool( "s_music" ) )                   //SnoopJeDi
 	{
 		gameLocal.musicSpeakers.Append( entityNumber );
-    }
+	}
 	// ******
 }
 

@@ -74,15 +74,21 @@ public:
 	void					BecomeNonSolid();
 
 	// only for use with hub-style map initialization
-	void					SetDestPos( const idVec3 &pos ) { dest_position=pos; }
-	void					SetDestAng( const idAngles &ang ) { dest_angles=ang; }
+	void					SetDestPos( const idVec3& pos )
+	{
+		dest_position = pos;
+	}
+	void					SetDestAng( const idAngles& ang )
+	{
+		dest_angles = ang;
+	}
 
 // HEXEN : Zeroth
 //	void					eoc_SetMoveTime( float time );
 //	void					eoc_MoveToPos( const idVec3 &pos );
 
-	void					SetPersistentPos( idVec3 &pos );
-	void					SetPersistentAng( idAngles &ang );
+	void					SetPersistentPos( idVec3& pos );
+	void					SetPersistentAng( idAngles& ang );
 
 protected:
 	typedef enum

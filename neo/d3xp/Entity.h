@@ -279,11 +279,11 @@ public:
 	virtual renderView_t* 	GetRenderView();
 	void ShutdownThreads();
 	void UpdateScript();
-	void SetState( const char *statename );
-	void SetState( const function_t *newState );
-	const function_t *GetScriptFunction( const char *funcname );
-	const char *WaitState() const;
-	void SetWaitState( const char *_waitstate );
+	void SetState( const char* statename );
+	void SetState( const function_t* newState );
+	const function_t* GetScriptFunction( const char* funcname );
+	const char* WaitState() const;
+	void SetWaitState( const char* _waitstate );
 	//idThread *ConstructScriptObject();
 	//void idEntity::FinishSetup();
 	//bool IsInUse(); // HEXEN : Zeroth
@@ -438,7 +438,7 @@ public:
 	virtual bool			CanDamage( const idVec3& origin, idVec3& damagePoint ) const;
 
 	// applies damage to this entity
-	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
+	virtual	void			Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir, const char* damageDefName, const float damageScale, const int location, const idVec3& iPoint );
 
 	// adds a damage effect like overlays, blood, sparks, debris etc.
 	virtual void			AddDamageEffect( const trace_t& collision, const idVec3& velocity, const char* damageDefName );
@@ -572,10 +572,10 @@ protected:
 
 // HEXEN : Zeroth
 	// state variables
-	const function_t		*state;
-	const function_t		*idealState;
+	const function_t*		state;
+	const function_t*		idealState;
 	// script variables
-	idThread *				scriptThread;
+	idThread* 				scriptThread;
 	idStr					waitState;
 
 	idVec3					GetOriginDelta() const
@@ -602,7 +602,7 @@ private:
 	signalList_t* 			signals;
 
 	int						mpGUIState;							// local cache to avoid systematic SetStateInt
-	idThread *				thread;
+	idThread* 				thread;
 
 	uint32					predictionKey;						// Unique key used to sync predicted ents (projectiles) in MP.
 
@@ -721,12 +721,12 @@ public:
 // HEXEN : Zeroth
 private:
 	idDict					projectileDict;
-	idEntity				*projectileEnt;
+	idEntity*				projectileEnt;
 	void 					Event_GetState();
-	void 					Event_SetState( const char *name );
-	void 					Event_SetNextState( const char *name );
+	void 					Event_SetState( const char* name );
+	void 					Event_SetNextState( const char* name );
 
-	void					Event_SetGravity( const idVec3 &grav );
+	void					Event_SetGravity( const idVec3& grav );
 	void					Event_GetGravity();
 	void					Event_GetGravityNormal();
 	void                    Event_GetSelfEntity();
@@ -737,9 +737,9 @@ private:
 	void					Event_CreateProjectile();
 	void					Event_GetMaster();
 	void					Event_GetModelDims();
-	void					Event_ReplaceMaterial( const char * replacee, const char * replacer );
+	void					Event_ReplaceMaterial( const char* replacee, const char* replacer );
 	void					Event_ResetGravity();
-	void					Event_HudMessage( const char *message );
+	void					Event_HudMessage( const char* message );
 public:
 	idAngles				GetAngles();
 	idVec3					GetModelDims();
@@ -825,11 +825,11 @@ private:
 
 // HEXEN : Zeroth
 private:
-	void					Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
+	void					Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles& to, const idAngles& from, float seconds, float transitions );
 public:
 	idVec3					GetJointPos( jointHandle_t jointnum );
-	void					TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
-	void 					SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles );
+	void					TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles& to, const idAngles& from, float seconds, float transitions );
+	void 					SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles& angles );
 	idAngles				GetJointAngle( jointHandle_t jointnum );
 };
 

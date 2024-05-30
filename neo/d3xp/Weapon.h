@@ -246,7 +246,7 @@ private:
 	bool					isPlayerFlashlight;
 
 	// precreated projectile
-	idList<idEntity	*>		projectileEnts; // HEXEN : Zeroth. turned into an idList.
+	idList<idEntity*>		projectileEnts;  // HEXEN : Zeroth. turned into an idList.
 
 	idPlayer* 				owner;
 	idEntityPtr<idAnimatedEntity>	worldModel;

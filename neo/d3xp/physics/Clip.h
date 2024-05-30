@@ -302,8 +302,8 @@ public:
 										int contentMask, const idEntity* passEntity );
 	bool					TraceBounds( trace_t& results, const idVec3& start, const idVec3& end, const idBounds& bounds,
 										 int contentMask, const idEntity* passEntity );
-	idVec3					TraceSurfaceNormal( trace_t &results, const idVec3 &A, const idVec3 &B, 
-										const float clipMask, const idEntity *pass );
+	idVec3					TraceSurfaceNormal( trace_t& results, const idVec3& A, const idVec3& B,
+			const float clipMask, const idEntity* pass );
 
 	// clip versus a specific model
 	void					TranslationModel( trace_t& results, const idVec3& start, const idVec3& end,
@@ -368,20 +368,20 @@ ID_INLINE bool idClip::TracePoint( trace_t& results, const idVec3& start, const 
 	return ( results.fraction < 1.0f );
 }
 
-ID_INLINE idVec3 idClip::TraceSurfaceNormal( trace_t &trace, const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass )
+ID_INLINE idVec3 idClip::TraceSurfaceNormal( trace_t& trace, const idVec3& A, const idVec3& B, const float clipMask, const idEntity* pass )
 {
-        TracePoint( trace, A, B, clipMask, pass );
+	TracePoint( trace, A, B, clipMask, pass );
 
-        // if near a surface
-        if ( trace.fraction < 1.0f )
-		{
-			idVec3 bub = trace.c.normal;
-			return trace.c.normal;
-        }
-		else
-		{
-			return idVec3( 0, 0, 0 );
-        }
+	// if near a surface
+	if( trace.fraction < 1.0f )
+	{
+		idVec3 bub = trace.c.normal;
+		return trace.c.normal;
+	}
+	else
+	{
+		return idVec3( 0, 0, 0 );
+	}
 }
 
 ID_INLINE bool idClip::TraceBounds( trace_t& results, const idVec3& start, const idVec3& end, const idBounds& bounds, int contentMask, const idEntity* passEntity )
