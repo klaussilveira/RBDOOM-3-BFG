@@ -145,6 +145,7 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		return;
 	}
 
+#if 0
 	// create p1, p2, p3
 	idVec3 forward = plane.Normal();
 	idVec3 p1 = forward * plane.Dist();
@@ -169,6 +170,25 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 	planepts[0] = entityTransform * p1;
 	planepts[1] = entityTransform * p2;
 	planepts[2] = entityTransform * p3;
+
+#else
+	// from DoomEdit's void BrushPrimit_Parse( brush_t* b, bool newFormat, const idVec3 origin )
+
+	idVec3 origin = entityTransform.GetTranslation();
+
+	idPlane fixedPlane = plane;
+	fixedPlane.FixDegeneracies( DEGENERATE_DIST_EPSILON );
+
+	idWinding w;
+	w.BaseForPlane( fixedPlane );
+
+	for( int j = 0; j < 3; j++ )
+	{
+		planepts[j].x = w[j].x + origin.x;
+		planepts[j].y = w[j].y + origin.y;
+		planepts[j].z = w[j].z + origin.z;
+	}
+#endif
 
 	idVec3 texX, texY;
 
@@ -258,7 +278,7 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 idMapPatch::Parse
 =================
 */
-idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef3, float version )
+idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef3, int version )
 {
 	float		info[7];
 	idDrawVert* vert;
@@ -298,7 +318,11 @@ idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef
 	idMapPatch* patch = new( TAG_IDLIB ) idMapPatch( info[0], info[1] );
 
 	patch->SetSize( info[0], info[1] );
-	if( version < 2.0f )
+
+	idStr matName = token;
+
+	// version 220 might be missing textures/ if saved by TrenchBroom
+	if( version < 2 || ( version == 220 && matName.IcmpPrefix( "textures/" ) != 0 ) )
 	{
 		patch->SetMaterial( "textures/" + token );
 	}
@@ -460,7 +484,7 @@ unsigned int idMapPatch::GetGeometryCRC() const
 idMapBrush::Parse
 =================
 */
-idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newFormat, float version )
+idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newFormat, int version )
 {
 	int i;
 	idVec3 planepts[3];
@@ -576,7 +600,7 @@ idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newForma
 		}
 
 		// we had an implicit 'textures/' in the old format...
-		if( version < 2.0f )
+		if( version < 2 )
 		{
 			side->material = "textures/" + token;
 		}
@@ -943,7 +967,69 @@ bool idMapBrush::WriteValve220( idFile* fp, int primitiveNum, const idVec3& orig
 	return true;
 }
 
+/*
+============
+RB idMapBrush::SetPlanePointsFromWindings
+============
+*/
+void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum, int primitiveNum )
+{
+	// fix degenerate planes
+	idPlane* planes = ( idPlane* ) _alloca16( GetNumSides() * sizeof( planes[0] ) );
+	for( int i = 0; i < GetNumSides(); i++ )
+	{
+		planes[i] = GetSide( i )->GetPlane();
+		planes[i].FixDegeneracies( DEGENERATE_DIST_EPSILON );
+	}
 
+	idBounds bounds;
+	bounds.Clear();
+
+	idFixedWinding w;
+
+	for( int i = 0; i < GetNumSides(); i++ )
+	{
+		idMapBrushSide* mapSide = GetSide( i );
+
+		w.BaseForPlane( -planes[i] );
+
+		if( !w.GetNumPoints() )
+		{
+			common->Printf( "Entity %i, Brush %i: base winding has no points\n", entityNum, primitiveNum );
+			break;
+		}
+
+		// chop base plane by other brush planes
+		for( int j = 0; j < GetNumSides() && w.GetNumPoints(); j++ )
+		{
+			if( i == j )
+			{
+				continue;
+			}
+
+			if( !w.ClipInPlace( -planes[j], 0 ) )
+			{
+				common->Printf( "Entity %i, Brush %i: no intersection with other brush plane\n", entityNum, primitiveNum );
+				break;
+			}
+		}
+
+		if( w.GetNumPoints() >= 3 )
+		{
+			// reverse order to invert normal
+			mapSide->planepts[0] = w[2].ToVec3() + origin;
+			mapSide->planepts[1] = w[1].ToVec3() + origin;
+			mapSide->planepts[2] = w[0].ToVec3() + origin;
+		}
+
+		// only used for debugging
+		for( int j = 0; j < w.GetNumPoints(); j++ )
+		{
+			const idVec3& v = w[j].ToVec3();
+			bounds.AddPoint( v );
+		}
+	}
+}
 
 /*
 ===============
@@ -994,7 +1080,7 @@ bool idMapBrush::IsOriginBrush() const
 idMapEntity::Parse
 ================
 */
-idMapEntity* idMapEntity::Parse( idLexer& src, bool worldSpawn, float version )
+idMapEntity* idMapEntity::Parse( idLexer& src, bool worldSpawn, int version )
 {
 	idToken	token;
 	idMapEntity* mapEnt;
@@ -1689,13 +1775,14 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		if( token == "Version" )
 		{
 			src.ReadTokenOnLine( &token );
-			version = token.GetFloatValue();
+			version = token.GetIntValue();
 		}
 		else
 		{
 			// Valve 220 format and idMapEntity::Parse will expect {
 			src.UnreadToken( &token );
 			valve220Format = true;
+			version = 220;
 		}
 
 		while( 1 )
@@ -1714,7 +1801,6 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 	// if the map has a worldspawn
 	if( entities.Num() )
 	{
-
 		// "removeEntities" "classname" can be set in the worldspawn to remove all entities with the given classname
 		const idKeyValue* removeEntities = entities[0]->epairs.MatchPrefix( "removeEntities", NULL );
 		while( removeEntities )
@@ -1783,6 +1869,13 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 				}
 			}
 		}
+	}
+
+	if( valve220Format )
+	{
+		// it might be possible that the level designer missed to set the name/model keys to be protected
+		// so the game code would fail to load the map because entities have then the same name
+		FixDuplicatedNamesInGroupInstances();
 	}
 
 	// RB: <name>_extraents.map allows to add and override existing entities
@@ -1875,7 +1968,7 @@ bool idMapFile::Write( const char* fileName, const char* ext, bool fromBasePath 
 	}
 	else
 	{
-		fp->WriteFloatString( "Version %f\n", ( float ) CURRENT_MAP_VERSION );
+		fp->WriteFloatString( "Version %d\n", CURRENT_MAP_VERSION );
 	}
 
 	for( i = 0; i < entities.Num(); i++ )
@@ -1916,7 +2009,7 @@ bool idMapFile::WriteJSON( const char* fileName, const char* ext, bool fromBaseP
 	}
 
 	fp->Printf( "{\n" );
-	fp->WriteFloatString( "\t\"version\": \"%f\",\n", ( float ) CURRENT_MAP_VERSION );
+	fp->WriteFloatString( "\t\"version\": \"%d\",\n", CURRENT_MAP_VERSION );
 	fp->Printf( "\t\"entities\": \n\t[\n" );
 
 	for( i = 0; i < entities.Num(); i++ )
@@ -2907,6 +3000,32 @@ bool idMapFile::ConvertToValve220Format()
 	idDict classTypeOverview;
 	idStrList textureCollections;
 
+	int tbGroupID = 7;
+
+	// just an idea but we can assume that we have no TB groups in the file
+	// because we are calling this command for the original Doom 3 BFG .map files
+	/*
+	idList<int> tbGroupIDs;
+
+	// collect TrenchBroom group IDs
+	for( int j = 0; j < count; j++ )
+	{
+		idMapEntity* ent = GetEntity( j );
+		if( ent )
+		{
+			//idStr classname = ent->epairs.GetString( "classname" );
+			const char* name = ent->epairs.GetString( "classname" );
+			const char* groupType = ent->epairs.GetString( "_tb_type" );
+
+			if( idStr::Icmp( name, "func_group" ) == 0 && ( idStr::Icmp( groupType, "_tb_group" ) == 0 || idStr::Icmp( groupType, "_tb_layer" ) == 0 ) )
+			{
+				int id = ent->epairs.GetInt( "_tb_id", -1 );
+				tbGroupIDs.AddUnique( id );
+			}
+		}
+	}
+	*/
+
 	int count = GetNumEntities();
 	for( int j = 0; j < count; j++ )
 	{
@@ -2960,8 +3079,9 @@ bool idMapFile::ConvertToValve220Format()
 
 			const idKeyValue* modelPair = ent->epairs.FindKey( "model" );
 			idStr model = ent->epairs.GetString( "model" );
-#if 1
+
 			// HACK: convert every old .lwo, .ase model to an .obj proxy model so it can be displayed properly in TrenchBroom
+			// this wouldn't be necessary for Doom 3 but it is for the BFG edition
 			idStr ext;
 			model.ExtractFileExtension( ext );
 
@@ -2972,17 +3092,124 @@ bool idMapFile::ConvertToValve220Format()
 
 				ent->epairs.Set( "proxymodel", model );
 			}
-#endif
 
 			bool isBrushModel = ( ent->GetNumPrimitives() > 0 ) && ( idStr::Icmp( model.c_str(), name.c_str() ) == 0 );
+			bool isLight = idStr::Icmp( classname, "light" ) == 0;
 
 			// is this oldschool brushes & patches?
 			if( isBrushModel )
 			{
+				if( isLight )
+				{
+					// we need to split this up into several entities
+					// turn this entity into a func_static and create a separate light and func_group entity
+
+					auto lightEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( lightEnt );
+
+					// don't grab brushes or polys
+					lightEnt->epairs.Copy( ent->epairs );
+
+					// we can expect "light_origin" and "light_rotation" at this point from DoomEdit
+					// replace them with "origin" and "angles"
+					{
+						idAngles angles;
+						idMat3 mat;
+						if( !ent->epairs.GetMatrix( "light_rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+						{
+							if( !ent->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+							{
+								// RB: light_angles is specific for lights that have been modified by the editLights command
+								// these lights have a static model and are not proper grouped using func_group
+								if( ent->epairs.GetAngles( "light_angles", "0 0 0", angles ) )
+								{
+									angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+									mat = angles.ToMat3();
+								}
+								// RB: TrenchBroom interop
+								// support "angles" like in Quake 3
+								else if( ent->epairs.GetAngles( "angles", "0 0 0", angles ) )
+								{
+									angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+									mat = angles.ToMat3();
+								}
+								else
+								{
+									ent->epairs.GetFloat( "angle", "0", angles[ 1 ] );
+									angles[ 0 ] = 0;
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = 0;
+									mat = angles.ToMat3();
+								}
+							}
+						}
+
+						// fix degenerate identity matrices
+						mat[0].FixDegenerateNormal();
+						mat[1].FixDegenerateNormal();
+						mat[2].FixDegenerateNormal();
+
+						lightEnt->epairs.Delete( "light_rotation" );
+						lightEnt->epairs.Delete( "light_angles" );
+						lightEnt->epairs.Delete( "angle" );
+						lightEnt->epairs.Delete( "model" );
+
+						angles = mat.ToAngles();
+						lightEnt->epairs.SetAngles( "angles", angles );
+
+						idVec3 lightOrigin = ent->epairs.GetVector( "light_origin", "0 0 0" );
+						lightEnt->epairs.SetVector( "origin", lightOrigin );
+						lightEnt->epairs.Delete( "light_origin" );
+
+						lightEnt->epairs.SetInt( "_tb_group", tbGroupID );
+					}
+
+					// turn this entity into a func_static and give it a new unique name
+					ent->epairs.Set( "classname", "func_static" );
+					idStr uniqueName = GetUniqueEntityName( "light_model" );
+
+					ent->epairs.Set( "name", uniqueName );
+					ent->epairs.Set( "model", uniqueName );
+
+					// link idLight to func_static entity for syncing color/broken model using new modelTarget key
+					lightEnt->epairs.Set( "modelTarget", uniqueName );
+					ent->epairs.SetInt( "_tb_group", tbGroupID );
+
+					// strip any light specific data
+					ent->epairs.Delete( "light_origin" );
+					ent->epairs.Delete( "light_rotation" );
+					ent->epairs.Delete( "light_radius" );
+					ent->epairs.Delete( "light_center" );
+					ent->epairs.Delete( "angles" );
+					ent->epairs.Delete( "angle" );
+					ent->epairs.Delete( "noshadows" );
+					ent->epairs.Delete( "nodiffuse" );
+					ent->epairs.Delete( "nospecular" );
+					ent->epairs.Delete( "falloff" );
+					ent->epairs.Delete( "texture" );
+
+					// add group entity
+					auto groupEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( groupEnt );
+
+					groupEnt->epairs.Set( "classname", "func_group" );
+					uniqueName = GetUniqueEntityName( "light_group" );
+					groupEnt->epairs.Set( "name", uniqueName );
+					groupEnt->epairs.Set( "_tb_name", uniqueName );
+					groupEnt->epairs.Set( "_tb_type", "_tb_group" );
+					groupEnt->epairs.SetInt( "_tb_id", tbGroupID );
+
+					tbGroupID++;
+				}
+
 				bool removedOrigin = false;
-				if( !transform.IsIdentity() &&
-						//idStr::Icmp( classname, "func_static" ) != 0 &&
-						idStr::Icmp( classname, "light" ) != 0 )
+				if( !transform.IsIdentity() ) //&& !isLight )
 				{
 					ent->epairs.Delete( "origin" );
 					ent->epairs.Delete( "rotation" );
@@ -2990,13 +3217,6 @@ bool idMapFile::ConvertToValve220Format()
 					ent->epairs.Delete( "angle" );
 
 					removedOrigin = true;
-				}
-
-				// purge flare patches from lights because we can't select lights in TrenchBroom
-				// that still have primitives
-				if( idStr::Icmp( classname, "light" ) == 0 )
-				{
-					ent->RemovePrimitiveData();
 				}
 
 				// convert brushes
@@ -3013,6 +3233,10 @@ bool idMapFile::ConvertToValve220Format()
 							idMapBrushSide* side = brushPrim->GetSide( s );
 							side->ConvertToValve220Format( transform, textureCollections );
 						}
+
+						// RB: this is not necessary but the initial plane definitions are at the border of the max world size
+						// so with this function we get sane values that are within the brush boundaries
+						brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
 					{
@@ -3216,11 +3440,10 @@ void idMapFile::ClassifyEntitiesForTrenchBroom( idDict& classTypeOverview )
 
 bool idMapFile::ConvertQuakeToDoom()
 {
-	idDict classTypeOverview;
 	idStrList textureCollections;
 
 	int count = GetNumEntities();
-	for( int j = 0; j < count; j++ )
+	for( int j = 1; j < count; j++ )
 	{
 		idMapEntity* ent = GetEntity( j );
 		if( ent )
@@ -3296,11 +3519,7 @@ bool idMapFile::ConvertQuakeToDoom()
 
 			if( ent->GetNumPrimitives() > 0 )
 			{
-				if( j > 0 )
-				{
-					const idKeyValue* namePair = ent->epairs.FindKey( "name" );
-					ent->epairs.Set( "model", namePair->GetValue() );
-				}
+				ent->epairs.Set( "model", namePair->GetValue() );
 
 				// map Wad brushes names to proper Doom 3 compatible material names
 				for( int i = 0; i < ent->GetNumPrimitives(); i++ )
@@ -3317,6 +3536,8 @@ bool idMapFile::ConvertQuakeToDoom()
 							idStr matName;
 							WadTextureToMaterial( side->GetMaterial(), matName );
 							side->SetMaterial( matName );
+
+							idMapFile::AddMaterialToCollection( side->GetMaterial(), textureCollections );
 						}
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
@@ -3354,6 +3575,80 @@ bool idMapFile::ConvertQuakeToDoom()
 	}
 
 	return true;
+}
+
+void idMapFile::FixDuplicatedNamesInGroupInstances()
+{
+	int count = GetNumEntities();
+	for( int j = 1; j < count; j++ )
+	{
+		idMapEntity* ent = GetEntity( j );
+		if( ent )
+		{
+			idStr classname = ent->epairs.GetString( "classname" );
+
+			// only fix names in linked group lists
+			const idKeyValue* groupPair = ent->epairs.FindKey( "_tb_group" );
+			if( !groupPair )
+			{
+				continue;
+			}
+
+			const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+			if( !namePair )
+			{
+				idStr uniqueName = GetUniqueEntityName( classname );
+
+				ent->epairs.Set( "name", uniqueName );
+			}
+			else
+			{
+				// is there a name clash with another entity?
+				bool clash = false;
+
+				for( int i = 1; i < count; i++ )
+				{
+					if( i == j )
+					{
+						continue;
+					}
+
+					idMapEntity* otherEnt = GetEntity( i );
+
+					const idKeyValue* otherNamePair = otherEnt->epairs.FindKey( "name" );
+					if( otherNamePair && !otherNamePair->GetValue().IsEmpty() && idStr::Cmp( namePair->GetValue(), otherNamePair->GetValue() ) == 0 )
+					{
+						// both entities have the same name, give this one a new name
+						idStr uniqueName = GetUniqueEntityName( classname );
+
+						ent->epairs.Set( "name", uniqueName );
+
+						if( ent->GetNumPrimitives() > 0 )
+						{
+							ent->epairs.Set( "model", uniqueName );
+						}
+						break;
+					}
+				}
+			}
+
+			// fix light color range
+			if( idStr::Icmp( classname, "light" ) == 0 )
+			{
+				idVec3		color;
+				ent->epairs.GetVector( "_color", "1 1 1", color );
+
+				if( color.x > 1 || color.y > 1 || color.z > 1 )
+				{
+					color.x *= 1.0f / 255;
+					color.y *= 1.0f / 255;
+					color.z *= 1.0f / 255;
+
+					ent->epairs.SetVector( "_color", color );
+				}
+			}
+		}
+	}
 }
 
 void idMapFile::AddMaterialToCollection( const char* material, idStrList& textureCollections )

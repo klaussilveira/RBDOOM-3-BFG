@@ -661,7 +661,7 @@ Com_WriteConfig_f
 Write the config file to a specific name
 ===============
 */
-CONSOLE_COMMAND( writeConfig, "writes a config file", NULL )
+CONSOLE_COMMAND_SHIP( writeConfig, "writes a config file", NULL )
 {
 	idStr	filename;
 
