@@ -7,9 +7,9 @@
 
 	This file has been generated with the Type Info Generator v1.1 (c) 2004 id Software
 
-	962 constants
-	93 enums
-	473 classes/structs/unions
+	957 constants
+	92 enums
+	471 classes/structs/unions
 	3 templates
 	8 max inheritance level for 'iceMonsterZombieSawyer'
 
@@ -805,10 +805,6 @@ static constantInfo_t constantInfo[] = {
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_BRIGHTNESS", "10" },
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::SYSTEM_FIELD_VOLUME", "11" },
 	{ "int", "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::MAX_SYSTEM_FIELDS", "12" },
-	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_ENABLE", "0" },
-	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_SEPERATION", "1" },
-	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::STEREO_FIELD_SWAP_EYES", "2" },
-	{ "int", "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::MAX_STEREO_FIELDS", "3" },
 	{ "int", "SHELL_AREA_INVALID", "-1" },
 	{ "int", "SHELL_AREA_START", "0" },
 	{ "int", "SHELL_AREA_ROOT", "1" },
@@ -821,25 +817,24 @@ static constantInfo_t constantInfo[] = {
 	{ "int", "SHELL_AREA_SYSTEM_OPTIONS", "8" },
 	{ "int", "SHELL_AREA_MULTIPLAYER", "9" },
 	{ "int", "SHELL_AREA_GAME_LOBBY", "10" },
-	{ "int", "SHELL_AREA_STEREOSCOPICS", "11" },
-	{ "int", "SHELL_AREA_PARTY_LOBBY", "12" },
-	{ "int", "SHELL_AREA_SETTINGS", "13" },
-	{ "int", "SHELL_AREA_AUDIO", "14" },
-	{ "int", "SHELL_AREA_VIDEO", "15" },
-	{ "int", "SHELL_AREA_KEYBOARD", "16" },
-	{ "int", "SHELL_AREA_CONTROLS", "17" },
-	{ "int", "SHELL_AREA_CONTROLLER_LAYOUT", "18" },
-	{ "int", "SHELL_AREA_GAMEPAD", "19" },
-	{ "int", "SHELL_AREA_PAUSE", "20" },
-	{ "int", "SHELL_AREA_LEADERBOARDS", "21" },
-	{ "int", "SHELL_AREA_PLAYSTATION", "22" },
-	{ "int", "SHELL_AREA_DIFFICULTY", "23" },
-	{ "int", "SHELL_AREA_RESOLUTION", "24" },
-	{ "int", "SHELL_AREA_MATCH_SETTINGS", "25" },
-	{ "int", "SHELL_AREA_MODE_SELECT", "26" },
-	{ "int", "SHELL_AREA_BROWSER", "27" },
-	{ "int", "SHELL_AREA_CREDITS", "28" },
-	{ "int", "SHELL_NUM_AREAS", "29" },
+	{ "int", "SHELL_AREA_PARTY_LOBBY", "11" },
+	{ "int", "SHELL_AREA_SETTINGS", "12" },
+	{ "int", "SHELL_AREA_AUDIO", "13" },
+	{ "int", "SHELL_AREA_VIDEO", "14" },
+	{ "int", "SHELL_AREA_KEYBOARD", "15" },
+	{ "int", "SHELL_AREA_CONTROLS", "16" },
+	{ "int", "SHELL_AREA_CONTROLLER_LAYOUT", "17" },
+	{ "int", "SHELL_AREA_GAMEPAD", "18" },
+	{ "int", "SHELL_AREA_PAUSE", "19" },
+	{ "int", "SHELL_AREA_LEADERBOARDS", "20" },
+	{ "int", "SHELL_AREA_PLAYSTATION", "21" },
+	{ "int", "SHELL_AREA_DIFFICULTY", "22" },
+	{ "int", "SHELL_AREA_RESOLUTION", "23" },
+	{ "int", "SHELL_AREA_MATCH_SETTINGS", "24" },
+	{ "int", "SHELL_AREA_MODE_SELECT", "25" },
+	{ "int", "SHELL_AREA_BROWSER", "26" },
+	{ "int", "SHELL_AREA_CREDITS", "27" },
+	{ "int", "SHELL_NUM_AREAS", "28" },
 	{ "int", "SHELL_STATE_INVALID", "-1" },
 	{ "int", "SHELL_STATE_PRESS_START", "0" },
 	{ "int", "SHELL_STATE_IDLE", "1" },
@@ -2020,14 +2015,6 @@ static enumValueInfo_t idMenuScreen_Shell_SystemOptions_idMenuDataSource_SystemS
 	{ NULL, 0 }
 };
 
-static enumValueInfo_t idMenuScreen_Shell_Stereoscopics_idMenuDataSource_StereoSettings_stereoSettingFields_t_typeInfo[] = {
-	{ "STEREO_FIELD_ENABLE", 0 },
-	{ "STEREO_FIELD_SEPERATION", 1 },
-	{ "STEREO_FIELD_SWAP_EYES", 2 },
-	{ "MAX_STEREO_FIELDS", 3 },
-	{ NULL, 0 }
-};
-
 static enumValueInfo_t shellAreas_t_typeInfo[] = {
 	{ "SHELL_AREA_INVALID", -1 },
 	{ "SHELL_AREA_START", 0 },
@@ -2041,25 +2028,24 @@ static enumValueInfo_t shellAreas_t_typeInfo[] = {
 	{ "SHELL_AREA_SYSTEM_OPTIONS", 8 },
 	{ "SHELL_AREA_MULTIPLAYER", 9 },
 	{ "SHELL_AREA_GAME_LOBBY", 10 },
-	{ "SHELL_AREA_STEREOSCOPICS", 11 },
-	{ "SHELL_AREA_PARTY_LOBBY", 12 },
-	{ "SHELL_AREA_SETTINGS", 13 },
-	{ "SHELL_AREA_AUDIO", 14 },
-	{ "SHELL_AREA_VIDEO", 15 },
-	{ "SHELL_AREA_KEYBOARD", 16 },
-	{ "SHELL_AREA_CONTROLS", 17 },
-	{ "SHELL_AREA_CONTROLLER_LAYOUT", 18 },
-	{ "SHELL_AREA_GAMEPAD", 19 },
-	{ "SHELL_AREA_PAUSE", 20 },
-	{ "SHELL_AREA_LEADERBOARDS", 21 },
-	{ "SHELL_AREA_PLAYSTATION", 22 },
-	{ "SHELL_AREA_DIFFICULTY", 23 },
-	{ "SHELL_AREA_RESOLUTION", 24 },
-	{ "SHELL_AREA_MATCH_SETTINGS", 25 },
-	{ "SHELL_AREA_MODE_SELECT", 26 },
-	{ "SHELL_AREA_BROWSER", 27 },
-	{ "SHELL_AREA_CREDITS", 28 },
-	{ "SHELL_NUM_AREAS", 29 },
+	{ "SHELL_AREA_PARTY_LOBBY", 11 },
+	{ "SHELL_AREA_SETTINGS", 12 },
+	{ "SHELL_AREA_AUDIO", 13 },
+	{ "SHELL_AREA_VIDEO", 14 },
+	{ "SHELL_AREA_KEYBOARD", 15 },
+	{ "SHELL_AREA_CONTROLS", 16 },
+	{ "SHELL_AREA_CONTROLLER_LAYOUT", 17 },
+	{ "SHELL_AREA_GAMEPAD", 18 },
+	{ "SHELL_AREA_PAUSE", 19 },
+	{ "SHELL_AREA_LEADERBOARDS", 20 },
+	{ "SHELL_AREA_PLAYSTATION", 21 },
+	{ "SHELL_AREA_DIFFICULTY", 22 },
+	{ "SHELL_AREA_RESOLUTION", 23 },
+	{ "SHELL_AREA_MATCH_SETTINGS", 24 },
+	{ "SHELL_AREA_MODE_SELECT", 25 },
+	{ "SHELL_AREA_BROWSER", 26 },
+	{ "SHELL_AREA_CREDITS", 27 },
+	{ "SHELL_NUM_AREAS", 28 },
 	{ NULL, 0 }
 };
 
@@ -2131,7 +2117,7 @@ static enumValueInfo_t menuSounds_t_typeInfo[] = {
 	{ NULL, 0 }
 };
 
-static enumValueInfo_t enum_92_typeInfo[] = {
+static enumValueInfo_t enum_91_typeInfo[] = {
 	{ "OP_RETURN", 0 },
 	{ "OP_UINC_F", 1 },
 	{ "OP_UINCP_F", 2 },
@@ -2343,7 +2329,6 @@ static enumTypeInfo_t enumTypeInfo[] = {
 	{ "idMenuScreen_Shell_Gamepad::idMenuDataSource_GamepadSettings::controlSettingFields_t", idMenuScreen_Shell_Gamepad_idMenuDataSource_GamepadSettings_controlSettingFields_t_typeInfo },
 	{ "idMenuScreen_Shell_ControllerLayout::idMenuDataSource_LayoutSettings::controlSettingFields_t", idMenuScreen_Shell_ControllerLayout_idMenuDataSource_LayoutSettings_controlSettingFields_t_typeInfo },
 	{ "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::systemSettingFields_t", idMenuScreen_Shell_SystemOptions_idMenuDataSource_SystemSettings_systemSettingFields_t_typeInfo },
-	{ "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::stereoSettingFields_t", idMenuScreen_Shell_Stereoscopics_idMenuDataSource_StereoSettings_stereoSettingFields_t_typeInfo },
 	{ "shellAreas_t", shellAreas_t_typeInfo },
 	{ "shellState_t", shellState_t_typeInfo },
 	{ "pdaAreas_t", pdaAreas_t_typeInfo },
@@ -2352,7 +2337,7 @@ static enumTypeInfo_t enumTypeInfo[] = {
 	{ "pdaHandlerWidgets_t", pdaHandlerWidgets_t_typeInfo },
 	{ "scoreboardHandlerWidgets_t", scoreboardHandlerWidgets_t_typeInfo },
 	{ "menuSounds_t", menuSounds_t_typeInfo },
-	{ "enum_92", enum_92_typeInfo },
+	{ "enum_91", enum_91_typeInfo },
 	{ NULL, NULL }
 };
 
@@ -4629,12 +4614,12 @@ static classVariableInfo_t idWeapon_typeInfo[] = {
 	{ NULL, 0 }
 };
 
-static classVariableInfo_t rvmLightStyleState_t_typeInfo[] = {
-	{ "int", "dl_frame", (intptr_t)(&((rvmLightStyleState_t *)0)->dl_frame), sizeof( ((rvmLightStyleState_t *)0)->dl_frame ) },
-	{ "float", "dl_framef", (intptr_t)(&((rvmLightStyleState_t *)0)->dl_framef), sizeof( ((rvmLightStyleState_t *)0)->dl_framef ) },
-	{ "int", "dl_oldframe", (intptr_t)(&((rvmLightStyleState_t *)0)->dl_oldframe), sizeof( ((rvmLightStyleState_t *)0)->dl_oldframe ) },
-	{ "int", "dl_time", (intptr_t)(&((rvmLightStyleState_t *)0)->dl_time), sizeof( ((rvmLightStyleState_t *)0)->dl_time ) },
-	{ "float", "dl_backlerp", (intptr_t)(&((rvmLightStyleState_t *)0)->dl_backlerp), sizeof( ((rvmLightStyleState_t *)0)->dl_backlerp ) },
+static classVariableInfo_t iceLightStyleState_t_typeInfo[] = {
+	{ "int", "dl_frame", (intptr_t)(&((iceLightStyleState_t *)0)->dl_frame), sizeof( ((iceLightStyleState_t *)0)->dl_frame ) },
+	{ "float", "dl_framef", (intptr_t)(&((iceLightStyleState_t *)0)->dl_framef), sizeof( ((iceLightStyleState_t *)0)->dl_framef ) },
+	{ "int", "dl_oldframe", (intptr_t)(&((iceLightStyleState_t *)0)->dl_oldframe), sizeof( ((iceLightStyleState_t *)0)->dl_oldframe ) },
+	{ "int", "dl_time", (intptr_t)(&((iceLightStyleState_t *)0)->dl_time), sizeof( ((iceLightStyleState_t *)0)->dl_time ) },
+	{ "float", "dl_backlerp", (intptr_t)(&((iceLightStyleState_t *)0)->dl_backlerp), sizeof( ((iceLightStyleState_t *)0)->dl_backlerp ) },
 	{ NULL, 0 }
 };
 
@@ -4661,8 +4646,9 @@ static classVariableInfo_t idLight_typeInfo[] = {
 	{ "int", "fadeStart", (intptr_t)(&((idLight *)0)->fadeStart), sizeof( ((idLight *)0)->fadeStart ) },
 	{ "int", "fadeEnd", (intptr_t)(&((idLight *)0)->fadeEnd), sizeof( ((idLight *)0)->fadeEnd ) },
 	{ "bool", "soundWasPlaying", (intptr_t)(&((idLight *)0)->soundWasPlaying), sizeof( ((idLight *)0)->soundWasPlaying ) },
+	{ "idEntityPtr < idStaticEntity >", "modelTarget", (intptr_t)(&((idLight *)0)->modelTarget), sizeof( ((idLight *)0)->modelTarget ) },
 	{ "idList < idStr >", "light_styles", (intptr_t)(&((idLight *)0)->light_styles), sizeof( ((idLight *)0)->light_styles ) },
-	{ "rvmLightStyleState_t", "lightStyleState", (intptr_t)(&((idLight *)0)->lightStyleState), sizeof( ((idLight *)0)->lightStyleState ) },
+	{ "iceLightStyleState_t", "lightStyleState", (intptr_t)(&((idLight *)0)->lightStyleState), sizeof( ((idLight *)0)->lightStyleState ) },
 	{ NULL, 0 }
 };
 
@@ -7097,21 +7083,6 @@ static classVariableInfo_t idMenuScreen_Shell_SystemOptions_typeInfo[] = {
 	{ NULL, 0 }
 };
 
-static classVariableInfo_t idMenuScreen_Shell_Stereoscopics_idMenuDataSource_StereoSettings_typeInfo[] = {
-	{ ": idStaticList < idSWFScriptVar , MAX_STEREO_FIELDS >", "fields", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings *)0)->fields), sizeof( ((idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings *)0)->fields ) },
-	{ "idStaticList < idSWFScriptVar , MAX_STEREO_FIELDS >", "originalFields", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings *)0)->originalFields), sizeof( ((idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings *)0)->originalFields ) },
-	{ NULL, 0 }
-};
-
-static classVariableInfo_t idMenuScreen_Shell_Stereoscopics_typeInfo[] = {
-	{ ": idMenuWidget_DynamicList *", "options", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics *)0)->options), sizeof( ((idMenuScreen_Shell_Stereoscopics *)0)->options ) },
-	{ "idMenuDataSource_StereoSettings", "stereoData", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics *)0)->stereoData), sizeof( ((idMenuScreen_Shell_Stereoscopics *)0)->stereoData ) },
-	{ "idMenuWidget_Button *", "btnBack", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics *)0)->btnBack), sizeof( ((idMenuScreen_Shell_Stereoscopics *)0)->btnBack ) },
-	{ "const idMaterial *", "leftEyeMat", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics *)0)->leftEyeMat), sizeof( ((idMenuScreen_Shell_Stereoscopics *)0)->leftEyeMat ) },
-	{ "const idMaterial *", "rightEyeMat", (intptr_t)(&((idMenuScreen_Shell_Stereoscopics *)0)->rightEyeMat), sizeof( ((idMenuScreen_Shell_Stereoscopics *)0)->rightEyeMat ) },
-	{ NULL, 0 }
-};
-
 static classVariableInfo_t idMenuScreen_Shell_PartyLobby_typeInfo[] = {
 	{ ": bool", "isHost", (intptr_t)(&((idMenuScreen_Shell_PartyLobby *)0)->isHost), sizeof( ((idMenuScreen_Shell_PartyLobby *)0)->isHost ) },
 	{ "bool", "isPeer", (intptr_t)(&((idMenuScreen_Shell_PartyLobby *)0)->isPeer), sizeof( ((idMenuScreen_Shell_PartyLobby *)0)->isPeer ) },
@@ -7601,7 +7572,7 @@ static classTypeInfo_t classTypeInfo[] = {
 	{ "WeaponLight_t", "", sizeof(WeaponLight_t), WeaponLight_t_typeInfo },
 	{ "iceWeaponObject", "idClass", sizeof(iceWeaponObject), iceWeaponObject_typeInfo },
 	{ "idWeapon", "idAnimatedEntity", sizeof(idWeapon), idWeapon_typeInfo },
-	{ "rvmLightStyleState_t", "", sizeof(rvmLightStyleState_t), rvmLightStyleState_t_typeInfo },
+	{ "iceLightStyleState_t", "", sizeof(iceLightStyleState_t), iceLightStyleState_t_typeInfo },
 	{ "idLight", "idEntity", sizeof(idLight), idLight_typeInfo },
 	{ "EnvironmentProbe", "idEntity", sizeof(EnvironmentProbe), EnvironmentProbe_typeInfo },
 	{ "idWorldspawn", "idEntity", sizeof(idWorldspawn), idWorldspawn_typeInfo },
@@ -7849,8 +7820,6 @@ static classTypeInfo_t classTypeInfo[] = {
 	{ "idMenuScreen_Shell_ControllerLayout", "idMenuScreen", sizeof(idMenuScreen_Shell_ControllerLayout), idMenuScreen_Shell_ControllerLayout_typeInfo },
 	{ "idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings", "idMenuDataSource", sizeof(idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings), idMenuScreen_Shell_SystemOptions_idMenuDataSource_SystemSettings_typeInfo },
 	{ "idMenuScreen_Shell_SystemOptions", "idMenuScreen", sizeof(idMenuScreen_Shell_SystemOptions), idMenuScreen_Shell_SystemOptions_typeInfo },
-	{ "idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings", "idMenuDataSource", sizeof(idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings), idMenuScreen_Shell_Stereoscopics_idMenuDataSource_StereoSettings_typeInfo },
-	{ "idMenuScreen_Shell_Stereoscopics", "idMenuScreen", sizeof(idMenuScreen_Shell_Stereoscopics), idMenuScreen_Shell_Stereoscopics_typeInfo },
 	{ "idMenuScreen_Shell_PartyLobby", "idMenuScreen", sizeof(idMenuScreen_Shell_PartyLobby), idMenuScreen_Shell_PartyLobby_typeInfo },
 	{ "idMenuScreen_Shell_GameLobby", "idMenuScreen", sizeof(idMenuScreen_Shell_GameLobby), idMenuScreen_Shell_GameLobby_typeInfo },
 	{ "idMenuScreen_HUD", "idMenuScreen", sizeof(idMenuScreen_HUD), idMenuScreen_HUD_typeInfo },

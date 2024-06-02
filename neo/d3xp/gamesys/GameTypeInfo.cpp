@@ -4621,6 +4621,10 @@ intptr_t idLight::Invoke(const char *functionName, void *param1) {
 		Event_SetSoundHandles();
 		return 0;
 	};
+	if(functionNameHash == 303418) { // Event_UpdateModelTarget
+		Event_UpdateModelTarget();
+		return 0;
+	};
 	return __super::Invoke(functionName, param1);
 
 };
@@ -4688,6 +4692,9 @@ bool idLight::HasNativeFunction(const char *functionName) {
 		return true;
 	};
 	if(functionNameHash == 275399) { // Event_SetSoundHandles
+		return true;
+	};
+	if(functionNameHash == 303418) { // Event_UpdateModelTarget
 		return true;
 	};
 	return __super::HasNativeFunction(functionName);

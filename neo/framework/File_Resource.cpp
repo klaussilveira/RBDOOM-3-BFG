@@ -367,11 +367,13 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 	int _numFileResources;
 	memFile.ReadBig( _numFileResources );
 
+#ifndef TYPEINFOPROJECT
 	CommandlineProgressBar progressBar( _numFileResources, renderSystem->GetWidth(), renderSystem->GetHeight() );
 	if( _copyWavs )
 	{
 		progressBar.Start();
 	}
+#endif
 
 	for( int i = 0; i < _numFileResources; i++ )
 	{
@@ -383,6 +385,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
+#ifndef TYPEINFOPROJECT
 			idFileLocal fileIn( fileSystem->OpenFileReadMemory( rt.filename ) );
 			if( fileIn != NULL )
 			{
@@ -457,6 +460,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 					Mem_Free( buffers[ i ].buffer );
 				}
 			}
+#endif
 		}
 		else
 		{
@@ -493,10 +497,12 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 			Mem_Free( fbuf );
 		}
 
+#ifndef TYPEINFOPROJECT
 		if( _copyWavs )
 		{
 			progressBar.Increment( true );
 		}
+#endif
 	}
 	delete inFile;
 	Mem_Free( buf );
