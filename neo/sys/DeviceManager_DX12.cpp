@@ -27,6 +27,7 @@
 
 #include "renderer/RenderCommon.h"
 #include "renderer/RenderSystem.h"
+#include "framework/Common_local.h"
 #include <sys/DeviceManager.h>
 
 #include <Windows.h>
@@ -47,6 +48,7 @@ using nvrhi::RefCountPtr;
 #define HR_RETURN(hr) if(FAILED(hr)) return false
 
 idCVar r_graphicsAdapter( "r_graphicsAdapter", "", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE, "Substring in the name the DXGI graphics adapter to select a certain GPU" );
+idCVar r_dxMaxFrameLatency( "r_dxMaxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
 
 class DeviceManager_DX12 : public DeviceManager
 {
@@ -57,7 +59,8 @@ class DeviceManager_DX12 : public DeviceManager
 	RefCountPtr<IDXGISwapChain3>                m_SwapChain;
 	DXGI_SWAP_CHAIN_DESC1                       m_SwapChainDesc{};
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC             m_FullScreenDesc{};
-	RefCountPtr<IDXGIAdapter>                   m_DxgiAdapter;
+	RefCountPtr<IDXGIAdapter3>                  m_DxgiAdapter;
+	HANDLE										m_frameLatencyWaitableObject = NULL;
 	bool                                        m_TearingSupported = false;
 
 	std::vector<RefCountPtr<ID3D12Resource>>    m_SwapChainBuffers;
@@ -310,7 +313,8 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	m_SwapChainDesc.BufferUsage = m_DeviceParams.swapChainUsage;
 	m_SwapChainDesc.BufferCount = m_DeviceParams.swapChainBufferCount;
 	m_SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	m_SwapChainDesc.Flags = m_DeviceParams.allowModeSwitch ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
+	m_SwapChainDesc.Flags = ( m_DeviceParams.allowModeSwitch ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0 ) |
+							( r_dxMaxFrameLatency.GetInteger() > 0 ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0 );
 
 	// Special processing for sRGB swap chain formats.
 	// DXGI will not create a swap chain with an sRGB format, but its contents will be interpreted as sRGB.
@@ -378,7 +382,10 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 			D3D12_MESSAGE_ID disableMessageIDs[] =
 			{
 				D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+				D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
 				D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH, // descriptor validation doesn't understand acceleration structures
+				D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET, // disable warning when there is no color attachment (e.g. shadow atlas)
+				D3D12_MESSAGE_ID_RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH // barrier validation error caused by cinematics - not sure how to fix, suppress for now
 			};
 
 			D3D12_INFO_QUEUE_FILTER filter = {};
@@ -388,7 +395,7 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 		}
 	}
 
-	m_DxgiAdapter = targetAdapter;
+	targetAdapter->QueryInterface( IID_PPV_ARGS( &m_DxgiAdapter ) );
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc;
 	ZeroMemory( &queueDesc, sizeof( queueDesc ) );
@@ -428,6 +435,14 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 
 	hr = pSwapChain1->QueryInterface( IID_PPV_ARGS( &m_SwapChain ) );
 	HR_RETURN( hr );
+
+	if( r_dxMaxFrameLatency.GetInteger() > 0 )
+	{
+		hr = m_SwapChain->SetMaximumFrameLatency( r_dxMaxFrameLatency.GetInteger() );
+		HR_RETURN( hr );
+
+		m_frameLatencyWaitableObject = m_SwapChain->GetFrameLatencyWaitableObject();
+	}
 
 	nvrhi::d3d12::DeviceDesc deviceDesc;
 	deviceDesc.errorCB = &DefaultMessageCallback::GetInstance();
@@ -469,6 +484,12 @@ void DeviceManager_DX12::DestroyDeviceAndSwapChain()
 	m_NvrhiDevice = nullptr;
 
 	m_FrameWaitQuery = nullptr;
+
+	if( m_frameLatencyWaitableObject )
+	{
+		CloseHandle( m_frameLatencyWaitableObject );
+		m_frameLatencyWaitableObject = NULL;
+	}
 
 	if( m_SwapChain )
 	{
@@ -566,6 +587,12 @@ void DeviceManager_DX12::ResizeSwapChain()
 void DeviceManager_DX12::BeginFrame()
 {
 	OPTICK_CATEGORY( "DX12_BeginFrame", Optick::Category::Wait );
+
+	// SRS - get DXGI GPU memory usage for display in statistics overlay HUD
+	DXGI_QUERY_VIDEO_MEMORY_INFO memoryInfoLocal = {}, memoryInfoNonLocal = {};
+	m_DxgiAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memoryInfoLocal );
+	m_DxgiAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &memoryInfoNonLocal );
+	commonLocal.SetRendererGpuMemoryMB( ( memoryInfoLocal.CurrentUsage + memoryInfoNonLocal.CurrentUsage ) / 1024 / 1024 );
 }
 
 nvrhi::ITexture* DeviceManager_DX12::GetCurrentBackBuffer()
@@ -594,7 +621,7 @@ uint32_t DeviceManager_DX12::GetBackBufferCount()
 
 void DeviceManager_DX12::EndFrame()
 {
-
+	OPTICK_CATEGORY( "DX12_EndFrame", Optick::Category::Wait );
 }
 
 void DeviceManager_DX12::Present()
@@ -614,9 +641,19 @@ void DeviceManager_DX12::Present()
 
 	OPTICK_GPU_FLIP( m_SwapChain.Get(), idLib::frameNumber - 1 );
 	OPTICK_CATEGORY( "DX12_Present", Optick::Category::Wait );
+	OPTICK_TAG( "Frame", idLib::frameNumber - 1 );
 
 	// SRS - Don't change m_DeviceParams.vsyncEnabled here, simply test for vsync mode 2 to set DXGI SyncInterval
 	m_SwapChain->Present( m_DeviceParams.vsyncEnabled == 2 ? 1 : 0, presentFlags );
+
+	if( m_frameLatencyWaitableObject )
+	{
+		OPTICK_CATEGORY( "DX12_Sync1", Optick::Category::Wait );
+
+		// SRS - When m_frameLatencyWaitableObject active, sync first on earlier present
+		DWORD result = WaitForSingleObjectEx( m_frameLatencyWaitableObject, INFINITE, true );
+		assert( result == WAIT_OBJECT_0 );
+	}
 
 	if constexpr( NUM_FRAME_DATA > 2 )
 	{

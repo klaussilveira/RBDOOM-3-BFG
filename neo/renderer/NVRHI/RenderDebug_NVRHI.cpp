@@ -36,6 +36,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "../simplex.h"	// line font definition
 #include "../ImmediateMode.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 idCVar r_showCenterOfProjection( "r_showCenterOfProjection", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a cross to show the center of projection" );
 idCVar r_showLines( "r_showLines", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = draw alternate horizontal lines, 2 = draw alternate vertical lines" );
 
@@ -2315,6 +2318,7 @@ void idRenderBackend::DBG_TestImage()
 
 	// Set State
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
 
 	// Set Parms
 	float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
@@ -2324,6 +2328,7 @@ void idRenderBackend::DBG_TestImage()
 
 	float texGenEnabled[4] = { 0, 0, 0, 0 };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+	RB_SetVertexColorParms( SVC_IGNORE );
 
 #if 1
 	// not really necessary but just for clarity
@@ -2375,16 +2380,31 @@ void idRenderBackend::DBG_TestImage()
 
 		GL_SelectTexture( 2 );
 		imageCb->Bind();
-		// SRS - Use Bink shader without sRGB to linear conversion, otherwise cinematic colours may be wrong
-		// BindShader_BinkGUI() does not seem to work here - perhaps due to vertex shader input dependencies?
-		renderProgManager.BindShader_Bink_sRGB();
+
+		// SRS - When rendering in 2D skip sRGB to linear conversion
+		if( viewDef->viewEntitys )
+		{
+			renderProgManager.BindShader_Bink();
+		}
+		else
+		{
+			renderProgManager.BindShader_Bink_sRGB();
+		}
 	}
 	else
 	{
 		GL_SelectTexture( 0 );
 		image->Bind();
 
-		renderProgManager.BindShader_Texture();
+		// SRS - When rendering in 2D skip sRGB to linear conversion
+		if( viewDef->viewEntitys )
+		{
+			renderProgManager.BindShader_TextureVertexColor();
+		}
+		else
+		{
+			renderProgManager.BindShader_TextureVertexColor_sRGB();
+		}
 	}
 
 	// Draw!
@@ -2432,6 +2452,14 @@ void idRenderBackend::DBG_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawS
 		return;
 	}
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+	OPTICK_GPU_EVENT( "Render_DebugTools" );
+
 	// don't do much if this was a 2D rendering
 	if( !viewDef->viewEntitys )
 	{
@@ -2440,7 +2468,7 @@ void idRenderBackend::DBG_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawS
 		return;
 	}
 
-	OPTICK_EVENT( "Render_DebugTools" );
+	//OPTICK_EVENT( "Render_DebugTools" );
 
 	renderLog.OpenMainBlock( MRB_DRAW_DEBUG_TOOLS );
 	renderLog.OpenBlock( "Render_DebugTools", colorGreen );

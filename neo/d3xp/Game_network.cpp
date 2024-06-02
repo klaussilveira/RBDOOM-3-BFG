@@ -1464,8 +1464,6 @@ void idGameLocal::ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, g
 	slow.Set( time, previousTime, realClientTime );
 	fast.Set( time, previousTime, realClientTime );
 
-	DemoWriteGameInfo();
-
 	if( !mpGame.IsGametypeCoopBased() )  //non-coop original netcode //testing original netcode, change later to: !mpGame.IsGametypeCoopBased()
 	{
 		// run prediction on all active entities

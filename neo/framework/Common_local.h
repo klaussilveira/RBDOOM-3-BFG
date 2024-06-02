@@ -207,15 +207,6 @@ public:
 	virtual int					ButtonState( int key );
 	virtual int					KeyState( int key );
 
-	virtual idDemoFile* 		ReadDemo()
-	{
-		return readDemo;
-	}
-	virtual idDemoFile* 		WriteDemo()
-	{
-		return writeDemo;
-	}
-
 	virtual idGame* 			Game()
 	{
 		return game;
@@ -333,9 +324,19 @@ public:
 	}
 
 	// RB begin
+	uint64		GetRendererGpuBeginDrawingMicroseconds() const
+	{
+		return stats_backend.gpuBeginDrawingMicroSec;
+	}
+
 	uint64		GetRendererGpuEarlyZMicroseconds() const
 	{
 		return stats_backend.gpuDepthMicroSec;
+	}
+
+	uint64		GetRendererGpuGeometryMicroseconds() const
+	{
+		return stats_backend.gpuGeometryMicroSec;
 	}
 
 	uint64		GetRendererGpuSSAOMicroseconds() const
@@ -368,26 +369,73 @@ public:
 		return stats_backend.gpuShaderPassMicroSec;
 	}
 
+	uint64		GetRendererGpuFogAllLightsMicroseconds() const
+	{
+		return stats_backend.gpuFogAllLightsMicroSec;
+	}
+
+	uint64		GetRendererGpuBloomMicroseconds() const
+	{
+		return stats_backend.gpuBloomMicroSec;
+	}
+
+	uint64		GetRendererGpuShaderPassPostMicroseconds() const
+	{
+		return stats_backend.gpuShaderPassPostMicroSec;
+	}
+
+	uint64		GetRendererGpuMotionVectorsMicroseconds() const
+	{
+		return stats_backend.gpuMotionVectorsMicroSec;
+	}
+
 	uint64		GetRendererGpuTAAMicroseconds() const
 	{
 		return stats_backend.gpuTemporalAntiAliasingMicroSec;
+	}
+
+	uint64		GetRendererGpuToneMapPassMicroseconds() const
+	{
+		return stats_backend.gpuToneMapPassMicroSec;
 	}
 
 	uint64		GetRendererGpuPostProcessingMicroseconds() const
 	{
 		return stats_backend.gpuPostProcessingMicroSec;
 	}
+
+	uint64		GetRendererGpuDrawGuiMicroseconds() const
+	{
+		return stats_backend.gpuDrawGuiMicroSec;
+	}
+
+	uint64		GetRendererGpuCrtPostProcessingMicroseconds() const
+	{
+		return stats_backend.gpuCrtPostProcessingMicroSec;
+	}
 	// RB end
 
 	// SRS start
-	uint64      GetRendererStartFrameSyncMicroseconds() const
+	void		SetRendererMvkEncodeMicroseconds( uint64 mvkEncodeMicroSeconds )
 	{
-		return mainFrameTiming.finishSyncTime - mainFrameTiming.startSyncTime;
+		metal_encode = mvkEncodeMicroSeconds;
+		return;
 	}
 
-	uint64      GetRendererEndFrameSyncMicroseconds() const
+	uint64		GetRendererMvkEncodeMicroseconds() const
 	{
-		return mainFrameTiming.finishSyncTime_EndFrame - mainFrameTiming.startRenderTime;
+		return metal_encode;
+	}
+
+	void		SetRendererGpuMemoryMB( uint64 gpuMemoryMB )
+	{
+		gpu_memory = gpuMemoryMB;
+		return;
+	}
+
+	uint64		GetRendererGpuMemoryMB() const
+	{
+		return gpu_memory;
 	}
 	// SRS end
 
@@ -418,14 +466,6 @@ public:	// These are public because they are called directly by static functions
 	void	StartNewGame( const char* mapName, bool devmap, int gameMode );
 	void	ChangeNetGame( const char* mapName, bool devmap, int gameMode );
 	void	LeaveGame();
-
-	void	DemoShot( const char* name );
-	void	StartRecordingRenderDemo( const char* name );
-	void	StopRecordingRenderDemo();
-	void	StartPlayingRenderDemo( idStr name );
-	void	StopPlayingRenderDemo();
-	void	CompressDemoFile( const char* scheme, const char* name );
-	void	TimeRenderDemo( const char* name, bool twice = false, bool quit = false );
 
 	// localization
 	void	InitLanguageDict();
@@ -470,11 +510,6 @@ private:
 	// The main render world and sound world
 	idRenderWorld* 		renderWorld;
 	idSoundWorld* 		soundWorld;
-
-	// The renderer and sound system will write changes to writeDemo.
-	// Demos can be recorded and played at the same time when splicing.
-	idDemoFile* 		readDemo;
-	idDemoFile* 		writeDemo;
 
 	bool				menuActive;
 	idSoundWorld* 		menuSoundWorld;			// so the game soundWorld can be muted
@@ -607,6 +642,11 @@ private:
 	backEndCounters_t		stats_backend;
 	performanceCounters_t	stats_frontend;
 
+	// SRS - MoltenVK's Vulkan to Metal command buffer encoding time, set default to 0 for non-macOS platforms (Windows and Linux)
+	uint64					metal_encode = 0;
+	// SRS - Cross-platform GPU Memory usage counter, set default to 0 in case platform or graphics API does not support queries
+	uint64					gpu_memory = 0;
+
 	// Used during loading screens
 	int					lastPacifierSessionTime;
 	int					lastPacifierGuiTime;
@@ -663,8 +703,6 @@ private:
 
 	void	StartMenu( bool playIntro = false );
 	void	GuiFrameEvents();
-
-	void	AdvanceRenderDemo( bool singleFrameOnly );
 
 	void	ProcessGameReturn( const gameReturn_t& ret );
 

@@ -59,11 +59,6 @@ If you have questions concerning this license or the applicable additional terms
 // use a different major for each game
 #define ASYNC_PROTOCOL_MAJOR			1
 
-// <= Doom v1.1: 1. no DS_VERSION token ( default )
-// Doom v1.2:  2
-// Doom 3 BFG: 3
-#define RENDERDEMO_VERSION				3
-
 // win32 info
 #define WIN32_CONSOLE_CLASS				"D3BFG_WinConsole"
 #define	WIN32_WINDOW_CLASS_NAME			"D3BFG"
@@ -84,3 +79,5 @@ If you have questions concerning this license or the applicable additional terms
 
 // raynorpat: GOG.com Galaxy Launcher Game ID for figuring out Steam base path
 #define GOGPATH_ID						"1733124578"
+
+#define VR_OPTIONS						0
