@@ -1415,3 +1415,8 @@ CONSOLE_COMMAND( testmap, "tests a map", idCmdSystem::ArgCompletion_MapName )
 	sprintf( string, "devmap %s", map.c_str() );
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 }
+
+
+// TODO finish this
+#if 0
+#endif
