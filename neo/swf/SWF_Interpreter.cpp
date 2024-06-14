@@ -890,7 +890,7 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject* thisObject
 				//ExecWordCode( hasnext );
 				InlineWordCode( pushnull )
 				{
-					stack.Append( idSWFScriptVar( NULL ) );
+					stack.Append( idSWFScriptVar( ( idSWFScriptObject* )( NULL ) ) );
 					continue;
 				}
 				InlineWordCode( pushundefined )
@@ -1599,7 +1599,9 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject* thisObject
 			{
 				const AbcOpcodeInfo* info = &opcodeInfo[opCode];
 				common->DWarning( "^5Unhandled Opcode %s\n", info ? info->name : "Empty" );
+#ifdef _WIN32
 				DebugBreak();
+#endif
 			}
 
 		}

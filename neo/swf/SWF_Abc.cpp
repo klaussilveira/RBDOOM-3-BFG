@@ -412,7 +412,7 @@ void SWF_AbcFile::ReadTraitData( idSWFBitStream& bitstream, swfTraits_info& newT
 	}
 }
 
-struct idSWFScriptObject::swfNamedVar_t ;
+//struct idSWFScriptObject::swfNamedVar_t ;
 
 template<>
 idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& trait, idSWFScriptObject* globals )

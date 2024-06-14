@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ParmList.h"
 #include "SWF_Types.h"
 #include "SWF_Sprites.h"
-#include "swf.h"
+#include "SWF.h"
 #include "SWF_Abc.h"
 
 class idSWFScriptObject_EventDispatcherPrototype : public idSWFScriptObject
