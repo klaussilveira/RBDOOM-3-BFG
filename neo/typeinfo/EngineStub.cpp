@@ -1,4 +1,34 @@
+/*
+===========================================================================
+
+Doom 3 BFG Edition GPL Source Code
+Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
+
+This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
+
+Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Doom 3 BFG Edition Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Doom 3 BFG Edition Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, the Doom 3 BFG Edition Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 BFG Edition Source Code.  If not, please request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
+
+===========================================================================
+*/
 #include "precompiled.h"
+#pragma hdrstop
+
 #include "../sys/sys_local.h"
 #include "../framework/EventLoop.h"
 #include "../framework/DeclManager.h"
@@ -21,6 +51,13 @@ idSys* sys = NULL;
 
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
 
+/*
+==============================================================
+
+	idSys
+
+==============================================================
+*/
 
 /*
 ==============
@@ -225,6 +262,13 @@ int Sys_Milliseconds()
 	return timeGetTime() - sys_timeBase;
 }
 
+/*
+==============================================================
+
+	idCommon
+
+==============================================================
+*/
 class idCommonLocal : public idCommon
 {
 public:
@@ -232,19 +276,19 @@ public:
 	// Initialize everything.
 	// if the OS allows, pass argc/argv directly (without executable name)
 	// otherwise pass the command line in a single string (without executable name)
-	virtual void				Init( int argc, const char* const* argv, const char* cmdline ) { };
+	virtual void				Init( int argc, const char* const* argv, const char* cmdline ) {}
 
 	// Shuts down everything.
-	virtual void				Shutdown() { };
+	virtual void				Shutdown() {}
 	virtual bool				IsShuttingDown() const
 	{
 		return false;
 	};
 
-	virtual	void				CreateMainMenu() { };
+	virtual	void				CreateMainMenu() {}
 
 	// Shuts down everything.
-	virtual void				Quit() { };
+	virtual void				Quit() {}
 
 	// Returns true if common initialization is complete.
 	virtual bool				IsInitialized() const
@@ -253,28 +297,35 @@ public:
 	};
 
 	// Called repeatedly as the foreground thread for rendering and game logic.
-	virtual void				Frame() { };
+	virtual void				Frame() {}
 
 	// Redraws the screen, handling games, guis, console, etc
 	// in a modal manner outside the normal frame loop
-	virtual void				UpdateScreen() { };
+	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true ) {}
 
-	virtual void				UpdateLevelLoadPacifier() { };
+	virtual void				UpdateLevelLoadPacifier() {}
+	virtual void				LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) {}
+	virtual void				LoadPacifierProgressTotal( int total ) {}
+	virtual void				LoadPacifierProgressIncrement( int step ) {}
+	virtual bool				LoadPacifierRunning()
+	{
+		return false;
+	}
 
 
 	// Checks for and removes command line "+set var arg" constructs.
 	// If match is NULL, all set commands will be executed, otherwise
 	// only a set with the exact name.
-	virtual void				StartupVariable( const char* match ) { };
+	virtual void				StartupVariable( const char* match ) {}
 
 	// Begins redirection of console output to the given buffer.
-	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) { };
+	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) {}
 
 	// Stops redirection of console output.
-	virtual void				EndRedirect() { };
+	virtual void				EndRedirect() {}
 
 	// Update the screen with every message printed.
-	virtual void				SetRefreshOnPrint( bool set ) { };
+	virtual void				SetRefreshOnPrint( bool set ) {}
 
 	virtual void			Printf( const char* fmt, ... )
 	{
@@ -288,6 +339,10 @@ public:
 	{
 		/*STDIO_PRINT( "", "" );*/
 	}
+	virtual void			VerbosePrintf( const char* fmt, ... )
+	{
+		/*STDIO_PRINT( "", "" );*/
+	}
 	virtual void			Warning( const char* fmt, ... )
 	{
 		STDIO_PRINT( "WARNING: ", "\n" );
@@ -298,10 +353,10 @@ public:
 	}
 
 	// Prints all queued warnings.
-	virtual void				PrintWarnings() { };
+	virtual void				PrintWarnings() {}
 
 	// Removes all queued warnings.
-	virtual void				ClearWarnings( const char* reason ) { };
+	virtual void				ClearWarnings( const char* reason ) {}
 
 	virtual void			Error( const char* fmt, ... )
 	{
@@ -410,14 +465,14 @@ public:
 		return useless;
 	};
 
-	virtual void				OnSaveCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnLoadCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnLoadFilesCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnEnumerationCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnDeleteCompleted( idSaveLoadParms& parms ) { };
-	virtual void				TriggerScreenWipe( const char* _wipeMaterial, bool hold ) { };
+	virtual void				OnSaveCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnLoadCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnLoadFilesCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnEnumerationCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnDeleteCompleted( idSaveLoadParms& parms ) {}
+	virtual void				TriggerScreenWipe( const char* _wipeMaterial, bool hold ) {}
 
-	virtual void				OnStartHosting( idMatchParameters& parms ) { };
+	virtual void				OnStartHosting( idMatchParameters& parms ) {}
 
 	virtual int					GetGameFrame()
 	{
@@ -443,7 +498,7 @@ public:
 		return useless;
 	};
 
-	virtual void				ResetPlayerInput( int playerIndex ) { };
+	virtual void				ResetPlayerInput( int playerIndex ) {}
 
 	virtual bool				JapaneseCensorship() const
 	{
@@ -451,13 +506,20 @@ public:
 	};
 
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
-	virtual void idCommon::UpdateScreen( bool, bool ) { }
-	void idCommon::InitTool( const toolFlag_t, const idDict*, idEntity* ) { }
+	virtual void				InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
-	//virtual currentGame_t		GetCurrentGame() const {
-	//	return DOOM_CLASSIC;
-	//};
-	//virtual void				SwitchToGame(currentGame_t newGame) { };
+	virtual void				LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
+	virtual void				LoadPacifierBinarizeInfo( const char* info ) {}
+	virtual void				LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
+	virtual void				LoadPacifierBinarizeProgress( float progress ) {}
+	virtual void				LoadPacifierBinarizeEnd() { };
+	virtual void				LoadPacifierBinarizeProgressTotal( int total ) {}
+	virtual void				LoadPacifierBinarizeProgressIncrement( int step ) {}
+
+	virtual void				DmapPacifierFilename( const char* filename, const char* reason ) {}
+	virtual void				DmapPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) {}
+	virtual void				DmapPacifierCompileProgressTotal( int total ) {}
+	virtual void				DmapPacifierCompileProgressIncrement( int step ) {}
 };
 
 idCommonLocal		commonLocal;

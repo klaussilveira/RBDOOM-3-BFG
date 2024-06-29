@@ -5561,6 +5561,9 @@ intptr_t idPlayer::Invoke(const char *functionName, void *param1) {
 		UpdateWeapon();
 		return 0;
 	};
+	if(functionNameHash == 277960) { // UsesClassicFlashlight
+		return (intptr_t)UsesClassicFlashlight();
+	};
 	if(functionNameHash == 207861) { // UpdateFlashlight
 		UpdateFlashlight();
 		return 0;
@@ -6049,6 +6052,9 @@ bool idPlayer::HasNativeFunction(const char *functionName) {
 		return true;
 	};
 	if(functionNameHash == 153156) { // UpdateWeapon
+		return true;
+	};
+	if(functionNameHash == 277960) { // UsesClassicFlashlight
 		return true;
 	};
 	if(functionNameHash == 207861) { // UpdateFlashlight
