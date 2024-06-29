@@ -52,34 +52,6 @@ const int FOG_ENTER_SIZE			= 64;
 const float FOG_ENTER				= ( FOG_ENTER_SIZE + 1.0f ) / ( FOG_ENTER_SIZE * 2 );
 
 
-enum demoCommand_t
-{
-	DC_BAD,
-	DC_RENDERVIEW,
-	DC_UPDATE_ENTITYDEF,
-	DC_DELETE_ENTITYDEF,
-	DC_UPDATE_LIGHTDEF,
-	DC_DELETE_LIGHTDEF,
-	DC_LOADMAP,
-	DC_CROP_RENDER,
-	DC_UNCROP_RENDER,
-	DC_CAPTURE_RENDER,
-	DC_END_FRAME,
-	DC_DEFINE_MODEL,
-	DC_SET_PORTAL_STATE,
-	DC_UPDATE_SOUNDOCCLUSION,
-	DC_GUI_MODEL,
-	DC_UPDATE_ENVPROBEDEF,
-	DC_DELETE_ENVPROBEDEF,
-	DC_UPDATE_DECAL,
-	DC_DELETE_DECAL,
-	DC_UPDATE_OVERLAY,
-	DC_DELETE_OVERLAY,
-	DC_CACHE_SKINS,
-	DC_CACHE_PARTICLES,
-	DC_CACHE_MATERIALS,
-};
-
 /*
 ==============================================================================
 
@@ -300,8 +272,6 @@ public:
 	virtual void			RemoveDecals();
 
 	bool					IsDirectlyVisible() const;
-	void					ReadFromDemoFile( class idDemoFile* f );
-	void					WriteToDemoFile( class idDemoFile* f ) const;
 	renderEntity_t			parms;
 
 	float					modelMatrix[16];		// this is just a rearrangement of parms.axis and parms.origin
@@ -314,13 +284,11 @@ public:
 	int						lastModifiedFrameNum;	// to determine if it is constantly changing,
 	// and should go in the dynamic frame memory, or kept
 	// in the cached memory
-	bool					archived;				// for demo writing
 
 	idRenderModel* 			dynamicModel;			// if parms.model->IsDynamicModel(), this is the generated data
 	int						dynamicModelFrameCount;	// continuously animating dynamic models will recreate
 	// dynamicModel if this doesn't == tr.viewCount
 	idRenderModel* 			cachedDynamicModel;
-
 
 	// the local bounds used to place entityRefs, either from parms for dynamic entities, or a model bounds
 	idBounds				localReferenceBounds;
@@ -699,11 +667,12 @@ TR_CMDS
 enum renderCommand_t
 {
 	RC_NOP,
-	RC_DRAW_VIEW_3D,	// may be at a reduced resolution, will be upsampled before 2D GUIs
-	RC_DRAW_VIEW_GUI,	// not resolution scaled
+	RC_DRAW_VIEW_3D,		// may be at a reduced resolution, will be upsampled before 2D GUIs
+	RC_DRAW_VIEW_GUI,		// not resolution scaled
 	RC_SET_BUFFER,
 	RC_COPY_RENDER,
-	RC_POST_PROCESS,
+	RC_POST_PROCESS,		// postfx after scene rendering is done but before GUI rendering
+	RC_CRT_POST_PROCESS,	// CRT simulation after everything has been rendered on the final swapchain image
 };
 
 struct emptyCommand_t
@@ -744,6 +713,13 @@ struct postProcessCommand_t
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
 	viewDef_t* 			viewDef;
+};
+
+struct crtPostProcessCommand_t
+{
+	renderCommand_t		commandId;
+	renderCommand_t* 	next;
+	int					padding;
 };
 
 //=======================================================================
@@ -932,9 +908,8 @@ public:
 	virtual void			DrawBigChar( int x, int y, int ch );
 	virtual void			DrawBigStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor );
 
-	virtual void			WriteDemoPics();
-	virtual void			WriteEndFrame();
-	virtual void			DrawDemoPics();
+	virtual void			DrawCRTPostFX(); // RB
+
 	virtual const emptyCommand_t* 	SwapCommandBuffers( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* shadowMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
 
 	virtual void					SwapCommandBuffers_FinishRendering( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* shadowMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
@@ -950,7 +925,6 @@ public:
 	virtual void			CropRenderSize( int width, int height );
 	virtual void            CropRenderSize( int x, int y, int width, int height, bool topLeftAncor );
 	virtual void			CaptureRenderToImage( const char* imageName, bool clearColorAfterCopy = false );
-	virtual void			CaptureRenderToFile( const char* fileName, bool fixAlpha );
 	virtual void			UnCrop();
 	virtual bool			UploadImage( const char* imageName, const byte* data, int width, int height );
 
@@ -1166,7 +1140,6 @@ extern idCVar r_showUnsmoothedTangents;		// highlight geometry rendered with uns
 extern idCVar r_showSilhouette;				// highlight edges that are casting shadow planes
 extern idCVar r_showVertexColor;			// draws all triangles with the solid vertex color
 extern idCVar r_showUpdates;				// report entity and light updates and ref counts
-extern idCVar r_showDemo;					// report reads and writes to the demo file
 extern idCVar r_showDynamic;				// report stats on dynamic surface generation
 extern idCVar r_showIntensity;				// draw the screen colors based on intensity, red = 0, green = 128, blue = 255
 extern idCVar r_showTrace;					// show the intersection of an eye trace with the world
@@ -1259,7 +1232,6 @@ extern idCVar r_hdrDebug;
 extern idCVar r_ldrContrastThreshold;
 extern idCVar r_ldrContrastOffset;
 
-extern idCVar r_useFilmicPostProcessing;
 extern idCVar r_forceAmbient;
 
 extern idCVar r_useSSAO;
@@ -1267,7 +1239,6 @@ extern idCVar r_ssaoDebug;
 extern idCVar r_ssaoFiltering;
 extern idCVar r_useHierarchicalDepthBuffer;
 
-extern idCVar r_usePBR;
 extern idCVar r_pbrDebug;
 extern idCVar r_showViewEnvprobes;
 extern idCVar r_showLightGrid;				// show Quake 3 style light grid points
@@ -1283,6 +1254,28 @@ extern idCVar r_taaClampingFactor;
 extern idCVar r_taaNewFrameWeight;
 extern idCVar r_taaMaxRadiance;
 extern idCVar r_taaMotionVectors;
+
+extern idCVar r_useFilmicPostFX;
+extern idCVar r_useCRTPostFX;
+extern idCVar r_crtCurvature;
+extern idCVar r_crtVignette;
+
+enum RenderMode
+{
+	RENDERMODE_DOOM,
+	RENDERMODE_C64,
+	RENDERMODE_C64_HIGHRES,
+	RENDERMODE_CPC,
+	RENDERMODE_CPC_HIGHRES,
+	RENDERMODE_GENESIS,
+	RENDERMODE_GENESIS_HIGHRES,
+	RENDERMODE_PSX,
+};
+
+extern idCVar r_retroDitherScale;
+
+extern idCVar r_renderMode;
+extern idCVar image_pixelLook;
 // RB end
 
 /*
@@ -1292,6 +1285,8 @@ INITIALIZATION
 
 ====================================================================
 */
+
+bool R_UsePixelatedLook();
 
 bool R_UseTemporalAA();
 
@@ -1387,8 +1382,8 @@ bool		VKimp_Init( glimpParms_t parms );
 bool		VKimp_SetScreenParms( glimpParms_t parms );
 
 // Destroys the rendering context, closes the window, resets the resolution,
-// and resets the gamma ramps.
-void		VKimp_Shutdown();
+// and resets the gamma ramps.  SRS - Optionally shuts down SDL for quit.
+void		VKimp_Shutdown( bool shutdownSDL );
 
 // Sets the hardware gamma ramps for gamma and brightness adjustment.
 // These are now taken as 16 bit values, so we can take full advantage

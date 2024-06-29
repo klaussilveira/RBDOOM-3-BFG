@@ -149,15 +149,24 @@ struct backEndCounters_t
 
 	uint64	cpuTotalMicroSec;		// total microseconds for backend run
 	uint64	cpuShadowMicroSec;
+	uint64	gpuBeginDrawingMicroSec;
 	uint64	gpuDepthMicroSec;
+	uint64	gpuGeometryMicroSec;
 	uint64	gpuScreenSpaceAmbientOcclusionMicroSec;
 	uint64	gpuScreenSpaceReflectionsMicroSec;
 	uint64	gpuAmbientPassMicroSec;
 	uint64	gpuShadowAtlasPassMicroSec;
 	uint64	gpuInteractionsMicroSec;
 	uint64	gpuShaderPassMicroSec;
+	uint64	gpuFogAllLightsMicroSec;
+	uint64	gpuBloomMicroSec;
+	uint64	gpuShaderPassPostMicroSec;
+	uint64	gpuMotionVectorsMicroSec;
 	uint64	gpuTemporalAntiAliasingMicroSec;
+	uint64	gpuToneMapPassMicroSec;
 	uint64	gpuPostProcessingMicroSec;
+	uint64	gpuDrawGuiMicroSec;
+	uint64	gpuCrtPostProcessingMicroSec;
 	uint64	gpuMicroSec;
 };
 // RB end
@@ -306,12 +315,7 @@ public:
 	virtual void				DrawBigChar( int x, int y, int ch ) = 0;
 	virtual void				DrawBigStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;
 
-	// dump all 2D drawing so far this frame to the demo file
-	virtual void			WriteDemoPics() = 0;
-	virtual void			WriteEndFrame() = 0;
-
-	// draw the 2D pics that were saved out with the current demo frame
-	virtual void			DrawDemoPics() = 0;
+	virtual void			DrawCRTPostFX() = 0; // RB
 
 	// Performs final closeout of any gui models being defined.
 	//
@@ -359,9 +363,6 @@ public:
 	virtual void			CropRenderSize( int width, int height ) = 0;
 	virtual void            CropRenderSize( int x, int y, int width, int height, bool topLeftAncor ) = 0;
 	virtual void			CaptureRenderToImage( const char* imageName, bool clearColorAfterCopy = false ) = 0;
-	// fixAlpha will set all the alpha channel values to 0xff, which allows screen captures
-	// to use the default tga loading code without having dimmed down areas in many places
-	virtual void			CaptureRenderToFile( const char* fileName, bool fixAlpha = false ) = 0;
 	virtual void			UnCrop() = 0;
 
 	// the image has to be already loaded ( most straightforward way would be through a FindMaterial )

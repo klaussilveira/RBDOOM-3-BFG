@@ -532,7 +532,7 @@ static void R_FindClosestEnvironmentProbes()
 	RenderEnvprobeLocal* nearest = viewEnvprobes[0];
 	tr.viewDef->globalProbeBounds = nearest->globalProbeBounds;
 
-	if( !nearest->irradianceImage->IsDefaulted() )
+	if( nearest->irradianceImage->IsLoaded() && !nearest->irradianceImage->IsDefaulted() )
 	{
 		tr.viewDef->irradianceImage = nearest->irradianceImage;
 	}
@@ -673,12 +673,6 @@ void R_RenderView( viewDef_t* parms )
 
 	// RB: find closest environment probes so we can interpolate between them in the ambient shaders
 	R_FindClosestEnvironmentProbes();
-
-	// write everything needed to the demo file
-	if( common->WriteDemo() )
-	{
-		static_cast<idRenderWorldLocal*>( parms->renderWorld )->WriteVisibleDefs( tr.viewDef );
-	}
 
 	// add the rendering commands for this viewDef
 	R_AddDrawViewCmd( parms, false );

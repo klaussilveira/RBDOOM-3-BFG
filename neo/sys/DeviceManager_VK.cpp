@@ -23,25 +23,39 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
-// SRS - Disable PCH here, otherwise get Vulkan header mismatch failures with USE_AMD_ALLOCATOR option
-//#include <precompiled.h>
-//#pragma hdrstop
+// SRS - Can now enable PCH here due to updated nvrhi CMakeLists.txt that makes Vulkan-Headers private
+#include <precompiled.h>
+#pragma hdrstop
 
 #include <string>
 #include <queue>
 #include <unordered_set>
 
 #include "renderer/RenderCommon.h"
+#include "framework/Common_local.h"
 #include <sys/DeviceManager.h>
 
 #include <nvrhi/vulkan.h>
-// SRS - optionally needed for VK_MVK_MOLTENVK_EXTENSION_NAME and MoltenVK runtime config visibility
-#if defined(__APPLE__) && defined( USE_MoltenVK )
-	#include <MoltenVK/vk_mvk_moltenvk.h>
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#include <vulkan/vulkan.hpp>
 
-	idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT, "Use MoltenVK's synchronous queue submit option." );
+// SRS - optionally needed for MoltenVK runtime config visibility
+#if defined(__APPLE__)
+	#if defined( USE_MoltenVK )
+		#if 0
+			#include <MoltenVK/mvk_vulkan.h>
+			#include <MoltenVK/mvk_config.h>			// SRS - will eventually move to these mvk include files for MoltenVK >= 1.2.7 / SDK >= 1.3.275.0
+		#else
+			#include <MoltenVK/vk_mvk_moltenvk.h>		// SRS - now deprecated, but provides backwards compatibility for MoltenVK < 1.2.7 / SDK < 1.3.275.0
+		#endif
+	#endif
+	#if defined( VK_EXT_layer_settings ) || defined( USE_MoltenVK )
+		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT, "Use MoltenVK's synchronous queue submit option." );
+		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "2", CVAR_INTEGER | CVAR_INIT, "Use MoltenVK's Metal argument buffers option (0=Off, 1=Always On, 2=On when VK_EXT_descriptor_indexing enabled)", 0, 2 );
+	#endif
 #endif
 #include <nvrhi/validation.h>
+#include <libs/optick/optick.h>
 
 #if defined( USE_AMD_ALLOCATOR )
 	#define VMA_IMPLEMENTATION
@@ -54,8 +68,37 @@
 	idCVar r_vmaDeviceLocalMemoryMB( "r_vmaDeviceLocalMemoryMB", "256", CVAR_INTEGER | CVAR_INIT, "Size of VMA allocation block for gpu memory." );
 #endif
 
+idCVar r_vkPreferFastSync( "r_vkPreferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Prefer Fast Sync/no-tearing in place of VSync off/tearing" );
+
 // Define the Vulkan dynamic dispatcher - this needs to occur in exactly one cpp file in the program.
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
+static bool optickCapturing = false;
+
+// SRS - Optick callback function for notification of state changes
+static bool optickStateChangedCallback( Optick::State::Type state )
+{
+	switch( state )
+	{
+		case Optick::State::START_CAPTURE:
+			optickCapturing = true;
+			break;
+
+		case Optick::State::STOP_CAPTURE:
+		case Optick::State::CANCEL_CAPTURE:
+			optickCapturing = false;
+			break;
+
+		default:
+			break;
+	}
+
+	return true;
+}
+#endif
+#endif
 
 class DeviceManager_VK : public DeviceManager
 {
@@ -179,10 +222,6 @@ private:
 	{
 		// instance
 		{
-#if defined(__APPLE__) && defined( USE_MoltenVK )
-			// SRS - needed for using MoltenVK configuration on macOS (if USE_MoltenVK defined)
-			VK_MVK_MOLTENVK_EXTENSION_NAME,
-#endif
 			VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 		},
 		// layers
@@ -191,12 +230,9 @@ private:
 		{
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_MAINTENANCE1_EXTENSION_NAME,
-#if defined(__APPLE__)
-#if defined( VK_KHR_portability_subset )
-			VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
-#endif
-			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-			VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+#if defined(__APPLE__) && defined( VK_KHR_portability_subset )
+			// SRS - This is required for using the MoltenVK portability subset implementation on macOS
+			VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
 #endif
 		},
 	};
@@ -206,20 +242,21 @@ private:
 	{
 		// instance
 		{
-#if defined(__APPLE__) && defined( VK_KHR_portability_enumeration )
+#if defined(__APPLE__)
+#if defined( VK_KHR_portability_enumeration )
 			// SRS - This is optional since it only became manadatory with Vulkan SDK 1.3.216.0 or later
 			VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 #endif
+#if defined( VK_EXT_layer_settings )
+			// SRS - This is optional since implemented only for MoltenVK 1.2.7 / SDK 1.3.275.0 or later
+			VK_EXT_LAYER_SETTINGS_EXTENSION_NAME,
+#endif
+#endif
 			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 		},
 		// layers
-		{
-#if defined(__APPLE__)
-			// SRS - synchronization2 not supported natively on MoltenVK, use layer implementation instead
-			"VK_LAYER_KHRONOS_synchronization2"
-#endif
-		},
+		{ },
 		// device
 		{
 			VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
@@ -227,7 +264,14 @@ private:
 			VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 			VK_NV_MESH_SHADER_EXTENSION_NAME,
 			VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME,
-			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
+#if USE_OPTICK
+			VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
+#endif
+#if defined( VK_KHR_format_feature_flags2 )
+			VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME,
+#endif
+			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+			VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
 		},
 	};
 
@@ -274,15 +318,46 @@ private:
 	nvrhi::vulkan::DeviceHandle m_NvrhiDevice;
 	nvrhi::DeviceHandle m_ValidationLayer;
 
-	nvrhi::CommandListHandle m_BarrierCommandList;
+	//nvrhi::CommandListHandle m_BarrierCommandList;		// SRS - no longer needed
 	std::queue<vk::Semaphore> m_PresentSemaphoreQueue;
 	vk::Semaphore m_PresentSemaphore;
 
 	nvrhi::EventQueryHandle m_FrameWaitQuery;
 
-	// SRS - flag indicating support for eFifoRelaxed surface presentation (r_swapInterval = 1) mode
-	bool enablePModeFifoRelaxed = false;
+	// SRS - flags indicating support for various Vulkan surface presentation modes
+	bool enablePModeMailbox = false;		// r_swapInterval = 0 (defaults to eImmediate if not available)
+	bool enablePModeImmediate = false;		// r_swapInterval = 0 (defaults to eFifo if not available)
+	bool enablePModeFifoRelaxed = false;	// r_swapInterval = 1 (defaults to eFifo if not available)
 
+	// SRS - flag indicating support for presentation timing via VK_GOOGLE_display_timing extension
+	bool displayTimingEnabled = false;
+
+	// SRS - slot for Vulkan device API version at runtime (initialize to Vulkan build version)
+	uint32_t m_DeviceApiVersion = VK_HEADER_VERSION_COMPLETE;
+
+	// SRS - function pointer for initing Vulkan DynamicLoader, VMA, Optick, and MoltenVK functions
+	PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
+
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
+	// SRS - function pointer for retrieving MoltenVK advanced performance statistics
+	PFN_vkGetPerformanceStatisticsMVK vkGetPerformanceStatisticsMVK = nullptr;
+#endif
+
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
+	// SRS - Optick event storage for MoltenVK's Vulkan-to-Metal encoding thread
+	Optick::EventStorage* mvkAcquireEventStorage;
+	Optick::EventStorage* mvkSubmitEventStorage;
+	Optick::EventStorage* mvkEncodeEventStorage;
+	Optick::EventDescription* mvkAcquireEventDesc;
+	Optick::EventDescription* mvkSubmitEventDesc;
+	Optick::EventDescription* mvkEncodeEventDesc;
+	int64_t mvkLatestSubmitTime = 0;
+	int64_t mvkPreviousSubmitTime = 0;
+	int64_t mvkPreviousSubmitWaitTime = 0;
+	double mvkPreviousAcquireHash = 0.0;
+#endif
+#endif
 
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL vulkanDebugCallback(
@@ -424,6 +499,7 @@ bool DeviceManager_VK::createInstance()
 
 	std::unordered_set<std::string> requiredLayers = enabledExtensions.layers;
 
+	auto instanceVersion = vk::enumerateInstanceVersion();
 	for( const auto& layer : vk::enumerateInstanceLayerProperties() )
 	{
 		const std::string name = layer.layerName;
@@ -431,6 +507,13 @@ bool DeviceManager_VK::createInstance()
 		{
 			enabledExtensions.layers.insert( name );
 		}
+#if defined(__APPLE__) && !defined( USE_MoltenVK )
+		// SRS - Vulkan SDK < 1.3.268.1 does not have native VK_KHR_synchronization2 support on macOS, add Khronos layer to emulate
+		else if( name == "VK_LAYER_KHRONOS_synchronization2" && instanceVersion < VK_MAKE_API_VERSION( 0, 1, 3, 268 ) )
+		{
+			enabledExtensions.layers.insert( name );
+		}
+#endif
 
 		requiredLayers.erase( name );
 	}
@@ -468,17 +551,74 @@ bool DeviceManager_VK::createInstance()
 								  .setPpEnabledExtensionNames( instanceExtVec.data() )
 								  .setPApplicationInfo( &applicationInfo );
 
-#if defined(__APPLE__) && defined( VK_KHR_portability_enumeration )
+#if defined(__APPLE__)
+#if defined( VK_KHR_portability_enumeration )
 	if( enabledExtensions.instance.find( VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME ) != enabledExtensions.instance.end() )
 	{
 		info.setFlags( vk::InstanceCreateFlagBits( VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR ) );
 	}
 #endif
+#if defined( VK_EXT_layer_settings )
+	// SRS - set MoltenVK runtime configuration parameters on macOS via standardized VK_EXT_layer_settings extension
+	std::vector<vk::LayerSettingEXT> layerSettings;
+	vk::LayerSettingsCreateInfoEXT layerSettingsCreateInfo;
+
+	const vk::Bool32 valueTrue = vk::True, valueFalse = vk::False;
+	const int32_t useMetalArgumentBuffers = r_mvkUseMetalArgumentBuffers.GetInteger();
+	const float timestampPeriodLowPassAlpha = 1.0;
+
+	if( enabledExtensions.instance.find( VK_EXT_LAYER_SETTINGS_EXTENSION_NAME ) != enabledExtensions.instance.end() )
+	{
+		// SRS - use MoltenVK layer for configuration via VK_EXT_layer_settings extension
+		vk::LayerSettingEXT layerSetting = { "MoltenVK", "", vk::LayerSettingTypeEXT( 0 ), 1, nullptr };
+
+		// SRS - Set MoltenVK's synchronous queue submit option for vkQueueSubmit() & vkQueuePresentKHR()
+		layerSetting.pSettingName = "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS";
+		layerSetting.type = vk::LayerSettingTypeEXT::eBool32;
+		layerSetting.pValues = r_mvkSynchronousQueueSubmits.GetBool() ? &valueTrue : &valueFalse;
+		layerSettings.push_back( layerSetting );
+
+		// SRS - Enable MoltenVK's image view swizzle feature in case we don't have native image view swizzle
+		layerSetting.pSettingName = "MVK_CONFIG_FULL_IMAGE_VIEW_SWIZZLE";
+		layerSetting.type = vk::LayerSettingTypeEXT::eBool32;
+		layerSetting.pValues = &valueTrue;
+		layerSettings.push_back( layerSetting );
+
+		// SRS - Turn MoltenVK's Metal argument buffer feature on for descriptor indexing only
+		layerSetting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
+		layerSetting.type = vk::LayerSettingTypeEXT::eInt32;
+		layerSetting.pValues = &useMetalArgumentBuffers;
+		layerSettings.push_back( layerSetting );
+
+		// SRS - Disable MoltenVK's timestampPeriod filter for HUD / Optick profiler timing calibration
+		layerSetting.pSettingName = "MVK_CONFIG_TIMESTAMP_PERIOD_LOWPASS_ALPHA";
+		layerSetting.type = vk::LayerSettingTypeEXT::eFloat32;
+		layerSetting.pValues = &timestampPeriodLowPassAlpha;
+		layerSettings.push_back( layerSetting );
+
+		// SRS - Only enable MoltenVK performance tracking if using API and available based on version
+#if defined( USE_MoltenVK )
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
+		// SRS - Enable MoltenVK's performance tracking for display of Metal encoding timer on macOS
+		layerSetting.pSettingName = "MVK_CONFIG_PERFORMANCE_TRACKING";
+		layerSetting.type = vk::LayerSettingTypeEXT::eBool32;
+		layerSetting.pValues = &valueTrue;
+		layerSettings.push_back( layerSetting );
+#endif
+#endif
+
+		layerSettingsCreateInfo.settingCount = uint32_t( layerSettings.size() );
+		layerSettingsCreateInfo.pSettings = layerSettings.data();
+
+		info.setPNext( &layerSettingsCreateInfo );
+	}
+#endif
+#endif
 
 	const vk::Result res = vk::createInstance( &info, nullptr, &m_VulkanInstance );
 	if( res != vk::Result::eSuccess )
 	{
-		common->FatalError( "Failed to create a Vulkan instance, error code = %s", nvrhi::vulkan::resultToString( res ) );
+		common->FatalError( "Failed to create a Vulkan instance, error code = %s", nvrhi::vulkan::resultToString( ( VkResult )res ) );
 		return false;
 	}
 
@@ -503,7 +643,7 @@ void DeviceManager_VK::installDebugCallback()
 
 bool DeviceManager_VK::pickPhysicalDevice()
 {
-	vk::Format requestedFormat = nvrhi::vulkan::convertFormat( m_DeviceParams.swapChainFormat );
+	vk::Format requestedFormat = vk::Format( nvrhi::vulkan::convertFormat( m_DeviceParams.swapChainFormat ) );
 	vk::Extent2D requestedExtent( m_DeviceParams.backBufferWidth, m_DeviceParams.backBufferHeight );
 
 	auto devices = m_VulkanInstance.enumeratePhysicalDevices();
@@ -559,14 +699,12 @@ bool DeviceManager_VK::pickPhysicalDevice()
 		auto surfaceFmts = dev.getSurfaceFormatsKHR( m_WindowSurface );
 		auto surfacePModes = dev.getSurfacePresentModesKHR( m_WindowSurface );
 
-		if( surfaceCaps.minImageCount > m_DeviceParams.swapChainBufferCount ||
-				( surfaceCaps.maxImageCount < m_DeviceParams.swapChainBufferCount && surfaceCaps.maxImageCount > 0 ) )
-		{
-			errorStream << std::endl << "  - cannot support the requested swap chain image count:";
-			errorStream << " requested " << m_DeviceParams.swapChainBufferCount << ", available " << surfaceCaps.minImageCount << " - " << surfaceCaps.maxImageCount;
-			deviceIsGood = false;
-		}
+		// SRS/Ricardo Garcia rg3 - clamp swapChainBufferCount to the min/max capabilities of the surface
+		m_DeviceParams.swapChainBufferCount = Max( surfaceCaps.minImageCount, m_DeviceParams.swapChainBufferCount );
+		m_DeviceParams.swapChainBufferCount = surfaceCaps.maxImageCount > 0 ? Min( m_DeviceParams.swapChainBufferCount, surfaceCaps.maxImageCount ) : m_DeviceParams.swapChainBufferCount;
 
+		/* SRS - Don't check extent here since window manager surfaceCaps may restrict extent to something smaller than requested
+			   - Instead, check and clamp extent to window manager surfaceCaps during swap chain creation inside createSwapChain()
 		if( surfaceCaps.minImageExtent.width > requestedExtent.width ||
 				surfaceCaps.minImageExtent.height > requestedExtent.height ||
 				surfaceCaps.maxImageExtent.width < requestedExtent.width ||
@@ -578,6 +716,7 @@ bool DeviceManager_VK::pickPhysicalDevice()
 			errorStream << " - " << surfaceCaps.maxImageExtent.width << "x" << surfaceCaps.maxImageExtent.height;
 			deviceIsGood = false;
 		}
+		*/
 
 		bool surfaceFormatPresent = false;
 		for( const vk::SurfaceFormatKHR& surfaceFmt : surfaceFmts )
@@ -596,11 +735,10 @@ bool DeviceManager_VK::pickPhysicalDevice()
 			deviceIsGood = false;
 		}
 
-		if( ( find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eImmediate ) == surfacePModes.end() ) ||
-				( find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eFifo ) == surfacePModes.end() ) )
+		if( find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eFifo ) == surfacePModes.end() )
 		{
-			// can't find the required surface present modes
-			errorStream << std::endl << "  - does not support the requested surface present modes";
+			// this should never happen since eFifo is mandatory according to the Vulkan spec
+			errorStream << std::endl << "  - does not support the required surface present modes";
 			deviceIsGood = false;
 		}
 
@@ -776,6 +914,10 @@ bool DeviceManager_VK::createDevice()
 		{
 			sync2Supported = true;
 		}
+		else if( ext == VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME )
+		{
+			displayTimingEnabled = true;
+		}
 	}
 
 	std::unordered_set<int> uniqueQueueFamilies =
@@ -806,8 +948,6 @@ bool DeviceManager_VK::createDevice()
 
 	auto accelStructFeatures = vk::PhysicalDeviceAccelerationStructureFeaturesKHR()
 							   .setAccelerationStructure( true );
-	auto bufferAddressFeatures = vk::PhysicalDeviceBufferAddressFeaturesEXT()
-								 .setBufferDeviceAddress( true );
 	auto rayPipelineFeatures = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR()
 							   .setRayTracingPipeline( true )
 							   .setRayTraversalPrimitiveCulling( true );
@@ -816,16 +956,26 @@ bool DeviceManager_VK::createDevice()
 	auto meshletFeatures = vk::PhysicalDeviceMeshShaderFeaturesNV()
 						   .setTaskShader( true )
 						   .setMeshShader( true );
+
+	// SRS - get/set shading rate features which are detected individually by nvrhi (not just at extension level)
+	vk::PhysicalDeviceFeatures2 actualDeviceFeatures2;
+	vk::PhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures;
+	actualDeviceFeatures2.pNext = &fragmentShadingRateFeatures;
+	m_VulkanPhysicalDevice.getFeatures2( &actualDeviceFeatures2 );
+
 	auto vrsFeatures = vk::PhysicalDeviceFragmentShadingRateFeaturesKHR()
-					   .setPipelineFragmentShadingRate( true )
-					   .setPrimitiveFragmentShadingRate( true )
-					   .setAttachmentFragmentShadingRate( true );
+					   .setPipelineFragmentShadingRate( fragmentShadingRateFeatures.pipelineFragmentShadingRate )
+					   .setPrimitiveFragmentShadingRate( fragmentShadingRateFeatures.primitiveFragmentShadingRate )
+					   .setAttachmentFragmentShadingRate( fragmentShadingRateFeatures.attachmentFragmentShadingRate );
 
 	auto sync2Features = vk::PhysicalDeviceSynchronization2FeaturesKHR()
 						 .setSynchronization2( true );
 
 #if defined(__APPLE__) && defined( VK_KHR_portability_subset )
 	auto portabilityFeatures = vk::PhysicalDevicePortabilitySubsetFeaturesKHR()
+#if USE_OPTICK
+							   .setEvents( true )
+#endif
 							   .setImageViewFormatSwizzle( true );
 
 	void* pNext = &portabilityFeatures;
@@ -834,7 +984,6 @@ bool DeviceManager_VK::createDevice()
 #endif
 #define APPEND_EXTENSION(condition, desc) if (condition) { (desc).pNext = pNext; pNext = &(desc); }  // NOLINT(cppcoreguidelines-macro-usage)
 	APPEND_EXTENSION( accelStructSupported, accelStructFeatures )
-	APPEND_EXTENSION( bufferAddressSupported, bufferAddressFeatures )
 	APPEND_EXTENSION( rayPipelineSupported, rayPipelineFeatures )
 	APPEND_EXTENSION( rayQuerySupported, rayQueryFeatures )
 	APPEND_EXTENSION( meshletsSupported, meshletFeatures )
@@ -844,7 +993,7 @@ bool DeviceManager_VK::createDevice()
 
 	auto deviceFeatures = vk::PhysicalDeviceFeatures()
 						  .setShaderImageGatherExtended( true )
-						  .setShaderStorageImageReadWithoutFormat( true )
+						  .setShaderStorageImageReadWithoutFormat( actualDeviceFeatures2.features.shaderStorageImageReadWithoutFormat )
 						  .setSamplerAnisotropy( true )
 						  .setTessellationShader( true )
 						  .setTextureCompressionBC( true )
@@ -863,6 +1012,9 @@ bool DeviceManager_VK::createDevice()
 							.setTimelineSemaphore( true )
 							.setShaderSampledImageArrayNonUniformIndexing( true )
 							.setBufferDeviceAddress( bufferAddressSupported )
+#if USE_OPTICK
+							.setHostQueryReset( true )
+#endif
 							.setPNext( pNext );
 
 	auto layerVec = stringSetToVector( enabledExtensions.layers );
@@ -881,7 +1033,7 @@ bool DeviceManager_VK::createDevice()
 	const vk::Result res = m_VulkanPhysicalDevice.createDevice( &deviceDesc, nullptr, &m_VulkanDevice );
 	if( res != vk::Result::eSuccess )
 	{
-		common->FatalError( "Failed to create a Vulkan physical device, error code = %s", nvrhi::vulkan::resultToString( res ) );
+		common->FatalError( "Failed to create a Vulkan physical device, error code = %s", nvrhi::vulkan::resultToString( ( VkResult )res ) );
 		return false;
 	}
 
@@ -908,19 +1060,22 @@ bool DeviceManager_VK::createDevice()
 						   &imageFormatProperties );
 	m_DeviceParams.enableImageFormatD24S8 = ( ret == vk::Result::eSuccess );
 
-	// SRS - Determine if "smart" (r_swapInterval = 1) vsync mode eFifoRelaxed is supported by device and surface
+	// SRS/rg3 - Determine which Vulkan surface present modes are supported by device and surface
 	auto surfacePModes = m_VulkanPhysicalDevice.getSurfacePresentModesKHR( m_WindowSurface );
+	enablePModeMailbox = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eMailbox ) != surfacePModes.end();
+	enablePModeImmediate = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eImmediate ) != surfacePModes.end();
 	enablePModeFifoRelaxed = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eFifoRelaxed ) != surfacePModes.end();
 
-	// stash the renderer string
+	// stash the device renderer string and api version
 	auto prop = m_VulkanPhysicalDevice.getProperties();
 	m_RendererString = std::string( prop.deviceName.data() );
+	m_DeviceApiVersion = prop.apiVersion;
 
 #if defined( USE_AMD_ALLOCATOR )
 	// SRS - initialize the vma allocator
 	VmaVulkanFunctions vulkanFunctions = {};
-	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = ( PFN_vkGetDeviceProcAddr )vkGetInstanceProcAddr( m_VulkanInstance, "vkGetDeviceProcAddr" );
 
 	VmaAllocatorCreateInfo allocatorCreateInfo = {};
 	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
@@ -950,19 +1105,19 @@ bool DeviceManager_VK::createWindowSurface()
 	// Create the platform-specific surface
 #if defined( VULKAN_USE_PLATFORM_SDL )
 	// SRS - Support generic SDL platform for linux and macOS
-	const vk::Result res = CreateSDLWindowSurface( m_VulkanInstance, &m_WindowSurface );
+	auto res = vk::Result( CreateSDLWindowSurface( ( VkInstance )m_VulkanInstance, ( VkSurfaceKHR* )&m_WindowSurface ) );
 
 #elif defined( VK_USE_PLATFORM_WIN32_KHR )
 	auto surfaceCreateInfo = vk::Win32SurfaceCreateInfoKHR()
 							 .setHinstance( ( HINSTANCE )windowInstance )
 							 .setHwnd( ( HWND )windowHandle );
 
-	const vk::Result res = m_VulkanInstance.createWin32SurfaceKHR( &surfaceCreateInfo, nullptr, &m_WindowSurface );
+	auto res = m_VulkanInstance.createWin32SurfaceKHR( &surfaceCreateInfo, nullptr, &m_WindowSurface );
 #endif
 
 	if( res != vk::Result::eSuccess )
 	{
-		common->FatalError( "Failed to create a Vulkan window surface, error code = %s", nvrhi::vulkan::resultToString( res ) );
+		common->FatalError( "Failed to create a Vulkan window surface, error code = %s", nvrhi::vulkan::resultToString( ( VkResult )res ) );
 		return false;
 	}
 
@@ -998,6 +1153,11 @@ bool DeviceManager_VK::createSwapChain()
 		vk::ColorSpaceKHR::eSrgbNonlinear
 	};
 
+	// SRS - Clamp swap chain extent within the range supported by the device / window surface
+	auto surfaceCaps = m_VulkanPhysicalDevice.getSurfaceCapabilitiesKHR( m_WindowSurface );
+	m_DeviceParams.backBufferWidth = idMath::ClampInt( surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width, m_DeviceParams.backBufferWidth );
+	m_DeviceParams.backBufferHeight = idMath::ClampInt( surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height, m_DeviceParams.backBufferHeight );
+
 	vk::Extent2D extent = vk::Extent2D( m_DeviceParams.backBufferWidth, m_DeviceParams.backBufferHeight );
 
 	std::unordered_set<uint32_t> uniqueQueues =
@@ -1009,6 +1169,22 @@ bool DeviceManager_VK::createSwapChain()
 	std::vector<uint32_t> queues = setToVector( uniqueQueues );
 
 	const bool enableSwapChainSharing = queues.size() > 1;
+
+	// SRS/rg3 - set up Vulkan present mode based on vsync setting and available surface features
+	vk::PresentModeKHR presentMode;
+	switch( m_DeviceParams.vsyncEnabled )
+	{
+		case 0:
+			presentMode = enablePModeMailbox && r_vkPreferFastSync.GetBool() ? vk::PresentModeKHR::eMailbox :
+						  ( enablePModeImmediate ? vk::PresentModeKHR::eImmediate : vk::PresentModeKHR::eFifo );
+			break;
+		case 1:
+			presentMode = enablePModeFifoRelaxed ? vk::PresentModeKHR::eFifoRelaxed : vk::PresentModeKHR::eFifo;
+			break;
+		case 2:
+		default:
+			presentMode = vk::PresentModeKHR::eFifo;	// eFifo always supported according to Vulkan spec
+	}
 
 	auto desc = vk::SwapchainCreateInfoKHR()
 				.setSurface( m_WindowSurface )
@@ -1023,14 +1199,14 @@ bool DeviceManager_VK::createSwapChain()
 				.setPQueueFamilyIndices( enableSwapChainSharing ? queues.data() : nullptr )
 				.setPreTransform( vk::SurfaceTransformFlagBitsKHR::eIdentity )
 				.setCompositeAlpha( vk::CompositeAlphaFlagBitsKHR::eOpaque )
-				.setPresentMode( m_DeviceParams.vsyncEnabled > 0 ? ( m_DeviceParams.vsyncEnabled == 2 || !enablePModeFifoRelaxed ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eFifoRelaxed ) : vk::PresentModeKHR::eImmediate )
+				.setPresentMode( presentMode )
 				.setClipped( true )
 				.setOldSwapchain( nullptr );
 
 	const vk::Result res = m_VulkanDevice.createSwapchainKHR( &desc, nullptr, &m_SwapChain );
 	if( res != vk::Result::eSuccess )
 	{
-		common->FatalError( "Failed to create a Vulkan swap chain, error code = %s", nvrhi::vulkan::resultToString( res ) );
+		common->FatalError( "Failed to create a Vulkan swap chain, error code = %s", nvrhi::vulkan::resultToString( ( VkResult )res ) );
 		return false;
 	}
 
@@ -1067,22 +1243,32 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 
 	if( m_DeviceParams.enableDebugRuntime )
 	{
-		enabledExtensions.instance.insert( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
 #if defined(__APPLE__) && defined( USE_MoltenVK )
-		enabledExtensions.layers.insert( "MoltenVK" );
 	}
 
 	// SRS - when USE_MoltenVK defined, load libMoltenVK vs. the default libvulkan
 	static const vk::DynamicLoader dl( "libMoltenVK.dylib" );
 #else
 		enabledExtensions.layers.insert( "VK_LAYER_KHRONOS_validation" );
+
+		// SRS - Suppress specific [ WARNING-Shader-OutputNotConsumed ] validation warnings which are by design:
+		// 0xc81ad50e: vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location X not consumed by vertex shader.
+		// 0x9805298c: vkCreateGraphicsPipelines(): pCreateInfos[0] fragment shader writes to output location X with no matching attachment.
+		// SRS - Suppress similar [ UNASSIGNED-CoreValidation-Shader-OutputNotConsumed ] warnings for older Vulkan SDKs:
+		// 0x609a13b: vertex shader writes to output location X.0 which is not consumed by fragment shader...
+		// 0x609a13b: Vertex attribute at location X not consumed by vertex shader.
+		// 0x609a13b: fragment shader writes to output location X with no matching attachment.
+#ifdef _WIN32
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b" );
+#else
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b", 1 );
+#endif
 	}
 
 	// SRS - make static so ~DynamicLoader() does not prematurely unload vulkan dynamic lib
 	static const vk::DynamicLoader dl;
 #endif
-	const PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =   // NOLINT(misc-misplaced-const)
-		dl.getProcAddress<PFN_vkGetInstanceProcAddr>( "vkGetInstanceProcAddr" );
+	vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>( "vkGetInstanceProcAddr" );
 	VULKAN_HPP_DEFAULT_DISPATCHER.init( vkGetInstanceProcAddr );
 
 #define CHECK(a) if (!(a)) { return false; }
@@ -1117,37 +1303,81 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	CHECK( pickPhysicalDevice() );
 	CHECK( findQueueFamilies( m_VulkanPhysicalDevice, m_WindowSurface ) );
 
-	// SRS - when USE_MoltenVK defined, set MoltenVK runtime configuration parameters on macOS
+	// SRS - when USE_MoltenVK defined, set MoltenVK runtime configuration parameters on macOS (deprecated version)
 #if defined(__APPLE__) && defined( USE_MoltenVK )
-	vk::PhysicalDeviceFeatures2 deviceFeatures2;
-	vk::PhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures;
-	deviceFeatures2.setPNext( &portabilityFeatures );
-	m_VulkanPhysicalDevice.getFeatures2( &deviceFeatures2 );
-
-	MVKConfiguration    pConfig;
-	size_t              pConfigSize = sizeof( pConfig );
-
-	vkGetMoltenVKConfigurationMVK( m_VulkanInstance, &pConfig, &pConfigSize );
-
-	// SRS - Set MoltenVK's synchronous queue submit option for vkQueueSubmit() & vkQueuePresentKHR()
-	pConfig.synchronousQueueSubmits = r_mvkSynchronousQueueSubmits.GetBool() ? VK_TRUE : VK_FALSE;
-	vkSetMoltenVKConfigurationMVK( m_VulkanInstance, &pConfig, &pConfigSize );
-
-	// SRS - If we don't have native image view swizzle, enable MoltenVK's image view swizzle feature
-	if( portabilityFeatures.imageViewFormatSwizzle == VK_FALSE )
+#if defined( VK_EXT_layer_settings )
+	// SRS - for backwards compatibility at runtime: execute only if we can't find the VK_EXT_layer_settings extension
+	if( enabledExtensions.instance.find( VK_EXT_LAYER_SETTINGS_EXTENSION_NAME ) == enabledExtensions.instance.end() )
+#endif
 	{
-		idLib::Printf( "Enabling MoltenVK's image view swizzle...\n" );
-		pConfig.fullImageViewSwizzle = VK_TRUE;
-		vkSetMoltenVKConfigurationMVK( m_VulkanInstance, &pConfig, &pConfigSize );
+		// SRS - vkSetMoltenVKConfigurationMVK() now deprecated, but retained for MoltenVK < 1.2.7 / SDK < 1.3.275.0
+		const PFN_vkGetMoltenVKConfigurationMVK vkGetMoltenVKConfigurationMVK =   // NOLINT(misc-misplaced-const)
+			( PFN_vkGetMoltenVKConfigurationMVK )vkGetInstanceProcAddr( m_VulkanInstance, "vkGetMoltenVKConfigurationMVK" );
+		const PFN_vkSetMoltenVKConfigurationMVK vkSetMoltenVKConfigurationMVK =   // NOLINT(misc-misplaced-const)
+			( PFN_vkSetMoltenVKConfigurationMVK )vkGetInstanceProcAddr( m_VulkanInstance, "vkSetMoltenVKConfigurationMVK" );
+
+		vk::PhysicalDeviceFeatures2 deviceFeatures2;
+		vk::PhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures;
+		deviceFeatures2.setPNext( &portabilityFeatures );
+		m_VulkanPhysicalDevice.getFeatures2( &deviceFeatures2 );
+
+		MVKConfiguration    mvkConfig;
+		size_t              mvkConfigSize = sizeof( mvkConfig );
+
+		vkGetMoltenVKConfigurationMVK( m_VulkanInstance, &mvkConfig, &mvkConfigSize );
+
+		// SRS - Set MoltenVK's synchronous queue submit option for vkQueueSubmit() & vkQueuePresentKHR()
+		if( mvkConfig.synchronousQueueSubmits == VK_TRUE && !r_mvkSynchronousQueueSubmits.GetBool() )
+		{
+			idLib::Printf( "Disabled MoltenVK's synchronous queue submits...\n" );
+			mvkConfig.synchronousQueueSubmits = VK_FALSE;
+		}
+
+		// SRS - If we don't have native image view swizzle, enable MoltenVK's image view swizzle feature
+		if( portabilityFeatures.imageViewFormatSwizzle == VK_FALSE )
+		{
+			idLib::Printf( "Enabled MoltenVK's image view swizzle...\n" );
+			mvkConfig.fullImageViewSwizzle = VK_TRUE;
+		}
+
+		// SRS - Set MoltenVK's Metal argument buffer option for descriptor resource scaling
+		//	   - Also needed for Vulkan SDK 1.3.268.1 to work around SPIRV-Cross issue for Metal conversion.
+		//	   - See https://github.com/KhronosGroup/MoltenVK/issues/2016 and https://github.com/goki/vgpu/issues/9
+		//	   - Issue solved in Vulkan SDK >= 1.3.275.0, but config uses VK_EXT_layer_settings instead of this code.
+		if( mvkConfig.useMetalArgumentBuffers == MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER && r_mvkUseMetalArgumentBuffers.GetInteger() )
+		{
+			idLib::Printf( "Enabled MoltenVK's Metal argument buffers...\n" );
+			mvkConfig.useMetalArgumentBuffers = MVKUseMetalArgumentBuffers( r_mvkUseMetalArgumentBuffers.GetInteger() );
+		}
+
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
+		if( mvkConfig.apiVersionToAdvertise >= VK_MAKE_API_VERSION( 0, 1, 2, 268 ) )
+		{
+			// SRS - Disable MoltenVK's timestampPeriod filter for HUD / Optick profiler timing calibration
+			mvkConfig.timestampPeriodLowPassAlpha = 1.0;
+			// SRS - Enable MoltenVK's performance tracking for display of Metal encoding timer on macOS
+			mvkConfig.performanceTracking = VK_TRUE;
+		}
+#endif
+
+		vkSetMoltenVKConfigurationMVK( m_VulkanInstance, &mvkConfig, &mvkConfigSize );
 	}
 
-	// SRS - Turn MoltenVK's Metal argument buffer feature on for descriptor indexing only
-	if( pConfig.useMetalArgumentBuffers == MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER )
-	{
-		idLib::Printf( "Enabling MoltenVK's Metal argument buffers for descriptor indexing...\n" );
-		pConfig.useMetalArgumentBuffers = MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_DESCRIPTOR_INDEXING;
-		vkSetMoltenVKConfigurationMVK( m_VulkanInstance, &pConfig, &pConfigSize );
-	}
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
+	// SRS - Get function pointer for retrieving MoltenVK advanced performance statistics in DeviceManager_VK::BeginFrame()
+	vkGetPerformanceStatisticsMVK = ( PFN_vkGetPerformanceStatisticsMVK )vkGetInstanceProcAddr( m_VulkanInstance, "vkGetPerformanceStatisticsMVK" );
+#endif
+
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
+	// SRS - Initialize Optick event storage and descriptions for MoltenVK events
+	mvkAcquireEventStorage = Optick::RegisterStorage( "Mvk_ImageAcquire", uint64_t( -1 ), Optick::ThreadMask::Main );
+	mvkSubmitEventStorage = Optick::RegisterStorage( "Mvk_CmdBufSubmit", uint64_t( -1 ), Optick::ThreadMask::Main );
+	mvkEncodeEventStorage = Optick::RegisterStorage( "Mvk_EncodeThread", uint64_t( -1 ), Optick::ThreadMask::GPU );
+	mvkAcquireEventDesc = Optick::EventDescription::CreateShared( "Acquire_Wait" );
+	mvkSubmitEventDesc = Optick::EventDescription::CreateShared( "Submit_Wait" );
+	mvkEncodeEventDesc = Optick::EventDescription::CreateShared( "Metal_Encode" );
+	Optick::SetStateChangedCallback( ( Optick::StateCallback )optickStateChangedCallback );
+#endif
 #endif
 
 	CHECK( createDevice() );
@@ -1187,7 +1417,7 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 
 	CHECK( createSwapChain() );
 
-	m_BarrierCommandList = m_NvrhiDevice->createCommandList();
+	//m_BarrierCommandList = m_NvrhiDevice->createCommandList();		// SRS - no longer needed
 
 	// SRS - Give each swapchain image its own semaphore in case of overlap (e.g. MoltenVK async queue submit)
 	for( int i = 0; i < m_SwapChainImages.size(); i++ )
@@ -1201,11 +1431,24 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 
 #undef CHECK
 
+#if USE_OPTICK
+	const Optick::VulkanFunctions optickVulkanFunctions = { ( PFN_vkGetInstanceProcAddr_ )vkGetInstanceProcAddr };
+#endif
+
+	OPTICK_GPU_INIT_VULKAN( ( VkInstance )m_VulkanInstance, ( VkDevice* )&m_VulkanDevice, ( VkPhysicalDevice* )&m_VulkanPhysicalDevice, ( VkQueue* )&m_GraphicsQueue, ( uint32_t* )&m_GraphicsQueueFamily, 1, &optickVulkanFunctions );
+
 	return true;
 }
 
 void DeviceManager_VK::DestroyDeviceAndSwapChain()
 {
+	OPTICK_SHUTDOWN();
+
+	if( m_VulkanDevice )
+	{
+		m_VulkanDevice.waitIdle();
+	}
+
 	m_FrameWaitQuery = nullptr;
 
 	for( int i = 0; i < m_SwapChainImages.size(); i++ )
@@ -1215,7 +1458,7 @@ void DeviceManager_VK::DestroyDeviceAndSwapChain()
 	}
 	m_PresentSemaphore = vk::Semaphore();
 
-	m_BarrierCommandList = nullptr;
+	//m_BarrierCommandList = nullptr;		// SRS - no longer needed
 
 	destroySwapChain();
 
@@ -1263,6 +1506,29 @@ void DeviceManager_VK::DestroyDeviceAndSwapChain()
 
 void DeviceManager_VK::BeginFrame()
 {
+	OPTICK_CATEGORY( "Vulkan_BeginFrame", Optick::Category::Wait );
+
+	// SRS - get Vulkan GPU memory usage for display in statistics overlay HUD
+	vk::PhysicalDeviceMemoryProperties2 memoryProperties2;
+	vk::PhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
+	memoryProperties2.pNext = &memoryBudget;
+	m_VulkanPhysicalDevice.getMemoryProperties2( &memoryProperties2 );
+
+	VkDeviceSize gpuMemoryAllocated = 0;
+	for( uint32_t i = 0; i < memoryProperties2.memoryProperties.memoryHeapCount; i++ )
+	{
+		gpuMemoryAllocated += memoryBudget.heapUsage[i];
+
+#if defined(__APPLE__)
+		// SRS - macOS Vulkan API <= 1.2.268 has heap reporting defect, use heapUsage[0] only
+		if( m_DeviceApiVersion <= VK_MAKE_API_VERSION( 0, 1, 2, 268 ) )
+		{
+			break;
+		}
+#endif
+	}
+	commonLocal.SetRendererGpuMemoryMB( gpuMemoryAllocated / 1024 / 1024 );
+
 	const vk::Result res = m_VulkanDevice.acquireNextImageKHR( m_SwapChain,
 						   std::numeric_limits<uint64_t>::max(), // timeout
 						   m_PresentSemaphore,
@@ -1276,21 +1542,51 @@ void DeviceManager_VK::BeginFrame()
 
 void DeviceManager_VK::EndFrame()
 {
+	OPTICK_CATEGORY( "Vulkan_EndFrame", Optick::Category::Wait );
+
 	m_NvrhiDevice->queueSignalSemaphore( nvrhi::CommandQueue::Graphics, m_PresentSemaphore, 0 );
 
-	m_BarrierCommandList->open(); // umm...
-	m_BarrierCommandList->close();
-	m_NvrhiDevice->executeCommandList( m_BarrierCommandList );
+	// SRS - Don't need barrier commandlist if EndFrame() is called before executeCommandList() in idRenderBackend::GL_EndFrame()
+	//m_BarrierCommandList->open(); // umm...
+	//m_BarrierCommandList->close();
+	//m_NvrhiDevice->executeCommandList( m_BarrierCommandList );
+
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
+	// SRS - Capture MoltenVK command buffer submit time just before executeCommandList() in idRenderBackend::GL_EndFrame()
+	mvkPreviousSubmitTime = mvkLatestSubmitTime;
+	mvkLatestSubmitTime = Optick::GetHighPrecisionTime();
+#endif
+#endif
 }
 
 void DeviceManager_VK::Present()
 {
+	OPTICK_GPU_FLIP( m_SwapChain );
+	OPTICK_CATEGORY( "Vulkan_Present", Optick::Category::Wait );
+	OPTICK_TAG( "Frame", idLib::frameNumber - 1 );
+
+	void* pNext = nullptr;
+#if USE_OPTICK
+	// SRS - if display timing enabled, define the presentID for labeling the Optick GPU VSync / Present queue
+	vk::PresentTimeGOOGLE presentTime = vk::PresentTimeGOOGLE()
+										.setPresentID( idLib::frameNumber - 1 );
+	vk::PresentTimesInfoGOOGLE presentTimesInfo = vk::PresentTimesInfoGOOGLE()
+			.setSwapchainCount( 1 )
+			.setPTimes( &presentTime );
+	if( displayTimingEnabled )
+	{
+		pNext = &presentTimesInfo;
+	}
+#endif
+
 	vk::PresentInfoKHR info = vk::PresentInfoKHR()
 							  .setWaitSemaphoreCount( 1 )
 							  .setPWaitSemaphores( &m_PresentSemaphore )
 							  .setSwapchainCount( 1 )
 							  .setPSwapchains( &m_SwapChain )
-							  .setPImageIndices( &m_SwapChainIndex );
+							  .setPImageIndices( &m_SwapChainIndex )
+							  .setPNext( pNext );
 
 	const vk::Result res = m_PresentQueue.presentKHR( &info );
 	assert( res == vk::Result::eSuccess || res == vk::Result::eErrorOutOfDateKHR || res == vk::Result::eSuboptimalKHR );
@@ -1313,6 +1609,8 @@ void DeviceManager_VK::Present()
 	{
 		if constexpr( NUM_FRAME_DATA > 2 )
 		{
+			OPTICK_CATEGORY( "Vulkan_Sync3", Optick::Category::Wait );
+
 			// SRS - For triple buffering, sync on previous frame's command queue completion
 			m_NvrhiDevice->waitEventQuery( m_FrameWaitQuery );
 		}
@@ -1322,10 +1620,66 @@ void DeviceManager_VK::Present()
 
 		if constexpr( NUM_FRAME_DATA < 3 )
 		{
+			OPTICK_CATEGORY( "Vulkan_Sync2", Optick::Category::Wait );
+
 			// SRS - For double buffering, sync on current frame's command queue completion
 			m_NvrhiDevice->waitEventQuery( m_FrameWaitQuery );
 		}
 	}
+
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
+	if( vkGetPerformanceStatisticsMVK )
+	{
+		// SRS - get MoltenVK's Metal encoding time for display in statistics overlay HUD
+		MVKPerformanceStatistics mvkPerfStats;
+		size_t mvkPerfStatsSize = sizeof( mvkPerfStats );
+		if( vkGetPerformanceStatisticsMVK( m_VulkanDevice, &mvkPerfStats, &mvkPerfStatsSize ) == VK_SUCCESS )
+		{
+			uint64 mvkEncodeTime = Max( 0.0, mvkPerfStats.queue.commandBufferEncoding.latest - mvkPerfStats.queue.retrieveCAMetalDrawable.latest ) * 1000000.0;
+
+#if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
+			if( optickCapturing )
+			{
+				// SRS - create custom Optick event that displays MoltenVK's command buffer submit waiting time
+				OPTICK_STORAGE_EVENT( mvkSubmitEventStorage, mvkSubmitEventDesc, mvkPreviousSubmitTime, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime );
+				OPTICK_STORAGE_TAG( mvkSubmitEventStorage, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime / 2, "Frame", idLib::frameNumber - 2 );
+
+				// SRS - select latest acquire time if hashes match and we didn't retrieve a new image, otherwise select previous acquire time
+				double mvkLatestAcquireHash = mvkPerfStats.queue.retrieveCAMetalDrawable.latest + mvkPerfStats.queue.retrieveCAMetalDrawable.previous;
+				int64_t mvkAcquireWaitTime = mvkLatestAcquireHash == mvkPreviousAcquireHash ? mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0 : mvkPerfStats.queue.retrieveCAMetalDrawable.previous * 1000000.0;
+
+				// SRS - select latest presented frame if we are running synchronous, otherwise select previous presented frame as reference
+				int64_t mvkAcquireStartTime = mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime;
+				int32_t frameNumberTag = idLib::frameNumber - 2;
+				if( r_mvkSynchronousQueueSubmits.GetBool() )
+				{
+					mvkAcquireStartTime = mvkLatestSubmitTime + int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0 );
+					mvkAcquireWaitTime = mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0;
+					frameNumberTag = idLib::frameNumber - 1;
+				}
+
+				// SRS - create custom Optick event that displays MoltenVK's image acquire waiting time
+				OPTICK_STORAGE_EVENT( mvkAcquireEventStorage, mvkAcquireEventDesc, mvkAcquireStartTime, mvkAcquireStartTime + mvkAcquireWaitTime );
+				OPTICK_STORAGE_TAG( mvkAcquireEventStorage, mvkAcquireStartTime + mvkAcquireWaitTime / 2, "Frame", frameNumberTag );
+
+				// SRS - when Optick is active, use MoltenVK's previous encoding time to select game command buffer vs. Optick's command buffer
+				int64_t mvkEncodeStartTime = mvkAcquireStartTime + mvkAcquireWaitTime;
+				mvkEncodeTime = Max( int64_t( 0 ), int64_t( mvkPerfStats.queue.commandBufferEncoding.previous * 1000000.0 ) - mvkAcquireWaitTime );
+
+				// SRS - create custom Optick event that displays MoltenVK's Vulkan-to-Metal encoding time
+				OPTICK_STORAGE_EVENT( mvkEncodeEventStorage, mvkEncodeEventDesc, mvkEncodeStartTime, mvkEncodeStartTime + mvkEncodeTime );
+				OPTICK_STORAGE_TAG( mvkEncodeEventStorage, mvkEncodeStartTime + mvkEncodeTime / 2, "Frame", frameNumberTag );
+
+				mvkPreviousSubmitWaitTime = mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0;
+				mvkPreviousAcquireHash = mvkLatestAcquireHash;
+			}
+#endif
+			commonLocal.SetRendererMvkEncodeMicroseconds( mvkEncodeTime / 1000 );
+		}
+	}
+#endif
+#endif
 }
 
 DeviceManager* DeviceManager::CreateVK()

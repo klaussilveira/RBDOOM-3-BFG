@@ -35,9 +35,6 @@ option(FFMPEG
 option(BINKDEC
 		"Use included libbinkdec to render Bink videos" OFF)
 
-option(SPIRV_SHADERC
-		"Compile SPIR-V shader byte code using shaderc instead of using Glslang directly" OFF)
-
 option(USE_MoltenVK
 		"Link directly to MoltenVK library instead of Vulkan loader on macOS" OFF)
 
@@ -50,12 +47,6 @@ option(WINDOWS10
 option(USE_SYSTEM_ZLIB
          "Use the system zlib instead of the bundled one" OFF)
 
-option(USE_SYSTEM_LIBPNG
-         "Use the system libpng instead of the bundled one" OFF)
-
-option(USE_SYSTEM_LIBJPEG
-         "Use the system libjpeg instead of the bundled one" OFF)
-
 option(USE_SYSTEM_RAPIDJSON
          "Use the system rapidjson instead of the bundled one" OFF)
 
@@ -66,10 +57,13 @@ option(USE_VULKAN
 		"Use Vulkan" ON)
 
 option(USE_VMA
-		"Use VMA allocator instead of the NVRHI builtin one" ON)
+		"Use AMD's Vulkan Memory Allocator instead of the NVRHI builtin one" ON)
 
 option(OPTICK
 		"Enable profiling with Optick" OFF)
+
+option(RETAIL
+		"Strip certain developer features and cheats from shipping builds" OFF)
 
 set(NVRHI_INSTALL OFF)
 
@@ -115,27 +109,14 @@ if(COMPILE_COMMANDS)
 	set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
-if (FORCE_COLOR_OUTPUT)
-	if (CMAKE_COMPILER_IS_GNUCC)
-		add_compile_options(-fdiagnostics-color=always)
-	elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
-		add_compile_options(-fcolor-diagnostics)
-	endif ()
+# Enforced colored output
+if (CMAKE_COMPILER_IS_GNUCC)
+	add_compile_options(-fdiagnostics-color=always)
+elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	add_compile_options(-fcolor-diagnostics)
 endif ()
 
-if(MSVC)
-	#message(STATUS CMAKE_ROOT: ${CMAKE_ROOT})
-	
-	#if(CMAKE_CL_64)
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win64)
-	#else()
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win32)
-	#endif()
-	
-	#message(STATUS EXECUTABLE_OUTPUT_PATH: ${EXECUTABLE_OUTPUT_PATH})
-	#message(STATUS PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})
-	#message(STATUS CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR})
-else()
+if(NOT MSVC)
 	message(STATUS CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE})
 endif()
 
@@ -179,11 +160,11 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	#endif()
 	
 	add_compile_options(-Wno-pragmas -Wno-unused-variable -Wno-switch -Wno-unused-value -Winvalid-pch -Wno-multichar)
-    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		# add clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
-		# SRS - Add -Wno-expansion-to-defined to list of warning settings
-		add_definitions(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness)
+		# SRS - Add -Wno-expansion-to-defined, Wno-nullability-completeness and -Wno-shorten-64-to-32 to list of warning settings
+		add_definitions(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness -Wno-shorten-64-to-32)
 	endif()
 	
 	if(NOT CMAKE_CROSSCOMPILING AND ONATIVE)
@@ -243,47 +224,23 @@ elseif(MSVC)
 	# Omit Frame Pointers
 	# "/Oy",
 	
-	# if(MSVC_VERSION EQUAL 1700)
-		# #message(STATUS "$ENV{LIBPATH}")
-		
-		# find_path(Windows_winmd_DIR NAMES Windows.winmd
-			# HINTS
-			# C:/Program Files (x86)/Windows Kits/8.0/References/CommonConfiguration/Neutral
-			# PATH_SUFFIXES "Neutral")
-			
-		# message(STATUS "${Windows_winmd_DIR}")
-		
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"C:\Program Files (x86)\Windows Kits\8.0\References\CommonConfiguration\Neutral\"")
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"$ENV{LIBPATH}\" ")
-		# set(WINRT_OPTIONS "/ZW /D USE_WINRT")
 	
-		# set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
+	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
+	set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
-	# else()
-		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
-		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
-		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
-		
-		# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
-		# libs for newer compilers
-		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
-	# endif()
+	# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
+	# libs for newer compilers
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
 
 	add_definitions(-DWIN32 
 					-DNOMINMAX
@@ -297,7 +254,7 @@ elseif(MSVC)
 	if( WINDOWS10 ) # Windows RT
 		add_definitions(-DUSE_WINRT)
 	endif()
-					
+
 	if(NOT CMAKE_CL_64)
 		add_definitions(-D_USE_32BIT_TIME_T)
 	endif()
@@ -314,44 +271,42 @@ if(STANDALONE)
 	set(DOOM_CLASSIC OFF)
 endif()
 
-if (USE_SYSTEM_ZLIB)
-  find_package(ZLIB REQUIRED)
-endif(USE_SYSTEM_ZLIB)
+if(RETAIL)
+	add_definitions(-DID_RETAIL)
+endif()
 
-if (ZLIB_FOUND)
-    include_directories(${ZLIB_INCLUDE_DIRS})
-    set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-else (ZLIB_FOUND)
-    include_directories("libs/zlib")
-    set(ZLIB_LIBRARY "" )
-endif (ZLIB_FOUND)
+# SRS - on Apple set find_package() to prefer dylibs over macOS frameworks and xcframeworks
+#     - required for cmake >= 3.29 and MoltenVK, also prefers openal-soft over Apple OpenAL
+if(APPLE)
+	set(CMAKE_FIND_FRAMEWORK LAST)
+endif()
 
-if(USE_SYSTEM_LIBPNG)
-	find_package(PNG REQUIRED)
-endif (USE_SYSTEM_LIBPNG)
+if(USE_SYSTEM_ZLIB)
+	find_package(ZLIB)
+endif()
 
-if (PNG_FOUND)
-    include_directories(${PNG_INCLUDE_DIRS})
-    set(PNG_LIBRARY ${PNG_LIBRARIES})
-else (PNG_FOUND)
-    include_directories("libs/png")
-    set(PNG_LIBRARY "" )
-endif (PNG_FOUND)
+if(ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+else()
+	include_directories("libs/zlib")
+	set(ZLIB_LIBRARY "" )
+endif()
 
-if(USE_SYSTEM_LIBJPEG)
-	find_package(JPEG REQUIRED)
-endif(USE_SYSTEM_LIBJPEG)
+#SRS - move rapidjson before vulkan and other includes to prioritize bundled iterator fixes
+if (USE_SYSTEM_RAPIDJSON)
+	find_package(rapidjson)
+endif (USE_SYSTEM_RAPIDJSON)
 
-if (JPEG_FOUND)
-    include_directories(${JPEG_INCLUDE_DIRS})
-    set(JPEG_LIBRARY ${JPEG_LIBRARIES})
-    add_definitions(-DUSE_NEWER_JPEG)
-else (JPEG_FOUND)
-    include_directories("libs/jpeg-6")
-    set(JPEG_LIBRARY "" )
-endif (JPEG_FOUND)
+if (RAPIDJSON_FOUND)
+	include_directories("${RAPIDJSON_INCLUDE_DIRS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${RAPIDJSON_CXX_FLAGS}")
+else (RAPIDJSON_FOUND)
+	include_directories("libs/rapidjson/include")
+endif (RAPIDJSON_FOUND)
 
 include_directories("libs/imgui")
+include_directories("libs/mikktspace")
 
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
@@ -381,12 +336,13 @@ if(USE_VULKAN)
 	else()
 		include_directories(${Vulkan_INCLUDE_DIRS})
 
-		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_SPIRV_EXECUTABLE)
-			set(DXC_SPIRV_EXECUTABLE ${Vulkan_dxc_EXECUTABLE})
+		# SRS - ShaderMake uses DXC_CUSTOM_PATH as fallback if dxc for SPIRV not found by other means
+		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_CUSTOM_PATH)
+			set(DXC_CUSTOM_PATH ${Vulkan_dxc_EXECUTABLE})
 		endif()
 
         if(APPLE)
-            # SRS - Enable Beta extensions for VULKAN_SDK portability subset features on OSX
+            # SRS - Enable Beta extensions for Vulkan portability subset features on macOS
             add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
             # SRS - Optionally link directly to MoltenVK headers/library for runtime config functions on OSX
             if(USE_MoltenVK)
@@ -397,6 +353,19 @@ if(USE_VULKAN)
                 else()
 		            message(FATAL_ERROR "Must define VULKAN_SDK location if USE_MoltenVK option enabled!")
                 endif()
+			else()
+				# If using Xcode and the Vulkan loader's environment variables are defined, make them available within Xcode scheme
+				if(CMAKE_GENERATOR MATCHES "Xcode")
+					if(DEFINED ENV{VK_ADD_LAYER_PATH})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_ADD_LAYER_PATH=$ENV{VK_ADD_LAYER_PATH}")
+					endif()
+					if(DEFINED ENV{VK_ICD_FILENAMES})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_ICD_FILENAMES=$ENV{VK_ICD_FILENAMES}")
+					endif()
+					if(DEFINED ENV{VK_DRIVER_FILES})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_DRIVER_FILES=$ENV{VK_DRIVER_FILES}")
+					endif()
+				endif()
             endif()
 		endif()
 		message(STATUS "Using Vulkan: " ${Vulkan_LIBRARY})
@@ -414,6 +383,8 @@ if(USE_VULKAN)
 	if(USE_VMA)
 		add_definitions(-DUSE_AMD_ALLOCATOR)
 		include_directories("libs/vma/include")
+		file(GLOB VMA_INCLUDES libs/vma/include/*.h)
+		source_group("libs\\vma" FILES ${VMA_INCLUDES})
 	endif()
 
 endif()
@@ -426,33 +397,16 @@ set(NVRHI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/nvrhi)
 add_subdirectory(${NVRHI_DIR})
 add_definitions(-DUSE_NVRHI)
 
-if(USE_DX11)
-	find_package(FXC REQUIRED)
-endif()
+set(SHADERMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/ShaderMake)
+add_subdirectory(${SHADERMAKE_DIR})
 
 if(USE_DX12)
-	find_package(DXCdxil REQUIRED)
+	# SRS - ShaderMake now finds dxc for DXIL when required
 	set(USE_DXIL_ON_DX12 TRUE CACHE BOOL "Use DXC to compile DXIL shaders on DX12 - otherwise FXC and DXBC")
 endif()
 
-if(USE_VULKAN)
-	find_package(DXCspirv REQUIRED)
-endif()
-
 include_directories(${NVRHI_DIR}/include)
-
-
-if(USE_SYSTEM_RAPIDJSON)
-	find_package(rapidjson REQUIRED)
-endif(USE_SYSTEM_RAPIDJSON)
-
-if (RAPIDJSON_FOUND)
-	include_directories("${RAPIDJSON_INCLUDE_DIRS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${RAPIDJSON_CXX_FLAGS}")
-else (RAPIDJSON_FOUND)
-	include_directories("libs/rapidjson/include")
-endif (RAPIDJSON_FOUND)
-
+include_directories(${SHADERMAKE_DIR}/include)
 
 include_directories("libs/optick")
 
@@ -465,6 +419,12 @@ if(OPTICK)
 endif()
 
 add_subdirectory(idlib)
+
+# RB: there haven't been requests for a separate map compiler executable by macOS users
+# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
+if(NOT APPLE)
+	add_subdirectory(tools/compilers)
+endif()
 
 file(GLOB NATVIS_SOURCES .natvis)
 
@@ -491,12 +451,6 @@ file(GLOB RENDERER_PASSES_SOURCES renderer/Passes/*.cpp)
 
 file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
 
-file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
-file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
-
-file(GLOB RENDERER_VULKAN_INCLUDES renderer/Vulkan/*.h)
-file(GLOB RENDERER_VULKAN_SOURCES renderer/Vulkan/*.cpp)
-
 file(GLOB RENDERER_NVRHI_INCLUDES renderer/NVRHI/*.h)
 file(GLOB RENDERER_NVRHI_SOURCES renderer/NVRHI/*.cpp)
 
@@ -518,89 +472,14 @@ file(GLOB TINYEXR_INCLUDES libs/tinyexr/*.h)
 file(GLOB MIKKTSPACE_INCLUDES libs/mikktspace/*.h)
 file(GLOB MIKKTSPACE_SOURCES libs/mikktspace/*.c)
 
-if (NOT JPEG_FOUND)
-    set(JPEG_INCLUDES
-        libs/jpeg-6/jchuff.h
-        libs/jpeg-6/jconfig.h
-        libs/jpeg-6/jdct.h
-        libs/jpeg-6/jdhuff.h
-        libs/jpeg-6/jerror.h
-        libs/jpeg-6/jinclude.h
-        libs/jpeg-6/jmemsys.h
-        libs/jpeg-6/jmorecfg.h
-        libs/jpeg-6/jpegint.h
-        libs/jpeg-6/jpeglib.h
-        libs/jpeg-6/jversion.h)
-
-    set(JPEG_SOURCES
-        libs/jpeg-6/jcapimin.cpp
-        libs/jpeg-6/jcapistd.cpp
-        libs/jpeg-6/jccoefct.cpp
-        libs/jpeg-6/jccolor.cpp
-        libs/jpeg-6/jcdctmgr.cpp
-        libs/jpeg-6/jchuff.cpp
-        libs/jpeg-6/jcinit.cpp
-        libs/jpeg-6/jcmainct.cpp
-        libs/jpeg-6/jcmarker.cpp
-        libs/jpeg-6/jcmaster.cpp
-        libs/jpeg-6/jcomapi.cpp
-        libs/jpeg-6/jcparam.cpp
-        libs/jpeg-6/jcphuff.cpp
-        libs/jpeg-6/jcprepct.cpp
-        libs/jpeg-6/jcsample.cpp
-        libs/jpeg-6/jctrans.cpp
-        libs/jpeg-6/jdapimin.cpp
-        libs/jpeg-6/jdapistd.cpp
-        libs/jpeg-6/jdatadst.cpp
-        libs/jpeg-6/jdatasrc.cpp
-        libs/jpeg-6/jdcoefct.cpp
-        libs/jpeg-6/jdcolor.cpp
-        libs/jpeg-6/jddctmgr.cpp
-        libs/jpeg-6/jdhuff.cpp
-        libs/jpeg-6/jdinput.cpp
-        libs/jpeg-6/jdmainct.cpp
-        libs/jpeg-6/jdmarker.cpp
-        libs/jpeg-6/jdmaster.cpp
-        libs/jpeg-6/jdmerge.cpp
-        libs/jpeg-6/jdphuff.cpp
-        libs/jpeg-6/jdpostct.cpp
-        libs/jpeg-6/jdsample.cpp
-        libs/jpeg-6/jdtrans.cpp
-        libs/jpeg-6/jerror.cpp
-        libs/jpeg-6/jfdctflt.cpp
-        libs/jpeg-6/jfdctfst.cpp
-        libs/jpeg-6/jfdctint.cpp
-        libs/jpeg-6/jidctflt.cpp
-        libs/jpeg-6/jidctfst.cpp
-        libs/jpeg-6/jidctint.cpp
-        libs/jpeg-6/jidctred.cpp
-        #libs/jpeg-6/jload.cpp
-        libs/jpeg-6/jmemmgr.cpp
-        libs/jpeg-6/jmemnobs.cpp
-        #libs/jpeg-6/jpegtran.cpp
-        libs/jpeg-6/jquant1.cpp
-        libs/jpeg-6/jquant2.cpp
-        libs/jpeg-6/jutils.cpp)
-else (NOT JPEG_FOUND)
-   set(JPEG_INCLUDES "")
-   set(JPEG_SOURCES "")
-endif (NOT JPEG_FOUND)
-
-if (NOT PNG_FOUND)
-    file(GLOB PNG_INCLUDES libs/png/*.h)
-    file(GLOB PNG_SOURCES libs/png/*.c)
-else (NOT PNG_FOUND)
-    set(PNG_INCLUDES "")
-    set(PNG_SOURCES "")
-endif (NOT PNG_FOUND)
 
 if (NOT ZLIB_FOUND)
-file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
-file(GLOB ZLIB_SOURCES libs/zlib/*.c)
-else (NOT ZLIB_FOUND)
-  set(ZLIB_INCLUDES "")
-  set(ZLIB_SOURCES "")
-endif (NOT ZLIB_FOUND)
+	file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
+	file(GLOB ZLIB_SOURCES libs/zlib/*.c)
+else()
+	set(ZLIB_INCLUDES "")
+	set(ZLIB_SOURCES "")
+endif()
 
 if(BINKDEC)
 	file(GLOB BINKDEC_INCLUDES libs/libbinkdec/include/*.h)
@@ -753,7 +632,6 @@ set(GAMED3XP_INCLUDES
 	d3xp/AimAssist.h
 	d3xp/BrittleFracture.h
 	d3xp/Camera.h
-	#d3xp/EndLevel.h
 	d3xp/Entity.h
 	d3xp/EnvironmentProbe.h
 	d3xp/Fx.h
@@ -791,7 +669,6 @@ set(GAMED3XP_SOURCES
 	d3xp/AimAssist.cpp
 	d3xp/BrittleFracture.cpp
 	d3xp/Camera.cpp
-	#d3xp/EndLevel.cpp
 	d3xp/Entity.cpp
 	d3xp/EnvironmentProbe.cpp
 	d3xp/Fx.cpp
@@ -1095,14 +972,8 @@ source_group("renderer\\Passes" FILES ${RENDERER_PASSES_SOURCES})
 source_group("renderer\\DXT" FILES ${RENDERER_DXT_INCLUDES})
 source_group("renderer\\DXT" FILES ${RENDERER_DXT_SOURCES})
 
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
-source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
-
 source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_INCLUDES})
 source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_SOURCES})
-
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_INCLUDES})
-source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_SOURCES})
 
 source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
 
@@ -1124,14 +995,8 @@ source_group("libs\\tinyexr" FILES ${TINYEXR_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_SOURCES})
 
-source_group("libs\\jpeg-6" FILES ${JPEG_INCLUDES})
-source_group("libs\\jpeg-6" FILES ${JPEG_SOURCES})
-
 source_group("libs\\libbinkdec" FILES ${BINKDEC_INCLUDES})
 source_group("libs\\libbinkdec" FILES ${BINKDEC_SOURCES})
-
-source_group("libs\\png" FILES ${PNG_INCLUDES})
-source_group("libs\\png" FILES ${PNG_SOURCES})
 
 source_group("libs\\zlib" FILES ${ZLIB_INCLUDES})
 source_group("libs\\zlib" FILES ${ZLIB_SOURCES})
@@ -1300,8 +1165,6 @@ set(RBDOOM3_INCLUDES
 			${MESA_INCLUDES}
 			${TINYEXR_INCLUDES}
 			${MIKKTSPACE_INCLUDES}
-			${JPEG_INCLUDES}
-			${PNG_INCLUDES}
 			${ZLIB_INCLUDES}
 			${MINIZIP_INCLUDES}
 			${BINKDEC_INCLUDES}
@@ -1309,6 +1172,7 @@ set(RBDOOM3_INCLUDES
 			#${FREETYPE_SOURCES}
 			${SOUND_INCLUDES}
 			${OGGVORBIS_INCLUDES}
+			${VMA_INCLUDES}
 			${OPTICK_INCLUDES}
 			${UI_INCLUDES}
 			${SWF_INCLUDES}
@@ -1351,8 +1215,6 @@ set(RBDOOM3_SOURCES
 			${IMGUI_SOURCES}
 			${IMGUI_NODE_EDITOR_SOURCES}
 			${MIKKTSPACE_SOURCES}
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			${BINKDEC_SOURCES}
@@ -1433,11 +1295,6 @@ if(MSVC)
 	if(USE_DX12)
 		list(APPEND RBDOOM3_INCLUDES ${RENDERER_NVRHI_INCLUDES})
 		list(APPEND RBDOOM3_SOURCES ${RENDERER_NVRHI_SOURCES})
-
-		# RB: TODO REMOVE
-		set(OpenGL_LIBRARIES
-			opengl32
-			glu32)
 	endif()
 	
 	if(OPENAL)
@@ -1519,15 +1376,11 @@ if(MSVC)
 	
 	if(USE_PRECOMPILED_HEADERS) 
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${IMGUI_NODE_EDITOR_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${IMGUI_NODE_EDITOR_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		if(USE_VULKAN)
-			list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		endif()
 	
 		#foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 		#	message(STATUS "-include precompiled.h for ${src_file}")
@@ -1546,6 +1399,13 @@ if(MSVC)
 			OBJECT_OUTPUTS "precompiled.pch"
 		)
 	endif()
+	
+	# SRS - disable certain MSVC warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${OGGVORBIS_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "/wd4101 /wd4267"	# C4101: unreferenced local variable, C4267: type conversion with possible loss of data
+			)
 	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
@@ -1569,12 +1429,9 @@ if(MSVC)
 		winmm
 		wsock32.lib
 		${Vulkan_LIBRARIES}
-		${OpenGL_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
-        ${PNG_LIBRARY}
-        ${JPEG_LIBRARY}
 		${CMAKE_DL_LIBS}
 		)
 		
@@ -1657,15 +1514,11 @@ else()
 	
 	if(USE_PRECOMPILED_HEADERS) 	
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${IMGUI_NODE_EDITOR_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${IMGUI_NODE_EDITOR_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		if(USE_VULKAN)
-			list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		endif()
 
 		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
@@ -1684,7 +1537,23 @@ else()
 			LIST(APPEND _compiler_FLAGS " -I${item}")
 		ENDFOREACH(item)
 	endif()
+
+	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${MINIZIP_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
+			)
 		
+	# SRS - if using gcc compiler enable gnu extensions for ##__VA_ARGS__ support within optick profiler (i.e. __STRICT_ANSI__ not set)
+	if(CMAKE_COMPILER_IS_GNUCC)
+		set_source_files_properties(
+				${OPTICK_SOURCES}
+				PROPERTIES
+				COMPILE_FLAGS "-std=gnu++${CMAKE_CXX_STANDARD}"
+				)
+	endif()
+	
 	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
 	LIST(APPEND _compiler_FLAGS ${_directory_flags})
 	SEPARATE_ARGUMENTS(_compiler_FLAGS)
@@ -1693,6 +1562,11 @@ else()
 		# we need to recreate the precompiled header for RBDoom3BFG 
 		# (i.e. can't use the one created for idlib before)
 		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
 		add_custom_target(precomp_header_rbdoom3bfg ALL
 				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -1714,8 +1588,8 @@ else()
 
 		# add macOS bundle properties to executable
 		set(MACOSX_BUNDLE_BUNDLE_NAME RBDoom-3-BFG)
-		set(MACOSX_BUNDLE_BUNDLE_VERSION 1.5.0)
-		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.5.0)
+		set(MACOSX_BUNDLE_BUNDLE_VERSION 1.6.0)
+		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.6.0)
 		set(MACOSX_BUNDLE_ICON_FILE Doom3BFG.icns)
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
@@ -1750,7 +1624,8 @@ else()
 		# delete precompiled header file after executable is compiled: IDE build case (e.g. Xcode)
 		else()
 			add_custom_command(TARGET RBDoom3BFG POST_BUILD
-					COMMAND ${remove_command} "idlib/precompiled.h.gch"
+					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
+					COMMAND ${remove_command} "idlib/precompiled.h*.gch*"
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 					COMMENT "remove idlib/precompiled.h.gch"
 			)
@@ -1765,15 +1640,12 @@ else()
 		target_link_libraries(RBDoom3BFG
 			idlib
 			${Vulkan_LIBRARY}
-			#${OPENGL_LIBRARIES}
 			pthread
 			${RT_LIBRARY}
 			${SDLx_LIBRARY}
 			${OPENAL_LIBRARY}
 			${FFMPEG_LIBRARIES}
             ${ZLIB_LIBRARY}
-            ${PNG_LIBRARY}
-            ${JPEG_LIBRARY}
 	    	${CMAKE_DL_LIBS}
 			)
 	endif()
@@ -1801,7 +1673,9 @@ endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(RBDoom3BFG nvrhi)
+target_link_libraries(RBDoom3BFG ShaderMakeBlob)
 
 add_subdirectory(shaders)
+add_dependencies(Shaders ShaderMake)
 add_dependencies(RBDoom3BFG Shaders)
 

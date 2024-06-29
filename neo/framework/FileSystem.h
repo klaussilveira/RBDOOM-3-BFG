@@ -228,6 +228,7 @@ public:
 	virtual void			EndLevelLoad() = 0;
 	virtual bool			InProductionMode() = 0;
 	virtual bool			UsingResourceFiles() = 0;
+	virtual bool			UsingZipFiles() = 0; // RB
 	virtual void			UnloadMapResources( const char* name ) = 0;
 	virtual void			UnloadResourceContainer( const char* name ) = 0;
 	virtual void			StartPreload( const idStrList& _preload ) = 0;
@@ -244,6 +245,15 @@ public:
 	virtual void			AddParticlePreload( const char* resName ) = 0;
 	virtual void			AddCollisionPreload( const char* resName ) = 0;
 
+	// RB begin
+
+	// Returns true if Doom 2004 is detected
+	virtual bool			IsDoom2004() const = 0;
+
+	// Returns true if Doom 2019 is detected
+	// that one is BFG without Doom 1 & 2 and without multiplayer
+	virtual bool			IsDoom2019() const = 0;
+	// RB end
 };
 
 extern idFileSystem* 		fileSystem;

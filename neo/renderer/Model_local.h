@@ -100,8 +100,6 @@ public:
 	virtual const idJointQuat* 	GetDefaultPose() const;
 	virtual int					NearestJoint( int surfaceNum, int a, int b, int c ) const;
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
-	virtual void				ReadFromDemoFile( class idDemoFile* f );
-	virtual void				WriteToDemoFile( class idDemoFile* f );
 	virtual float				DepthHack() const;
 
 	virtual bool				ModelHasDrawingSurfaces() const
@@ -122,10 +120,8 @@ public:
 	bool						LoadASE( const char* fileName, ID_TIME_T* sourceTimeStamp );
 	bool						LoadLWO( const char* fileName, ID_TIME_T* sourceTimeStamp );
 	bool						LoadMA( const char* filename, ID_TIME_T* sourceTimeStamp );
-	bool						LoadDAE( const char* fileName, ID_TIME_T* sourceTimeStamp ); // RB
 	bool						LoadOBJ( const char* fileName, ID_TIME_T* sourceTimeStamp ); // RB
 
-	bool						ConvertDAEToModelSurfaces( const ColladaParser* dae ); // RB
 	bool						ConvertOBJToModelSurfaces( const objModel_t* obj ); // RB
 	bool						ConvertASEToModelSurfaces( const struct aseModel_s* ase );
 	bool						ConvertLWOToModelSurfaces( const struct st_lwObject* lwo );
@@ -169,6 +165,9 @@ protected:
 	static idCVar				r_slopTexCoord;			// merge texture coordinates this far apart
 	static idCVar				r_slopNormal;			// merge normals that dot less than this
 };
+
+
+#if !defined( DMAP )
 
 /*
 ===============================================================================
@@ -559,5 +558,7 @@ public:
 		return false;
 	};
 };
+
+#endif // #if !defined( DMAP )
 
 #endif /* !__MODEL_LOCAL_H__ */

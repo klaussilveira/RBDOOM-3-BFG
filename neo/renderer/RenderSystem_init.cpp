@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2021 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
 
@@ -96,11 +96,10 @@ idCVar r_useViewBypass( "r_useViewBypass", "1", CVAR_RENDERER | CVAR_INTEGER, "b
 idCVar r_useLightPortalFlow( "r_useLightPortalFlow", "1", CVAR_RENDERER | CVAR_BOOL, "use a more precise area reference determination" );
 idCVar r_singleTriangle( "r_singleTriangle", "0", CVAR_RENDERER | CVAR_BOOL, "only draw a single triangle per primitive" );
 idCVar r_checkBounds( "r_checkBounds", "0", CVAR_RENDERER | CVAR_BOOL, "compare all surface bounds with precalculated ones" );
-idCVar r_useConstantMaterials( "r_useConstantMaterials", "1", CVAR_RENDERER | CVAR_BOOL, "use pre-calculated material registers if possible" );
-idCVar r_useSilRemap( "r_useSilRemap", "1", CVAR_RENDERER | CVAR_BOOL, "consider verts with the same XYZ, but different ST the same for shadows" );
+
 idCVar r_useNodeCommonChildren( "r_useNodeCommonChildren", "1", CVAR_RENDERER | CVAR_BOOL, "stop pushing reference bounds early when possible" );
 idCVar r_useShadowSurfaceScissor( "r_useShadowSurfaceScissor", "1", CVAR_RENDERER | CVAR_BOOL, "scissor shadows by the scissor rect of the interaction surfaces" );
-idCVar r_useCachedDynamicModels( "r_useCachedDynamicModels", "1", CVAR_RENDERER | CVAR_BOOL, "cache snapshots of dynamic models" );
+
 idCVar r_maxAnisotropicFiltering( "r_maxAnisotropicFiltering", "8", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "limit aniso filtering" );
 idCVar r_useTrilinearFiltering( "r_useTrilinearFiltering", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Extra quality filtering" );
 // RB: not used anymore
@@ -168,12 +167,9 @@ idCVar r_testGammaBias( "r_testGammaBias", "0", CVAR_RENDERER | CVAR_FLOAT, "if 
 idCVar r_lightScale( "r_lightScale", "3", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT, "all light intensities are multiplied by this", 0, 100 );
 idCVar r_flareSize( "r_flareSize", "1", CVAR_RENDERER | CVAR_FLOAT, "scale the flare deforms from the material def" );
 
-idCVar r_useScissor( "r_useScissor", "1", CVAR_RENDERER | CVAR_BOOL, "scissor clip as portals and lights are processed" );
+idCVar r_useScissor( "r_useScissor", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NOCHEAT, "scissor clip as portals and lights are processed" );
 idCVar r_useLightDepthBounds( "r_useLightDepthBounds", "1", CVAR_RENDERER | CVAR_BOOL, "use depth bounds test on lights to reduce both shadow and interaction fill" );
 idCVar r_useShadowDepthBounds( "r_useShadowDepthBounds", "1", CVAR_RENDERER | CVAR_BOOL, "use depth bounds test on individual shadow volumes to reduce shadow fill" );
-// RB begin
-idCVar r_useHalfLambertLighting( "r_useHalfLambertLighting", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE, "use Half-Lambert lighting instead of classic Lambert, requires reloadShaders" );
-// RB end
 
 idCVar r_screenFraction( "r_screenFraction", "100", CVAR_RENDERER | CVAR_INTEGER, "for testing fill rate, the resolution of the entire screen can be changed" );
 idCVar r_usePortals( "r_usePortals", "1", CVAR_RENDERER | CVAR_BOOL, " 1 = use portals to perform area culling, otherwise draw everything" );
@@ -191,7 +187,6 @@ idCVar r_showUnsmoothedTangents( "r_showUnsmoothedTangents", "0", CVAR_RENDERER 
 idCVar r_showSilhouette( "r_showSilhouette", "0", CVAR_RENDERER | CVAR_BOOL, "highlight edges that are casting shadow planes" );
 idCVar r_showVertexColor( "r_showVertexColor", "0", CVAR_RENDERER | CVAR_BOOL, "draws all triangles with the solid vertex color" );
 idCVar r_showUpdates( "r_showUpdates", "0", CVAR_RENDERER | CVAR_BOOL, "report entity and light updates and ref counts" );
-idCVar r_showDemo( "r_showDemo", "0", CVAR_RENDERER | CVAR_BOOL, "report reads and writes to the demo file" );
 idCVar r_showDynamic( "r_showDynamic", "0", CVAR_RENDERER | CVAR_BOOL, "report stats on dynamic surface generation" );
 idCVar r_showTrace( "r_showTrace", "0", CVAR_RENDERER | CVAR_INTEGER, "show the intersection of an eye trace with the world", idCmdSystem::ArgCompletion_Integer<0, 2> );
 idCVar r_showIntensity( "r_showIntensity", "0", CVAR_RENDERER | CVAR_BOOL, "draw the screen colors based on intensity, red = 0, green = 128, blue = 255" );
@@ -276,7 +271,7 @@ idCVar r_hdrDebug( "r_hdrDebug", "0", CVAR_RENDERER | CVAR_FLOAT, "show scene lu
 idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | CVAR_FLOAT, "" );
 idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT, "" );
 
-idCVar r_useFilmicPostProcessing( "r_useFilmicPostProcessing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "apply several post process effects to mimic a filmic look" );
+idCVar r_useFilmicPostFX( "r_useFilmicPostFX", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "filmic look with chromatic abberation and film grain" );
 
 idCVar r_forceAmbient( "r_forceAmbient", "0.5", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "render additional ambient pass to make the game less dark", 0.0f, 1.0f );
 
@@ -285,8 +280,6 @@ idCVar r_ssaoDebug( "r_ssaoDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
 idCVar r_ssaoFiltering( "r_ssaoFiltering", "0", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useHierarchicalDepthBuffer( "r_useHierarchicalDepthBuffer", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 
-// RB: only change r_usePBR if you are a developer
-idCVar r_usePBR( "r_usePBR", "1", CVAR_RENDERER | CVAR_ROM | CVAR_STATIC | CVAR_BOOL, "use PBR and Image Based Lighting instead of old Quake 4 style ambient lighting" );
 idCVar r_pbrDebug( "r_pbrDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "show which materials have PBR support (green = PBR, red = oldschool D3)" );
 idCVar r_showViewEnvprobes( "r_showViewEnvprobes", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = displays the bounding boxes of all view environment probes, 2 = show irradiance" );
 idCVar r_showLightGrid( "r_showLightGrid", "0", CVAR_RENDERER | CVAR_INTEGER, "show Quake 3 style light grid points" );
@@ -302,14 +295,27 @@ idCVar r_taaClampingFactor( "r_taaClampingFactor", "1.0", CVAR_RENDERER | CVAR_F
 idCVar r_taaNewFrameWeight( "r_taaNewFrameWeight", "0.1", CVAR_RENDERER | CVAR_FLOAT, "" );
 idCVar r_taaMaxRadiance( "r_taaMaxRadiance", "10000", CVAR_RENDERER | CVAR_FLOAT, "" );
 idCVar r_taaMotionVectors( "r_taaMotionVectors", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+
+idCVar r_useCRTPostFX( "r_useCRTPostFX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "RetroArch CRT shader: 1 = Matthias CRT, 1 = New Pixie", 0, 2 );
+idCVar r_crtCurvature( "r_crtCurvature", "2", CVAR_RENDERER | CVAR_FLOAT, "rounded borders" );
+idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT, "fading into the borders" );
+
+idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT, "" );
+
+idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX", 0, 7 );
 // RB end
 
 const char* fileExten[4] = { "tga", "png", "jpg", "exr" };
 const char* envDirection[6] = { "_px", "_nx", "_py", "_ny", "_pz", "_nz" };
 const char* skyDirection[6] = { "_forward", "_back", "_left", "_right", "_up", "_down" };
 
-DeviceManager* deviceManager;
+DeviceManager* deviceManager = NULL;
 
+
+bool R_UsePixelatedLook()
+{
+	return ( r_renderMode.GetInteger() == RENDERMODE_PSX ) || image_pixelLook.GetBool();
+}
 
 bool R_UseTemporalAA()
 {
@@ -448,12 +454,18 @@ void R_SetNewMode( const bool fullInit )
 			case ANTI_ALIASING_MSAA_4X:
 				parms.multiSamples = 4;
 				break;
+#elif defined( _MSC_VER )			// SRS: #pragma warning is MSVC specific
+#pragma warning( push )
+#pragma warning( disable : 4065 )	// C4065: switch statement contains 'default' but no 'case'
 #endif
 
 			default:
 				parms.multiSamples = 1;
 				break;
 		}
+#if !ID_MSAA && defined( _MSC_VER )
+#pragma warning( pop )
+#endif
 
 		if( i == 0 )
 		{
@@ -467,17 +479,6 @@ void R_SetNewMode( const bool fullInit )
 		if( fullInit )
 		{
 			// create the context as well as setting up the window
-
-			nvrhi::GraphicsAPI api = nvrhi::GraphicsAPI::D3D12;
-			if( !idStr::Icmp( r_graphicsAPI.GetString(), "vulkan" ) )
-			{
-				api = nvrhi::GraphicsAPI::VULKAN;
-			}
-			else if( !idStr::Icmp( r_graphicsAPI.GetString(), "dx12" ) )
-			{
-				api = nvrhi::GraphicsAPI::D3D12;
-			}
-			deviceManager = DeviceManager::Create( api );
 
 #if defined( VULKAN_USE_PLATFORM_SDL )
 			if( VKimp_Init( parms ) )
@@ -838,16 +839,17 @@ bool R_ReadPixelsRGB8( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrh
 #endif
 
 	// fix alpha
-	for( int i = 0; i < ( desc.width * desc.height ); i++ )
+	// SRS - changed to uint32_t for type consistency
+	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		data[ i * 4 + 3 ] = 0xff;
 	}
 
 	// SRS - Save screen shots to fs_savepath on macOS (i.e. don't save into an app bundle's basepath)
 #if defined(__APPLE__)
-	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, true, "fs_savepath" );
+	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, "fs_savepath" );
 #else
-	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, true, "fs_basepath" );
+	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, "fs_basepath" );
 #endif
 
 	if( newData )
@@ -952,7 +954,8 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 	}
 #endif
 
-	for( int i = 0; i < ( desc.width * desc.height ); i++ )
+	// SRS - changed to uint32_t for type consistency
+	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		outData[ i * 3 + 0 ] = data[ i * 4 + 0 ];
 		outData[ i * 3 + 1 ] = data[ i * 4 + 1 ];
@@ -966,7 +969,8 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 	const idVec3 LUMINANCE_LINEAR( 0.299f, 0.587f, 0.144f );
 	idVec3 rgb;
 
-	for( int i = 0; i < ( desc.width * desc.height ); i++ )
+	// SRS - changed to uint32_t for type consistency
+	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		rgb.x = F16toF32( outData[ i * 3 + 0 ] );
 		rgb.y = F16toF32( outData[ i * 3 + 1 ] );
@@ -990,7 +994,8 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 
 	if( isCorrupted )
 	{
-		for( int i = 0; i < ( desc.width * desc.height ); i++ )
+		// SRS - changed to uint32_t for type consistency
+		for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 		{
 			outData[ i * 3 + 0 ] = F32toF16( 0 );
 			outData[ i * 3 + 1 ] = F32toF16( 0 );
@@ -1605,10 +1610,8 @@ void R_InitMaterials()
 	// RB: create implicit material
 	tr.imgGuiMaterial = declManager->FindMaterial( "_imguiFont", true );
 
-#if IMGUI_BFGUI
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->TexID = ( void* )( intptr_t )tr.imgGuiMaterial;
-#endif
 }
 
 
@@ -1741,24 +1744,32 @@ void idRenderSystemLocal::Clear()
 
 	if( unitSquareTriangles != NULL )
 	{
+		Mem_Free( unitSquareTriangles->verts );
+		Mem_Free( unitSquareTriangles->indexes );
 		Mem_Free( unitSquareTriangles );
 		unitSquareTriangles = NULL;
 	}
 
 	if( zeroOneCubeTriangles != NULL )
 	{
+		Mem_Free( zeroOneCubeTriangles->verts );
+		Mem_Free( zeroOneCubeTriangles->indexes );
 		Mem_Free( zeroOneCubeTriangles );
 		zeroOneCubeTriangles = NULL;
 	}
 
 	if( zeroOneSphereTriangles != NULL )
 	{
+		Mem_Free( zeroOneSphereTriangles->verts );
+		Mem_Free( zeroOneSphereTriangles->indexes );
 		Mem_Free( zeroOneSphereTriangles );
 		zeroOneSphereTriangles = NULL;
 	}
 
 	if( testImageTriangles != NULL )
 	{
+		Mem_Free( testImageTriangles->verts );
+		Mem_Free( testImageTriangles->indexes );
 		Mem_Free( testImageTriangles );
 		testImageTriangles = NULL;
 	}
@@ -2165,8 +2176,6 @@ idRenderSystemLocal::Shutdown
 */
 void idRenderSystemLocal::Shutdown()
 {
-	extern idCVar com_smp;
-
 	common->Printf( "idRenderSystem::Shutdown()\n" );
 
 	fonts.DeleteContents();
@@ -2198,12 +2207,8 @@ void idRenderSystemLocal::Shutdown()
 
 	UnbindBufferObjects();
 
-	// SRS - wait for fence to hit before freeing any resources the GPU may be using, otherwise get Vulkan validation layer errors on shutdown
-	// SRS - skip this step if we are in Doom 3 mode (com_smp = -1) which has already finished and presented
-	if( com_smp.GetInteger() != -1 )
-	{
-		backend.GL_BlockingSwapBuffers();
-	}
+	// SRS - wait for device idle before freeing any resources the GPU may be using, otherwise get errors on shutdown
+	deviceManager->GetDevice()->waitForIdle();
 
 	// free the vertex cache, which should have nothing allocated now
 	vertexCache.Shutdown();
@@ -2498,7 +2503,11 @@ idRenderSystemLocal::IsStereoScopicRenderingSupported
 */
 bool idRenderSystemLocal::IsStereoScopicRenderingSupported() const
 {
+#if VR_OPTIONS
 	return true;
+#else
+	return false;
+#endif
 }
 
 /*
@@ -2535,7 +2544,12 @@ idRenderSystemLocal::GetStereoScopicRenderingMode
 */
 stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
 {
+	// RB: only support in VR builds
+#if VR_OPTIONS
 	return ( !IsStereoScopicRenderingSupported() ) ? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
+#else
+	return STEREO3D_OFF;
+#endif
 }
 
 /*

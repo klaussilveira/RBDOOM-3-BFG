@@ -114,6 +114,7 @@ enum textureFormat_t
 };
 
 int BitsForFormat( textureFormat_t format );
+int GetRowPitch( const textureFormat_t& format, int width );
 
 /*
 ================================================
@@ -250,40 +251,6 @@ typedef enum
 	CF_SINGLE,      // SP: A single texture cubemap. All six sides in one image.
 } cubeFiles_t;
 
-class idDeferredImage
-{
-public:
-	idDeferredImage( const char* imageName );
-	~idDeferredImage();
-
-	idStr			name;
-	byte*			pic;
-	int				width;
-	int				height;
-	textureFilter_t textureFilter;
-	textureRepeat_t textureRepeat;
-	textureUsage_t	textureUsage;
-};
-
-ID_INLINE idDeferredImage::idDeferredImage( const char* imageName )
-	: name( imageName )
-	, pic( nullptr )
-	, width( 0 )
-	, height( 0 )
-	, textureFilter( TF_DEFAULT )
-	, textureRepeat( TR_CLAMP )
-	, textureUsage( TD_DEFAULT )
-{
-}
-
-ID_INLINE idDeferredImage::~idDeferredImage()
-{
-	if( pic )
-	{
-		delete pic;
-	}
-}
-
 typedef void ( *ImageGeneratorFunction )( idImage* image, nvrhi::ICommandList* commandList );
 
 #include "BinaryImage.h"
@@ -360,7 +327,7 @@ public:
 		levelLoadReferenced = true;
 	}
 
-	void		FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
+	void		ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
 
 	// Adds the image to the list of images to load on the main thread to the gpu.
 	void		DeferredLoadImage();
@@ -458,15 +425,7 @@ public:
 		return ( void* )texture.Get();
 	}
 
-	void* GetSampler( SamplerCache& samplerCache )
-	{
-		if( !sampler )
-		{
-			sampler = samplerCache.GetOrCreateSampler( samplerDesc );
-		}
-
-		return ( void* )sampler.Get();
-	}
+	void* GetSampler( SamplerCache& samplerCache );
 
 	void* GetSampler( nvrhi::IDevice* device )
 	{
@@ -533,14 +492,14 @@ private:
 };
 
 // data is RGBA
-void	LoadPNG( const char* filename, unsigned char** pic, int* width, int* height, ID_TIME_T* timestamp );
+void	LoadSTB_RGBA8( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp );
 
 void	LoadTGA( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp );
 void	R_WriteTGA( const char* filename, const byte* data, int width, int height, bool flipVertical = false, const char* basePath = "fs_savepath" );
 // data is in top-to-bottom raster order unless flipVertical is set
 
 // RB begin
-void	R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, bool flipVertical = false, const char* basePath = "fs_savepath" );
+void	R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, const char* basePath = "fs_savepath" );
 void	R_WriteEXR( const char* filename, const void* data, int channelsPerPixel, int width, int height, const char* basePath = "fs_savepath" );
 // RB end
 
@@ -627,7 +586,6 @@ public:
 	idImage*			randomImage256;
 	idImage*			blueNoiseImage256;
 	idImage*			currentRenderHDRImage;
-	idImage*			currentRenderHDRImage64;
 	idImage*			ldrImage;						// tonemapped result which can be used for further post processing
 	idImage*			taaMotionVectorsImage;			// motion vectors for TAA projection
 	idImage*			taaResolvedImage;
@@ -661,7 +619,7 @@ public:
 	idImage* 			scratchImage;
 	idImage* 			scratchImage2;
 	idImage* 			accumImage;
-	idImage* 			currentRenderImage;				// for SS_POST_PROCESS shaders, Doom 3 legacy but in HDR now
+	idImage* 			currentRenderImage;				// for 3D scene SS_POST_PROCESS shaders for effects like heatHaze, in HDR now
 	idImage* 			currentDepthImage;				// for motion blur, SSAO and everything that requires depth to world pos reconstruction
 	idImage* 			originalCurrentRenderImage;		// currentRenderImage before any changes for stereo rendering
 	idImage* 			loadingIconImage;				// loading icon must exist always
@@ -674,8 +632,6 @@ public:
 	idImage* 			AllocImage( const char* name );
 	idImage* 			AllocStandaloneImage( const char* name );
 
-	idDeferredImage*	AllocDeferredImage( const char* name );
-
 	bool				ExcludePreloadImage( const char* name );
 
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	images;
@@ -683,10 +639,6 @@ public:
 
 	// Transient list of images to load on the main thread to the gpu. Freed after images are loaded.
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	imagesToLoad;
-
-	// Permanent images to load from memory instead of a file system.
-	idList<idDeferredImage*, TAG_IDLIB_LIST_IMAGE>	deferredImages;
-	idHashIndex										deferredImageHash;
 
 	bool									insideLevelLoad;			// don't actually load images now
 	bool									preloadingMapImages;		// unless this is set

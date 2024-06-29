@@ -30,14 +30,17 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 #pragma hdrstop
+
 #include "Model_gltf.h"
 #include "Model_local.h"
 #include "RenderCommon.h"	// just for R_FreeWorldInteractions and R_CreateWorldInteractions
 
-#include <sys/DeviceManager.h>
+#if !defined( DMAP )
+	#include <sys/DeviceManager.h>
+	extern DeviceManager* deviceManager;
+#endif
 
-extern DeviceManager* deviceManager;
-extern idCVar r_uploadBufferSizeMB;
+extern idCVar r_vkUploadBufferSizeMB;
 
 idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", 0, "enable binary load/write of render models" );
 idCVar preload_MapModels( "preload_MapModels", "1", CVAR_SYSTEM | CVAR_BOOL, "preload models during begin or end levelload" );
@@ -228,7 +231,7 @@ void idRenderModelManagerLocal::WritePrecacheCommands( idFile* f )
 		}
 
 		char	str[1024];
-		sprintf( str, "touchModel %s\n", model->Name() );
+		idStr::snPrintf( str, sizeof( str ), "touchModel %s\n", model->Name() );
 		common->Printf( "%s", str );
 		f->Printf( "%s", str );
 	}
@@ -241,17 +244,20 @@ idRenderModelManagerLocal::Init
 */
 void idRenderModelManagerLocal::Init()
 {
+#if !defined( DMAP )
 	if( !commandList )
 	{
 		nvrhi::CommandListParameters params = {};
+		params.enableImmediateExecution = false;
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
 			// SRS - set upload buffer size to avoid Vulkan staging buffer fragmentation
-			size_t maxBufferSize = ( size_t )( r_uploadBufferSizeMB.GetInteger() * 1024 * 1024 );
+			size_t maxBufferSize = ( size_t )( r_vkUploadBufferSizeMB.GetInteger() * 1024 * 1024 );
 			params.setUploadChunkSize( maxBufferSize );
 		}
 		commandList = deviceManager->GetDevice()->createCommandList( params );
 	}
+#endif
 
 	cmdSystem->AddCommand( "listModels", ListModels_f, CMD_FL_RENDERER, "lists all models" );
 	cmdSystem->AddCommand( "printModel", PrintModel_f, CMD_FL_RENDERER, "prints model info", idCmdSystem::ArgCompletion_ModelName );
@@ -268,6 +274,7 @@ void idRenderModelManagerLocal::Init()
 	defaultModel = model;
 	AddModel( model );
 
+#if !defined( DMAP )
 	// create the beam model
 	idRenderModelStatic* beam = new( TAG_MODEL ) idRenderModelBeam;
 	beam->InitEmpty( "_BEAM" );
@@ -280,6 +287,7 @@ void idRenderModelManagerLocal::Init()
 	sprite->SetLevelLoadReferenced( true );
 	spriteModel = sprite;
 	AddModel( sprite );
+#endif
 }
 
 /*
@@ -398,13 +406,14 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 		model = new( TAG_MODEL ) idRenderModelGLTF;
 		isGLTF = true;
 	}
-	// RB: Collada DAE and Wavefront OBJ
-	else if( ( extension.Icmp( "dae" ) == 0 ) || ( extension.Icmp( "obj" ) == 0 )
+	// RB: Wavefront OBJ
+	else if( ( extension.Icmp( "obj" ) == 0 )
 			 || ( extension.Icmp( "ase" ) == 0 ) || ( extension.Icmp( "lwo" ) == 0 )
 			 || ( extension.Icmp( "flt" ) == 0 ) || ( extension.Icmp( "ma" ) == 0 ) )
 	{
 		model = new( TAG_MODEL ) idRenderModelStatic;
 	}
+#if !defined( DMAP )
 	else if( extension.Icmp( MD5_MESH_EXT ) == 0 )
 	{
 		model = new( TAG_MODEL ) idRenderModelMD5;
@@ -421,6 +430,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	{
 		model = new( TAG_MODEL ) idRenderModelLiquid;
 	}
+#endif
 
 	idStrStatic< MAX_OSPATH > generatedFileName;
 
@@ -476,7 +486,6 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	// Not one of the known formats
 	if( model == NULL )
 	{
-
 		if( extension.Length() )
 		{
 			common->Warning( "unknown model type '%s'", canonical.c_str() );
@@ -514,6 +523,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	}
 
 	// RB begin
+#if !defined( DMAP )
 	if( postLoadExportModels.GetBool() && ( model != defaultModel && model != beamModel && model != spriteModel ) )
 	{
 		idStrStatic< MAX_OSPATH > exportedFileName;
@@ -544,6 +554,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 			model->ExportOBJ( objFile, mtlFile );
 		}
 	}
+#endif
 	// RB end
 
 	AddModel( model );
@@ -660,6 +671,7 @@ idRenderModelManagerLocal::ReloadModels
 */
 void idRenderModelManagerLocal::ReloadModels( bool forceAll )
 {
+#if !defined( DMAP )
 	if( forceAll )
 	{
 		common->Printf( "Reloading all model files...\n" );
@@ -718,12 +730,12 @@ void idRenderModelManagerLocal::ReloadModels( bool forceAll )
 		{
 			model->LoadModel();
 		}
-
 	}
 
 	// we must force the world to regenerate, because models may
 	// have changed size, making their references invalid
 	R_ReCreateWorldReferences();
+#endif
 }
 
 void idRenderModelManagerLocal::CreateMeshBuffers( nvrhi::ICommandList* commandList )
@@ -774,7 +786,9 @@ void idRenderModelManagerLocal::BeginLevelLoad()
 		model->SetLevelLoadReferenced( false );
 	}
 
+#if !defined( DMAP )
 	vertexCache.FreeStaticData();
+#endif
 }
 
 /*
@@ -907,6 +921,7 @@ void idRenderModelManagerLocal::EndLevelLoad()
 		}
 	}
 
+#if !defined( DMAP )
 	commandList->open();
 
 	for( int i = 0; i < models.Num(); i++ )
@@ -930,6 +945,7 @@ void idRenderModelManagerLocal::EndLevelLoad()
 
 	commandList->close();
 	deviceManager->GetDevice()->executeCommandList( commandList );
+#endif
 
 	// _D3XP added this
 	int	end = Sys_Milliseconds();
