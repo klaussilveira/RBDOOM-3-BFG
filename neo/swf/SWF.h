@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_Bitstream.h"
 // RB begin
 #include "SWF_File.h"
-#include <lua.hpp>
+#include "../libs/lua/src/lua.hpp"
 // RB end
 #include "SWF_ScriptVar.h"
 #include "SWF_Sprites.h"

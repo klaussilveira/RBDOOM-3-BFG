@@ -646,6 +646,7 @@ set(LUA_INCLUDES
 	libs/lua/src/lundump.h
 	libs/lua/src/lvm.h
 	libs/lua/src/lzio.h
+	libs/lua/src/lua.hpp
 	)
 	
 set(LUA_SOURCES
