@@ -13,6 +13,10 @@ REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/tiny
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/oggvorbis/*.h
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/oggvorbis/*.c
 
+REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/zlib/*.h
+REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/zlib/*.c
+REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/zlib/*.cpp
+
 astyle.exe -v -Q --options=astyle-options.ini --recursive shaders/*.hlsl
 
 pause

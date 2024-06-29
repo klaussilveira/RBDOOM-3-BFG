@@ -57,9 +57,8 @@ void idResourceContainer::ReOpen()
 idResourceContainer::Init
 ========================
 */
-bool idResourceContainer::Init( const char* _fileName, uint8 containerIndex )
+bool idResourceContainer::Init( const char* _fileName )
 {
-
 	if( idStr::Icmp( _fileName, "_ordered.resources" ) == 0 )
 	{
 		resourceFile = fileSystem->OpenFileReadMemory( _fileName );
@@ -103,7 +102,7 @@ bool idResourceContainer::Init( const char* _fileName, uint8 containerIndex )
 		rt.Read( &memFile );
 		rt.filename.BackSlashesToSlashes();
 		rt.filename.ToLower();
-		rt.containerIndex = containerIndex;
+		rt.owner = this;
 
 		const int key = cacheHash.GenerateKey( rt.filename, false );
 		bool found = false;
@@ -315,20 +314,6 @@ void idResourceContainer::UpdateResourceFile( const char* _filename, const idStr
 	delete inFile;
 }
 
-
-/*
-========================
-idResourceContainer::ExtractResourceFile
-========================
-*/
-void idResourceContainer::SetContainerIndex( const int& _idx )
-{
-	for( int i = 0; i < cacheTable.Num(); i++ )
-	{
-		cacheTable[ i ].containerIndex = _idx;
-	}
-}
-
 /*
 ========================
 idResourceContainer::ExtractResourceFile
@@ -367,7 +352,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 	int _numFileResources;
 	memFile.ReadBig( _numFileResources );
 
-#ifndef TYPEINFOPROJECT
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
 	CommandlineProgressBar progressBar( _numFileResources, renderSystem->GetWidth(), renderSystem->GetHeight() );
 	if( _copyWavs )
 	{
@@ -385,7 +370,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
-#ifndef TYPEINFOPROJECT
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
 			idFileLocal fileIn( fileSystem->OpenFileReadMemory( rt.filename ) );
 			if( fileIn != NULL )
 			{
@@ -497,7 +482,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 			Mem_Free( fbuf );
 		}
 
-#ifndef TYPEINFOPROJECT
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
 		if( _copyWavs )
 		{
 			progressBar.Increment( true );

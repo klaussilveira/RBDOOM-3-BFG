@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2023 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
 
@@ -32,8 +32,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-
 #include "RenderCommon.h"
+
+idCVar r_useConstantMaterials( "r_useConstantMaterials", "1", CVAR_RENDERER | CVAR_BOOL, "use pre-calculated material registers if possible" );
 
 /*
 
@@ -1767,8 +1768,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 					continue;
 				}
 			}
+#if !defined( DMAP )
 			ts->cinematic = idCinematic::Alloc();
 			ts->cinematic->InitFromFile( token.c_str(), loop, NULL );
+#endif
 			continue;
 		}
 
@@ -1779,8 +1782,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 				common->Warning( "missing parameter for 'soundmap' keyword in material '%s'", GetName() );
 				continue;
 			}
+#if !defined( DMAP )
 			ts->cinematic = new( TAG_MATERIAL ) idSndWindow();
 			ts->cinematic->InitFromFile( token.c_str(), true, NULL );
+#endif
 			continue;
 		}
 
@@ -2139,9 +2144,11 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2149,8 +2156,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2158,8 +2167,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2202,7 +2213,9 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	// if we are using newStage, allocate a copy of it
 	if( newStage.fragmentProgram || newStage.vertexProgram )
 	{
+#if !defined( DMAP )
 		newStage.glslProgram = renderProgManager.FindProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram, BINDING_LAYOUT_POST_PROCESS_INGAME );
+#endif
 		ss->newStage = ( newShaderStage_t* )Mem_Alloc( sizeof( newStage ), TAG_MATERIAL );
 		*( ss->newStage ) = newStage;
 	}
@@ -2777,7 +2790,9 @@ void idMaterial::ParseMaterial( idLexer& src )
 			}
 			else
 			{
+#if !defined( DMAP )
 				gui = uiManager->FindGui( token.c_str(), true );
+#endif
 			}
 			continue;
 		}
@@ -2975,7 +2990,9 @@ idMaterial::SetGui
 */
 void idMaterial::SetGui( const char* _gui ) const
 {
+#if !defined( DMAP )
 	gui = uiManager->FindGui( _gui, true, false, true );
+#endif
 }
 
 /*
@@ -3720,6 +3737,7 @@ const shaderStage_t* idMaterial::GetBumpStage() const
 idMaterial::ReloadImages
 ===================
 */
+#if !defined( DMAP )
 void idMaterial::ReloadImages( bool force, nvrhi::ICommandList* commandList ) const
 {
 	for( int i = 0 ; i < numStages ; i++ )
@@ -3740,6 +3758,7 @@ void idMaterial::ReloadImages( bool force, nvrhi::ICommandList* commandList ) co
 		}
 	}
 }
+#endif
 
 /*
 =============
@@ -3863,4 +3882,363 @@ void idMaterial::ExportJSON( idFile* file, bool lastEntry ) const
 		file->Printf( "\t\t},\n" );
 	}
 }
+
+/*
+from Blender 4.1 Node Wrangler addon
+
+# Principled prefs
+class NWPrincipledPreferences(bpy.types.PropertyGroup):
+    base_color: StringProperty(
+        name='Base Color',
+        default='diffuse diff albedo base col color basecolor',
+        description='Naming Components for Base Color maps')
+    metallic: StringProperty(
+        name='Metallic',
+        default='metallic metalness metal mtl',
+        description='Naming Components for metallness maps')
+    specular: StringProperty(
+        name='Specular',
+        default='specularity specular spec spc',
+        description='Naming Components for Specular maps')
+    normal: StringProperty(
+        name='Normal',
+        default='normal nor nrm nrml norm',
+        description='Naming Components for Normal maps')
+    bump: StringProperty(
+        name='Bump',
+        default='bump bmp',
+        description='Naming Components for bump maps')
+    rough: StringProperty(
+        name='Roughness',
+        default='roughness rough rgh',
+        description='Naming Components for roughness maps')
+    gloss: StringProperty(
+        name='Gloss',
+        default='gloss glossy glossiness',
+        description='Naming Components for glossy maps')
+    displacement: StringProperty(
+        name='Displacement',
+        default='displacement displace disp dsp height heightmap',
+        description='Naming Components for displacement maps')
+    transmission: StringProperty(
+        name='Transmission',
+        default='transmission transparency',
+        description='Naming Components for transmission maps')
+    emission: StringProperty(
+        name='Emission',
+        default='emission emissive emit',
+        description='Naming Components for emission maps')
+    alpha: StringProperty(
+        name='Alpha',
+        default='alpha opacity',
+        description='Naming Components for alpha maps')
+    ambient_occlusion: StringProperty(
+        name='Ambient Occlusion',
+        default='ao ambient occlusion',
+        description='Naming Components for AO maps')
+*/
+
+#if !defined( DMAP )
+
+// RB: completely rewritten from IcedTech1 and adjusted to generate PBR materials for typical asset store conventions
+// this also supports file suffices used by Blender's Node Wranger addon
+CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures folder using PBR conventions", idCmdSystem::ArgCompletion_ImageName )
+{
+	if( args.Argc() < 2 )
+	{
+		common->Warning( "Usage: makeMaterials <folder>\n" );
+		return;
+	}
+
+	idStr folderName = args.Argv( 1 );
+	idFileList* files = fileSystem->ListFilesTree( folderName, ".png|.tga|.jpg|.exr" );
+
+	idStr mtrBuffer;
+	mtrBuffer += va( "// generated by %s\n", ENGINE_VERSION );
+	mtrBuffer += "// NOTE: adjust this file as needed\n\n";
+
+	idStrList list = files->GetList();
+	for( int i = 0; i < files->GetNumFiles(); i++ )
+	{
+		idStr imageName = list[i];
+
+		if( idStr::FindText( imageName, "_orig", false ) != -1 )
+		{
+			continue;
+		}
+
+		if( idStr::FindText( imageName, "_diffuse", false ) != -1 ||
+				idStr::FindText( imageName, "_diff", false ) != -1 ||
+				idStr::FindText( imageName, "_albedo", false ) != -1 ||
+				idStr::FindText( imageName, "_basecolor", false ) != -1 ||
+				idStr::FindText( imageName, "_base", false ) != -1 ||
+				idStr::FindText( imageName, "_color", false ) != -1 ||
+				idStr::FindText( imageName, "_col", false ) != -1 )
+		{
+			imageName = imageName.StripFileExtension();
+
+			idStr baseName = imageName;
+			baseName.IStripTrailingOnce( "_diffuse" );
+			baseName.IStripTrailingOnce( "_diff" );
+			baseName.IStripTrailingOnce( "_albedo" );
+			baseName.IStripTrailingOnce( "_basecolor" );
+			baseName.IStripTrailingOnce( "_base" );
+			baseName.IStripTrailingOnce( "_color" );
+			baseName.IStripTrailingOnce( "_col" );
+
+			//mtrBuffer += va( "%s/%s\n", folderName, imageName.c_str() );
+			mtrBuffer += baseName.c_str();
+			mtrBuffer += "\n{\n";
+
+			// TODO qer_editorImage
+			//mtrBuffer += va( "\tqer_editorimage %s\n\n", imageName.c_str() );
+
+			// ===============================
+			// test opacity / transparency map
+			idStrList alphaNames = { "_opacity", "_alpha" };
+			bool foundAlpha = false;
+
+			for( auto& name : alphaNames )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, NULL, NULL, NULL, &testStamp, true, NULL );
+
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					// load opacity map and store values in the alpha channel of the base color image
+
+					byte* pic = NULL;
+					int width, height;
+					R_LoadImage( imageName, &pic, &width, &height, &testStamp, true, NULL );
+
+					byte* pic2 = NULL;
+					int width2, height2;
+					R_LoadImage( testName, &pic2, &width2, &height2, &testStamp, true, NULL );
+
+					if( width == width2 || height == height2 )
+					{
+						// merge images and save it to disk
+						int c = width * height * 4;
+
+						for( int j = 0 ; j < c ; j += 4 )
+						{
+							// just take the r channel of the alpha map
+							pic[j + 3] = pic2[j + 0];
+						}
+
+						// don't destroy the original image and save it as new one
+						idStr mergedName = baseName + "_rgba.png";
+						R_WritePNG( mergedName, static_cast<byte*>( pic ), 4, width, height, "fs_basepath" );
+
+						mtrBuffer += "\t{\n";
+						mtrBuffer += "\t\tblend basecolormap\n";
+						mtrBuffer += va( "\t\tmap %s\n", mergedName.c_str() );
+						mtrBuffer += "\t\talphaTest 0.5\n";
+						mtrBuffer += "\t}\n";
+					}
+					else
+					{
+						mtrBuffer += "\t{\n";
+						mtrBuffer += "\t\tblend basecolormap\n";
+						mtrBuffer += va( "\t\tmap %s\n", imageName.c_str() );
+						mtrBuffer += "\t\talphaTest 0.5\n";
+						mtrBuffer += "\t}\n";
+					}
+
+					if( pic )
+					{
+						R_StaticFree( pic );
+					}
+					if( pic2 )
+					{
+						R_StaticFree( pic2 );
+					}
+
+					foundAlpha = true;
+					break;
+				}
+			}
+
+			if( !foundAlpha )
+			{
+				mtrBuffer += va( "\tbasecolormap %s\n", imageName.c_str() );
+			}
+
+			// ===============================
+			// test normal map
+			idStrList normalNames = { "_normal", "_nor", "_nrm", "_nrml", "_norm", "_normal_directx", "_normal_opengl" };
+
+			for( auto& name : normalNames )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, NULL, NULL, NULL, &testStamp, true, NULL );
+
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					if( name.Cmp( "_normal_opengl" ) == 0 )
+					{
+						mtrBuffer += va( "\tnormalmap invertGreen( %s )\n", testName.c_str() );
+					}
+					else
+					{
+						mtrBuffer += va( "\tnormalmap %s\n", testName.c_str() );
+					}
+					break;
+				}
+			}
+
+			// ===============================
+			// test roughness map
+			idStrList roughNames = { "_roughness", "_rough", "_rgh" };
+			byte* roughPic = NULL;
+			int roughWidth = 0;
+			int roughHeight = 0;
+
+			for( auto& name : roughNames )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, &roughPic, &roughWidth, &roughHeight, &testStamp, true, NULL );
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					break;
+				}
+			}
+
+			// ===============================
+			// test metallic map
+			idStrList metalNames = { "_metallic", "_metalness", "_metal", "_mtl" };
+			byte* metalPic = NULL;
+			int metalWidth = 0;
+			int metalHeight = 0;
+
+			for( auto& name : metalNames )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, &metalPic, &metalWidth, &metalHeight, &testStamp, true, NULL );
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					break;
+				}
+			}
+
+			// ===============================
+			// test ambient occlusion map
+			idStrList aoNames = { "_ao", "_ambient", "_occlusion" };
+			byte* aoPic = NULL;
+			int aoWidth = 0;
+			int aoHeight = 0;
+
+			for( auto& name : aoNames )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, &aoPic, &aoWidth, &aoHeight, &testStamp, true, NULL );
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					break;
+				}
+			}
+
+			// expect at least roughness and metallic values or we skip the PBR material creation here
+			if( roughPic && metalPic )
+			{
+				if( roughWidth == metalWidth || roughHeight == metalHeight )
+				{
+					// merge images and save it to disk
+					int c = roughWidth * roughHeight * 4;
+
+					for( int j = 0 ; j < c ; j += 4 )
+					{
+						// put metallic into green channel
+						roughPic[j + 1] = metalPic[j + 0];
+
+						// put middle 0.5 value into alpha channel for the case we want to add displacement later
+						roughPic[j + 3] = 128;
+					}
+
+					if( roughWidth == aoWidth || roughHeight == aoHeight )
+					{
+						for( int i = 0 ; i < c ; i += 4 )
+						{
+							// put AO into blue channel
+							roughPic[i + 2] = aoPic[i + 0];
+						}
+					}
+					else
+					{
+						// reset AO channel to white
+						for( int i = 0 ; i < c ; i += 4 )
+						{
+							roughPic[i + 2] = 255;
+						}
+					}
+
+					// don't destroy the original image and save it as new one
+					idStr mergedName = baseName + "_rmao.png";
+					R_WritePNG( mergedName, static_cast<byte*>( roughPic ), 4, roughWidth, roughHeight, "fs_basepath" );
+
+					mtrBuffer += va( "\trmaomap %s\n", mergedName.c_str() );
+				}
+			}
+
+			if( roughPic )
+			{
+				R_StaticFree( roughPic );
+			}
+			if( metalPic )
+			{
+				R_StaticFree( metalPic );
+			}
+			if( aoPic )
+			{
+				R_StaticFree( aoPic );
+			}
+
+			// ===============================
+			// test emmissive map
+			idStrList emmissiveName = { "_emission", "_emissive", "_emit" };
+
+			for( auto& name : emmissiveName )
+			{
+				ID_TIME_T testStamp;
+				idStr testName = baseName + name;
+
+				R_LoadImage( testName, NULL, NULL, NULL, &testStamp, true, NULL );
+
+				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+				{
+					mtrBuffer += "\t{\n";
+					mtrBuffer += "\t\tblend add\n";
+					mtrBuffer += va( "\t\tmap %s\n", testName.c_str() );
+					mtrBuffer += "\t}\n";
+					break;
+				}
+			}
+
+			mtrBuffer += va( "}\n\n" );
+		}
+	}
+
+	fileSystem->FreeFileList( files );
+
+	folderName.ReplaceChar( '/', '_' );
+
+	idStr mtrName = "materials/";
+	mtrName += folderName;
+	mtrName.StripTrailing( '_' );
+	mtrName.DefaultFileExtension( ".mtr" );
+
+	fileSystem->WriteFile( mtrName.c_str(), mtrBuffer.c_str(), mtrBuffer.Length(), "fs_basepath" );
+}
+
+#endif // #if !defined( DMAP )
 // RB end
