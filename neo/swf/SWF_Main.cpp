@@ -145,7 +145,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	bool loadedFromJSON = false;
 	if( swf_loadBinary.GetBool() )
 	{
-		if( timestamp == FILE_NOT_FOUND_TIMESTAMP )
+		if( jsonSourceTime != FILE_NOT_FOUND_TIMESTAMP )
 		{
 			timestamp = jsonSourceTime;
 		}
