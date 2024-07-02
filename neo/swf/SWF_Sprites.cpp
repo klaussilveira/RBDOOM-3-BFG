@@ -727,8 +727,8 @@ void idSWFSprite::WriteJSON_DoAction( idFile* file, idFile* luaFile, idSWFBitStr
 	base64.Encode( bitstream.Ptr(), bitstream.Length() );
 
 #if 0
-	//file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"%s\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length(), base64.c_str() );
-	file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"FIXME\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length() );
+	file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"%s\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length(), base64.c_str() );
+	//file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"FIXME\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length() );
 #else
 	if( !idStr::Cmpn( base64.c_str(), "BwA=", 4 ) )
 	{
