@@ -252,6 +252,7 @@ public:
 	static int				Lua_stop( lua_State* L );
 	static int				Lua_play( lua_State* L );
 	static int				Lua_gotoAndPlay( lua_State* L );
+	static int				Lua_gotoAndStop( lua_State* L );
 
 	static int				LuaRegister_idSWFSpriteInstance( lua_State* L );
 	// RB end

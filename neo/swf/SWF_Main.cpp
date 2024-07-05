@@ -150,6 +150,12 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 			timestamp = jsonSourceTime;
 		}
 
+		// don't binarize stuff on export
+		if( exportJSON || exportSWF )
+		{
+			timestamp = FILE_NOT_FOUND_TIMESTAMP;
+		}
+
 		if( !LoadBinary( binaryFileName, timestamp ) )
 		{
 			if( LoadJSON( jsonFileName ) )
@@ -349,14 +355,20 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	// RB end
 
 	// RB: Lua
-	lua_State* L = luaState = lua_newstate( LuaAlloc, NULL );
-	if( L )
-	{
-		lua_atpanic( L, &LuaPanic );
-	}
+	const bool initLua = !exportJSON && !exportSWF;
 
-	luaL_openlibs( L );
-	idSWFSpriteInstance::LuaRegister_idSWFSpriteInstance( L );
+	lua_State* L = luaState = NULL;
+	if( initLua )
+	{
+		L = luaState = lua_newstate( LuaAlloc, NULL );
+		if( L )
+		{
+			lua_atpanic( L, &LuaPanic );
+		}
+
+		luaL_openlibs( L );
+		idSWFSpriteInstance::LuaRegister_idSWFSpriteInstance( L );
+	}
 
 	// RB: also use globals->Set to register functions into the Lua state
 	globals = idSWFScriptObject::Alloc();
@@ -382,11 +394,14 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	SetGlobal( "getTruePlatform", scriptFunction_getTruePlatform.Bind( this ) );
 	SetGlobal( "getLocalString", scriptFunction_getLocalString.Bind( this ) );
 	SetGlobal( "swapPS3Buttons", scriptFunction_swapPS3Buttons.Bind( this ) );
+
+	// TODO probably don't do this in Lua case and make it an __index
 	SetGlobal( "_root", mainspriteInstance->scriptObject );
 	SetGlobal( "strReplace", scriptFunction_strReplace.Bind( this ) );
 	SetGlobal( "getCVarInteger", scriptFunction_getCVarInteger.Bind( this ) );
 	SetGlobal( "setCVarInteger", scriptFunction_setCVarInteger.Bind( this ) );
 
+	// TODO check if we need these below for Lua
 	globals->Set( "acos", scriptFunction_acos.Bind( this ) );
 	globals->Set( "cos", scriptFunction_cos.Bind( this ) );
 	globals->Set( "sin", scriptFunction_sin.Bind( this ) );
@@ -405,34 +420,35 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );
 	globals->SetNative( "crop", swfScriptVar_crop.Bind( this ) );
 
-
-
-	//ID_TIME_T luaTimestamp;
-	idStr luaFileName = filename;
-	luaFileName.SetFileExtension( ".lua" );
-
-	char* luaSrc;
-
-	fileSystem->ReadFile( luaFileName, ( void** ) &luaSrc );
-	if( luaSrc != NULL )
+	if( initLua )
 	{
-		int result = luaL_loadbuffer( L, luaSrc, strlen( luaSrc ), luaFileName );
-		if( result == LUA_ERRSYNTAX )
+		//ID_TIME_T luaTimestamp;
+		idStr luaFileName = filename;
+		luaFileName.SetFileExtension( ".lua" );
+
+		char* luaSrc;
+
+		int luaLen = fileSystem->ReadFile( luaFileName, ( void** ) &luaSrc );
+		if( luaSrc != NULL )
 		{
-			idLib::Error( "Compile of file %s failed: %s ", luaFileName.c_str(), lua_tostring( L, -1 ) );
-			lua_pop( L, 1 );
+			int result = luaL_loadbuffer( L, luaSrc, luaLen, luaFileName );
+			if( result == LUA_ERRSYNTAX )
+			{
+				idLib::Error( "Compile of file %s failed: %s ", luaFileName.c_str(), lua_tostring( L, -1 ) );
+				lua_pop( L, 1 );
+			}
+
+			fileSystem->FreeFile( luaSrc );
+
+			if( lua_pcall( L, 0, 0, 0 ) )
+			{
+				idLib::Error( "Cannot pcall: %s", lua_tostring( L, -1 ) );
+				lua_pop( L, 1 );
+			}
 		}
 
-		fileSystem->FreeFile( luaSrc );
-
-		if( lua_pcall( L, 0, 0, 0 ) )
-		{
-			idLib::Error( "Cannot pcall: %s", lua_tostring( L, -1 ) );
-			lua_pop( L, 1 );
-		}
+		lua_printstack( L );
 	}
-
-	lua_printstack( L );
 	// RB end
 
 
@@ -549,7 +565,7 @@ void idSWF::SetGlobal( const char* name, const idSWFScriptVar& value )
 {
 	globals->Set( name, value );
 
-	if( value.IsFunction() )
+	if( luaState && value.IsFunction() )
 	{
 		lua_State* L = luaState;
 

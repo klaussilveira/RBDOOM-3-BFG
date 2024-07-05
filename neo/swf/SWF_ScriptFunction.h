@@ -274,6 +274,7 @@ private:
 	void		AddLine( const idStr& line );
 	void		AddBlock( const idStr& line );
 	void		QuitCurrentBlock();
+	void		QuitAllBlocks();
 
 	idStr		BuildActionCode( const idList<ActionBlock>& blocks, int level );
 

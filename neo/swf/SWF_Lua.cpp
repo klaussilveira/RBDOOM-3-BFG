@@ -216,7 +216,13 @@ int idSWF::LuaNativeScriptFunctionCall( lua_State* L )
 	{
 		idSWFScriptVar results = globalFunc.GetFunction()->Call( NULL, parms );
 
+		// RB: well idSWFSpriteInstance::RunActions() never expected any return parameters
+
 		// TODO if results > 1 push to stack
+		if( results.GetType() != idSWFScriptVar::SWF_VAR_UNDEF )
+		{
+			common->Printf( "function %s returns %s\n", function, results.ToString().c_str() );
+		}
 	}
 
 	return 0;

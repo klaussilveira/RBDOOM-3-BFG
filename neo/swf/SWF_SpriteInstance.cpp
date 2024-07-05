@@ -345,37 +345,41 @@ bool idSWFSpriteInstance::RunActions()
 	idSWF::SetLuaSpriteInstance( this );
 
 	lua_State* L = sprite->GetSWF()->GetLuaState();
-	for( int i = 0; i < luaActions.Num(); i++ )
+	if( L )
 	{
-		const char* name = ( const char* ) luaActions[i].data;
-
-		//lua_printstack( L );
-
-		lua_getglobal( L, name ); // ... ( function | nil )
-
-		if( lua_isfunction( L, -1 ) )
+		for( int i = 0; i < luaActions.Num(); i++ )
 		{
-			// push self reference
-			luaW_push<idSWFSpriteInstance>( L, this );	// ... userdata function
+			const char* name = ( const char* ) luaActions[i].data;
 
 			//lua_printstack( L );
 
-			if( lua_pcall( L, 1, 0, NULL ) != 0 ) // ... userdata
-			{
-				idLib::Warning( "idSWFSpriteInstance::RunActions( %s ): error running function: %s\n", name, lua_tostring( L, -1 ) );
+			lua_getglobal( L, name ); // ... ( function | nil )
 
-				// remove warning from stack
+			if( lua_isfunction( L, -1 ) )
+			{
+				// push self reference
+				luaW_push<idSWFSpriteInstance>( L, this );	// ... userdata function
+
+				//lua_printstack( L );
+
+				if( lua_pcall( L, 1, 0, NULL ) != 0 ) // ... userdata
+				{
+					idLib::Warning( "idSWFSpriteInstance::RunActions( %s ): error running function: %s\n", name, lua_tostring( L, -1 ) );
+
+					// remove warning from stack
+					lua_pop( L, 1 ); // ...
+				}
+			}
+			else
+			{
+				// ... nil
 				lua_pop( L, 1 ); // ...
 			}
-		}
-		else
-		{
-			// ... nil
-			lua_pop( L, 1 ); // ...
-		}
 
-		//lua_printstack( L );
+			//lua_printstack( L );
+		}
 	}
+
 	luaActions.SetNum( 0 );
 #endif
 	// RB end
@@ -1750,6 +1754,16 @@ int idSWFSpriteInstance::Lua_index( lua_State* L )
 				lua_pushboolean( L, sprite->isVisible );
 				return 1;
 			}
+			else if( idStr::Cmp( field, "_global" ) == 0 )
+			{
+				return 0;
+			}
+			else
+			{
+				//common->Printf("Lua_index: tried to access '%s'\n", field );
+			}
+
+			// TODO enable _global.emailRollback
 		}
 	}
 
@@ -1868,6 +1882,43 @@ int idSWFSpriteInstance::Lua_gotoAndPlay( lua_State* L )
 	return 0;
 }
 
+int idSWFSpriteInstance::Lua_gotoAndStop( lua_State* L )
+{
+	idSWFSpriteInstance* sprite = luaW_check<idSWFSpriteInstance>( L, 1 );
+	if( sprite )
+	{
+		int args = lua_gettop( L );
+
+		if( args > 1 )
+		{
+			sprite->actions.Clear();
+			sprite->luaActions.Clear(); // RB
+
+			int frame = 0;
+
+			if( lua_isstring( L, 2 ) )
+			{
+				const char* label = luaL_checkstring( L, 2 );
+
+				frame = sprite->FindFrame( label );
+			}
+			else if( lua_isnumber( L, 2 ) )
+			{
+				frame = lua_tonumber( L, 2 );
+			}
+
+			sprite->RunTo( frame );
+			sprite->Stop();
+		}
+		else
+		{
+			idLib::Warning( "gotoAndStop: expected 1 parameter" );
+		}
+	}
+
+	return 0;
+}
+
 
 static const luaL_Reg Sprite_default[] =
 {
@@ -1889,6 +1940,12 @@ static const luaL_Reg Sprite_meta[] =
 	{ "stop",			idSWFSpriteInstance::Lua_stop },
 	{ "play",			idSWFSpriteInstance::Lua_play },
 	{ "gotoAndPlay",	idSWFSpriteInstance::Lua_gotoAndPlay },
+	{ "gotoAndStop",	idSWFSpriteInstance::Lua_gotoAndStop },
+
+	// TODO
+	// nextFrame ?
+	// prevFrame ?
+	//
 
 	{NULL, NULL}
 };
