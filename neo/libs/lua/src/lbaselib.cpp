@@ -24,6 +24,25 @@ extern "C"
 #include "lauxlib.h"
 #include "lualib.h"
 
+
+
+#if !defined (LUA_EXEC_DIR)
+#define LUA_EXEC_DIR		"!"
+#endif
+
+// RB: don't run debugger in build//Debug but where the .exe should be
+void setprogdir( lua_State* L )
+{
+	char buff[MAX_PATH + 1];
+
+	idStr basepath = Sys_DefaultBasePath();
+	basepath += "\\tools\\zerobrane\\lualibs";
+	idStr::Copynz( buff, basepath, sizeof( buff ) );
+
+	luaL_gsub( L, lua_tostring( L, -1 ), LUA_EXEC_DIR, buff );
+	lua_remove( L, -2 ); /* remove original string */
+}
+
 // RB: replaced luaB_print with idlib version
 #if 0
 static int luaB_print( lua_State* L )

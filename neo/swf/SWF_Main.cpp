@@ -367,6 +367,8 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 		}
 
 		luaL_openlibs( L );
+		luaopen_socket_core( L ); // for remote debugging
+
 		idSWFSpriteInstance::LuaRegister_idSWFSpriteInstance( L );
 	}
 
@@ -442,7 +444,8 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 
 			if( lua_pcall( L, 0, 0, 0 ) )
 			{
-				idLib::Error( "Cannot pcall: %s", lua_tostring( L, -1 ) );
+				const char* functionName = lua_tostring( L, -1 );
+				idLib::Error( "Cannot pcall: %s", functionName );
 				lua_pop( L, 1 );
 			}
 		}
@@ -565,26 +568,53 @@ void idSWF::SetGlobal( const char* name, const idSWFScriptVar& value )
 {
 	globals->Set( name, value );
 
-	if( luaState && value.IsFunction() )
+	if( luaState && ( value.IsFunction() || value.IsObject() || value.IsNumeric() ) )
 	{
 		lua_State* L = luaState;
 
-		lua_getglobal( L, name ); // ... ( function | nil )
-
-		if( lua_isfunction( L, -1 ) )
+		if( value.IsNumeric() )
 		{
-			// already added
+			if( value.GetType() == idSWFScriptVar::SWF_VAR_BOOL )
+			{
+				bool b = value.ToBool();
+
+				lua_pushboolean( L, b );
+				lua_setglobal( L, name );
+			}
+			else if( value.GetType() == idSWFScriptVar::SWF_VAR_INTEGER )
+			{
+				int n = value.ToInteger();
+
+				lua_pushnumber( L, n );
+				lua_setglobal( L, name );
+			}
+			else if( value.GetType() == idSWFScriptVar::SWF_VAR_FLOAT )
+			{
+				float f = value.ToFloat();
+
+				lua_pushnumber( L, f );
+				lua_setglobal( L, name );
+			}
 		}
-		else
+		else if( value.IsFunction() || value.IsObject() )
 		{
-			// ... nil
-			lua_pop( L, 1 ); // ...
+			lua_getglobal( L, name ); // ... ( function | nil )
 
-			// http://stackoverflow.com/questions/2907221/get-the-lua-command-when-a-c-function-is-called
+			if( lua_isfunction( L, -1 ) )
+			{
+				// already added
+			}
+			else
+			{
+				// ... nil
+				lua_pop( L, 1 ); // ...
 
-			lua_pushstring( L, name );
-			lua_pushcclosure( L, LuaNativeScriptFunctionCall, 1 );
-			lua_setglobal( L, name );
+				// http://stackoverflow.com/questions/2907221/get-the-lua-command-when-a-c-function-is-called
+
+				lua_pushstring( L, name );
+				lua_pushcclosure( L, LuaNativeScriptFunctionCall, 1 );
+				lua_setglobal( L, name );
+			}
 		}
 
 		//lua_printstack( L );

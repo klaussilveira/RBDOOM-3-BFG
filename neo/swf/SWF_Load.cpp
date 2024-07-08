@@ -1347,6 +1347,12 @@ void idSWF::WriteJSON( const char* jsonFilename )
 	}
 
 	luaFile->WriteFloatString( "function just_stop( this )\n\tthis:stop()\nend\n\n" );
+//	luaFile->WriteFloatString( "function swf_load(arg)\n\tif arg and arg[#arg] == \"-debug\" then require(\"mobdebug\").start()\nend\n\n" );
+
+	//if( luaFileName.Cmp( "exported/swf/shell.lua" ) == 0 )
+	//{
+	//	luaFile->WriteFloatString( "require(\"mobdebug\").start()\nend\n\n" );
+	//}
 
 	file->WriteFloatString( "{\n \t\"version\": %i,\n \t\"frameWidth\": %f,\n \t\"frameHeight\": %f,\n \t\"frameRate\": %i,\n", XSWF_VERSION, ( float )frameWidth, ( float )frameHeight, ( int )frameRate );
 

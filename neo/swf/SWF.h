@@ -35,6 +35,10 @@ If you have questions concerning this license or the applicable additional terms
 // RB begin
 #include "SWF_File.h"
 #include "../libs/lua/src/lua.hpp"
+extern "C"
+{
+#include "../libs/luasocket/src/luasocket.h"
+}
 // RB end
 #include "SWF_ScriptVar.h"
 #include "SWF_Sprites.h"

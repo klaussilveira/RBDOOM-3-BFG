@@ -32,6 +32,10 @@ If you have questions concerning this license or the applicable additional terms
 #define linit_c
 //#define LUA_LIB
 
+#include <lua.hpp>
+#include <luawrapper.hpp>
+#include <luawrapperutil.hpp>
+
 extern "C"
 {
 
@@ -154,11 +158,11 @@ int idSWF::LuaNativeScriptFunctionCall( lua_State* L )
 
 	extern idCVar swf_debugInvoke;
 
-	const char* function = lua_tostring( L, lua_upvalueindex( 1 ) );
+	const char* calledName = lua_tostring( L, lua_upvalueindex( 1 ) );
 
 	if( swf_debugInvoke.GetBool() )
 	{
-		idLib::Printf( "LuaNativeScriptFunctionCall( %s", function );
+		idLib::Printf( "LuaNativeScriptFunctionCall( %s", calledName );
 	}
 
 	// convert Lua parms to Flash parms
@@ -211,18 +215,42 @@ int idSWF::LuaNativeScriptFunctionCall( lua_State* L )
 	}
 
 	idSWFSprite* sprite = luaSpriteInstance->sprite;
-	idSWFScriptVar globalFunc = sprite->GetSWF()->GetGlobal( function );
-	if( globalFunc.IsFunction() )
+	idSWFScriptVar global = sprite->GetSWF()->GetGlobal( calledName );
+	if( global.IsFunction() )
 	{
-		idSWFScriptVar results = globalFunc.GetFunction()->Call( NULL, parms );
+		idSWFScriptVar results = global.GetFunction()->Call( NULL, parms );
 
 		// RB: well idSWFSpriteInstance::RunActions() never expected any return parameters
 
 		// TODO if results > 1 push to stack
 		if( results.GetType() != idSWFScriptVar::SWF_VAR_UNDEF )
 		{
-			common->Printf( "function %s returns %s\n", function, results.ToString().c_str() );
+			common->Printf( "function %s returns %s\n", calledName, results.ToString().c_str() );
 		}
+	}
+	else if( global.IsObject() )
+	{
+		idSWFScriptObject* object = global.GetObject();//->Call( NULL, parms );
+		idSWFSpriteInstance* instance = object->GetSprite();
+
+		if( idStr::Cmp( calledName, "_root" ) == 0 )
+		{
+			luaW_push( L, sprite );
+			return 1;
+		}
+		else if( instance != NULL )
+		{
+			idSWFSpriteInstance* nested = instance->FindChildSprite( calledName );
+			if( nested )
+			{
+				luaW_push( L, nested );
+				return 1;
+			}
+		}
+	}
+	else if( global.IsNumeric() )
+	{
+		common->Printf( "LuaNativeScriptFunctionCall numeric %s TODO\n", calledName );
 	}
 
 	return 0;

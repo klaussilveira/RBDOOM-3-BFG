@@ -167,7 +167,9 @@ static lua_CFunction ll_sym( lua_State* L, void* lib, const char* sym )
 #define LUA_LLE_FLAGS	0
 #endif
 
+void setprogdir( lua_State* L );
 
+#if 0
 static void setprogdir( lua_State* L )
 {
 	char buff[MAX_PATH + 1];
@@ -183,6 +185,7 @@ static void setprogdir( lua_State* L )
 		lua_remove( L, -2 ); /* remove original string */
 	}
 }
+#endif
 
 
 static void pusherror( lua_State* L )

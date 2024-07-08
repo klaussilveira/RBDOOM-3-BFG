@@ -1761,6 +1761,13 @@ int idSWFSpriteInstance::Lua_index( lua_State* L )
 			else
 			{
 				//common->Printf("Lua_index: tried to access '%s'\n", field );
+
+				idSWFSpriteInstance* child = sprite->FindChildSprite( field );
+				if( child )
+				{
+					luaW_push( L, child );
+					return 1;
+				}
 			}
 
 			// TODO enable _global.emailRollback
@@ -1801,6 +1808,17 @@ int idSWFSpriteInstance::Lua_newindex( lua_State* L )
 				}
 
 				return 0;
+			}
+			else if( idStr::Cmp( field, "_stereoDepth" ) == 0 )
+			{
+				int depth = luaL_checknumber( L, 3 );
+				sprite->stereoDepth = depth;
+
+				return 0;
+			}
+			else
+			{
+				common->Printf( "Lua_newindex: tried to access '%s'\n", field );
 			}
 		}
 	}
@@ -1891,20 +1909,23 @@ int idSWFSpriteInstance::Lua_gotoAndStop( lua_State* L )
 
 		if( args > 1 )
 		{
-			sprite->actions.Clear();
-			sprite->luaActions.Clear(); // RB
-
 			int frame = 0;
 
-			if( lua_isstring( L, 2 ) )
+			// Flash forces frames values less than 1 to 1.
+			if( lua_isnumber( L, 2 ) )
+			{
+				frame = lua_tonumber( L, 2 );
+
+				if( frame < 1 )
+				{
+					frame = 1;
+				}
+			}
+			else if( lua_isstring( L, 2 ) )
 			{
 				const char* label = luaL_checkstring( L, 2 );
 
 				frame = sprite->FindFrame( label );
-			}
-			else if( lua_isnumber( L, 2 ) )
-			{
-				frame = lua_tonumber( L, 2 );
 			}
 
 			sprite->RunTo( frame );

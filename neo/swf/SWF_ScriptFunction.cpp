@@ -2112,13 +2112,13 @@ idStr idSWFScriptFunction_Script::ExportToScript( idSWFScriptObject* thisObject,
 
 				if( ( flags & 1 ) != 0 )
 				{
-					AddLine( va( "gotoAndPlay( %i )", frameNum ) );
+					AddLine( va( "this:gotoAndPlay( %i )", frameNum ) );
 				}
 				else
 				{
-					AddLine( va( "gotoAndStop( %i )", frameNum ) );
+					AddLine( va( "this:gotoAndStop( %i )", frameNum ) );
 				}
-				AddLine( va( "gotoAndPlay( %i )", frameNum ) );
+				AddLine( va( "this:gotoAndPlay( %i )", frameNum ) );
 
 				stack.Pop( 1 );
 				break;
