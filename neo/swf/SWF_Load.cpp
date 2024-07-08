@@ -1346,8 +1346,18 @@ void idSWF::WriteJSON( const char* jsonFilename )
 		return;
 	}
 
+	/*
+	--package.path = package.path .. ";../?.lua"
+	--print( "package.path: " .. package.path .. "\n" )
+
+	--function swf_init( arg )
+		require("mobdebug.mobdebug").start()
+	--end
+	*/
+
+	//luaFile->WriteFloatString( "function swf_load( debug )\n\tif debug then require(\"mobdebug\").start() end\nend\n\n" );
+	luaFile->WriteFloatString( "function start_remote_debugger()\n\trequire(\"mobdebug.mobdebug\").start()\nend\n\n" );
 	luaFile->WriteFloatString( "function just_stop( this )\n\tthis:stop()\nend\n\n" );
-//	luaFile->WriteFloatString( "function swf_load(arg)\n\tif arg and arg[#arg] == \"-debug\" then require(\"mobdebug\").start()\nend\n\n" );
 
 	//if( luaFileName.Cmp( "exported/swf/shell.lua" ) == 0 )
 	//{

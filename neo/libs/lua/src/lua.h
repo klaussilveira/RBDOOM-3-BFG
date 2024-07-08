@@ -363,7 +363,7 @@ LUA_API void ( lua_setallocf )( lua_State* L, lua_Alloc f, void* ud );
 ** Event masks
 */
 #define LUA_MASKCALL	(1 << LUA_HOOKCALL)
-#define LUA_MASKRET	(1 << LUA_HOOKRET)
+#define LUA_MASKRET		(1 << LUA_HOOKRET)
 #define LUA_MASKLINE	(1 << LUA_HOOKLINE)
 #define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)
 

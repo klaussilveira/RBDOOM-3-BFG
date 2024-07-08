@@ -1739,7 +1739,10 @@ void idSWFScriptFunction_Script::AddLine( const idStr& line )
 {
 	ActionBlock& block = currentBlock->blocks.Alloc();
 	block.parent = currentBlock;
-	block.line = line;
+
+	idStr stripped = line;
+	stripped.StripLeadingOnce( "_global." );
+	block.line = stripped;
 }
 
 void idSWFScriptFunction_Script::AddBlock( const idStr& line )

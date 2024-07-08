@@ -545,6 +545,7 @@ public:
 
 private:
 	static int					LuaNativeScriptFunctionCall( lua_State* L );
+	static int					LuaGlobalVarCallback( lua_State* L );
 	static idSWFSpriteInstance* luaSpriteInstance;
 	static inline void			SetLuaSpriteInstance( idSWFSpriteInstance* spriteInstance )
 	{

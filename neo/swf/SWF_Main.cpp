@@ -36,6 +36,8 @@ If you have questions concerning this license or the applicable additional terms
 idCVar swf_loadBinary( "swf_loadBinary", "1", CVAR_BOOL, "used to set whether to load binary swf from generated" );
 idCVar swf_exportLua( "swf_exportLua", "1", CVAR_BOOL, "" );
 
+idCVar swf_debugScript( "swf_debugScript", "", CVAR_INIT | CVAR_ROM | CVAR_NEW, "name of script or Lua instance that should connect to remote debugger" );
+
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
 bool idSWF::isMouseInClientArea = false;
@@ -442,11 +444,38 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 
 			fileSystem->FreeFile( luaSrc );
 
-			if( lua_pcall( L, 0, 0, 0 ) )
+			lua_printstack( L );
+
+			if( lua_pcall( L, 0, 0, NULL ) )
 			{
 				const char* functionName = lua_tostring( L, -1 );
 				idLib::Error( "Cannot pcall: %s", functionName );
 				lua_pop( L, 1 );
+			}
+
+			lua_printstack( L );
+
+			// start remote debugging
+			if( idStr::Icmp( swf_debugScript.GetString(), luaFileName ) == 0 )
+			{
+				lua_getglobal( L, "start_remote_debugger" ); // ... ( function | nil )
+
+				if( lua_isfunction( L, -1 ) )
+				{
+					int status = lua_pcall( L, 0, 0, NULL );
+					if( status != 0 )
+					{
+						idLib::Warning( "idSWF( %s ): error running function: swf_load\n", luaFileName.c_str(), lua_tostring( L, -1 ) );
+
+						// remove warning from stack
+						lua_pop( L, 1 ); // ...
+					}
+				}
+				else
+				{
+					// ... nil
+					lua_pop( L, 1 ); // ...
+				}
 			}
 		}
 
@@ -574,11 +603,13 @@ void idSWF::SetGlobal( const char* name, const idSWFScriptVar& value )
 
 		if( value.IsNumeric() )
 		{
+#if 1
 			if( value.GetType() == idSWFScriptVar::SWF_VAR_BOOL )
 			{
 				bool b = value.ToBool();
 
 				lua_pushboolean( L, b );
+				lua_pushcclosure( L, LuaGlobalVarCallback, 1 );
 				lua_setglobal( L, name );
 			}
 			else if( value.GetType() == idSWFScriptVar::SWF_VAR_INTEGER )
@@ -586,6 +617,7 @@ void idSWF::SetGlobal( const char* name, const idSWFScriptVar& value )
 				int n = value.ToInteger();
 
 				lua_pushnumber( L, n );
+				lua_pushcclosure( L, LuaGlobalVarCallback, 1 );
 				lua_setglobal( L, name );
 			}
 			else if( value.GetType() == idSWFScriptVar::SWF_VAR_FLOAT )
@@ -593,10 +625,14 @@ void idSWF::SetGlobal( const char* name, const idSWFScriptVar& value )
 				float f = value.ToFloat();
 
 				lua_pushnumber( L, f );
+				lua_pushcclosure( L, LuaGlobalVarCallback, 1 );
 				lua_setglobal( L, name );
 			}
+
+			//lua_printstack( L );
+#endif
 		}
-		else if( value.IsFunction() || value.IsObject() )
+		else if( value.IsFunction() ) //|| value.IsObject() )
 		{
 			lua_getglobal( L, name ); // ... ( function | nil )
 

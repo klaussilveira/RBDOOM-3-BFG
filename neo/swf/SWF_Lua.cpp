@@ -256,6 +256,23 @@ int idSWF::LuaNativeScriptFunctionCall( lua_State* L )
 	return 0;
 }
 
+int idSWF::LuaGlobalVarCallback( lua_State* L )
+{
+	//lua_printstack( L );
+
+	extern idCVar swf_debugInvoke;
+
+	const char* calledName = lua_tostring( L, lua_upvalueindex( 1 ) );
+
+	if( swf_debugInvoke.GetBool() )
+	{
+		idLib::Printf( "LuaGlobalVarCallback( %s", calledName );
+	}
+
+	return 0;
+
+}
+
 void lua_printstack( lua_State* L )
 {
 	idLib::Printf( "Lua stack: " );

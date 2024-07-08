@@ -364,6 +364,8 @@ bool idSWFSpriteInstance::RunActions()
 
 				if( lua_pcall( L, 1, 0, NULL ) != 0 ) // ... userdata
 				{
+					//lua_printstack( L );
+
 					idLib::Warning( "idSWFSpriteInstance::RunActions( %s ): error running function: %s\n", name, lua_tostring( L, -1 ) );
 
 					// remove warning from stack
