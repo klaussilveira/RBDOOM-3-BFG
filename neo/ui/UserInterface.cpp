@@ -455,7 +455,7 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 	else
 	{
 		desktop->SetFlag( WIN_DESKTOP );
-		desktop->swf = new( TAG_OLD_UI )idSWF( qpath );
+		desktop->swf = new( TAG_OLD_UI )idSWF( qpath, NULL );
 
 		if( !desktop->swf->IsLoaded() )
 		{
