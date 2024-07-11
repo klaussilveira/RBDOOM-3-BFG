@@ -1154,7 +1154,7 @@ bool idSWF::LoadJSON( const char* filename )
 				for( int d = 0; d < shape->lineDraws.Num(); d++ )
 				{
 					idSWFShapeDrawLine& lineDraw = shape->lineDraws[d];
-					Value& jsonDraw = entry["lineDraw"][d];
+					Value& jsonDraw = entry["lineDraws"][d];
 
 					Value& style = jsonDraw["style"];
 					lineDraw.style.startWidth = style["startWidth"].GetUint();
@@ -1776,6 +1776,17 @@ void idSWF::WriteJSON( const char* jsonFilename )
 
 				idStr initialText = idStr::CStyleQuote( et->initialText.c_str() );
 
+				// RB: ugly hack but necessary for exporting pda.json
+				//if( initialText.Cmp( "\"It\\'s DONE bay-bee!\"") == 0 )
+				if( idStr::FindText( initialText, "bay-bee" ) > -1 )
+				{
+					initialText = "\"It is DONE bay-bee!\"";
+				}
+				else if( idStr::FindText( initialText, "Email text goes in" ) > -1 )
+				{
+					initialText = "\"Email text goes in here\"";
+				}
+
 				file->WriteFloatString( "\t\t\t\"flags\": %i, \"fontID\": %i, \"fontHeight\": %i, \"maxLength\": %i, \"align\": \"%s\", \"leftMargin\": %i, \"rightMargin\": %i, \"indent\": %i, \"leading\": %i, \"variable\": \"%s\", \"initialText\": %s,\n",
 										et->flags, et->fontID, et->fontHeight, et->maxLength, idSWF::GetEditTextAlignName( et->align ),
 										et->leftMargin, et->rightMargin, et->indent, et->leading,
@@ -1808,4 +1819,5 @@ void idSWF::WriteJSON( const char* jsonFilename )
 	file->WriteFloatString( "\t]\n" );
 	file->WriteFloatString( "}\n" );
 }
+
 // RB end
