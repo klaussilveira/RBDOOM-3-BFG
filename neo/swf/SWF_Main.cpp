@@ -91,7 +91,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject* globals )
 		init->SetData( classInfo.cinit );
 		tmp->Set( "__initializer__", idSWFScriptVar( init ) );
 		init->SetAbcFile( &abcFile );
-		idSWFScriptFunction_Script* constr = idSWFScriptFunction_Script::Alloc( );
+		idSWFScriptFunction_Script* constr = idSWFScriptFunction_Script::Alloc();
 		constr->SetData( instanceInfo.iinit );
 		tmp->Set( "__constructor__", idSWFScriptVar( constr ) );
 		constr->SetAbcFile( &abcFile );
@@ -116,7 +116,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject* globals )
 		fullClassName += abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
 		idStr& className = abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
 		idSWFScriptObject* tmp = globals->GetObject( fullClassName );
-		auto* target = idSWFScriptObject::Alloc( );
+		auto* target = idSWFScriptObject::Alloc();
 		auto* var = tmp->GetVariable( "[" + fullClassName + "]", true );
 
 		for( swfTraits_info& trait : instanceInfo.traits )
@@ -453,14 +453,14 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	globals->Set( "_global", globals );
 	SWF_NATIVE_API_OBJECT_DECLARE( _global );
 
-	auto* accessibilityPropertiesObj = idSWFScriptObject::Alloc( );
-	//accessibilityPropertiesObj->Set( "", idSWFScriptObject::Alloc( ) );
+	auto* accessibilityPropertiesObj = idSWFScriptObject::Alloc();
+	//accessibilityPropertiesObj->Set( "", idSWFScriptObject::Alloc() );
 
-	auto* dispatcherObj = idSWFScriptObject::Alloc( );
+	auto* dispatcherObj = idSWFScriptObject::Alloc();
 	dispatcherObj->SetPrototype( &eventDispatcherScriptObjectPrototype );
 
 	extern idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
-	auto* movieclipObj = idSWFScriptObject::Alloc( );
+	auto* movieclipObj = idSWFScriptObject::Alloc();
 	movieclipObj->SetPrototype( &spriteInstanceScriptObjectPrototype );
 
 	if( spriteInstanceScriptObjectPrototype.GetPrototype() == NULL )
@@ -476,13 +476,13 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	globals->Set( "Array", arrayObj );
 	globals->Set( "Object", &scriptFunction_Object );
 	globals->Set( "EventDispatcher", dispatcherObj );
-	globals->Set( "DisplayObject", idSWFScriptObject::Alloc( ) );
-	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc( ) );
+	globals->Set( "DisplayObject", idSWFScriptObject::Alloc() );
+	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc() );
 	globals->Set( "AccessibilityProperties", accessibilityPropertiesObj );
 	globals->Set( "Dictionary", idSWFScriptObject::Alloc() );
-	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
-	globals->Set( "Sprite", idSWFScriptObject::Alloc( ) );
-	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
+	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc() );
+	globals->Set( "Sprite", idSWFScriptObject::Alloc() );
+	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc() );
 	globals->Set( "MovieClip", movieclipObj );
 
 	CreateAbcObjects( globals );
@@ -490,7 +490,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
 	mainspriteInstance->abcFile = &abcFile;
-	mainspriteInstance->scriptObject = idSWFScriptObject::Alloc( );
+	mainspriteInstance->scriptObject = idSWFScriptObject::Alloc();
 
 	//stage class.
 	for( auto& symbol : symbolClasses.symbols )
@@ -501,11 +501,11 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 			idStr objName;
 			mainspriteInstance->name.ExtractFileExtension( objName );
 
-			auto* super = globals->Get( symbol.name ).GetObject( );
+			auto* super = globals->Get( symbol.name ).GetObject();
 			auto dcopy = super->Get( "[" + symbol.name + "]" );
 			if( dcopy.IsObject() )
 			{
-				mainspriteInstance->scriptObject->DeepCopy( dcopy.GetObject( ) );
+				mainspriteInstance->scriptObject->DeepCopy( dcopy.GetObject() );
 			}
 
 			mainspriteInstance->scriptObject->SetPrototype( super );

@@ -45,7 +45,7 @@ idSWFDictionaryEntry::idSWFDictionaryEntry() :
 	imageSize( 0, 0 ),
 	imageAtlasOffset( 0, 0 ),
 	channelScale( 1.0f, 1.0f, 1.0f, 1.0f ),
-	scriptClass( ),
+	scriptClass(),
 	resolved( false ),
 	name( NULL )
 {

@@ -221,8 +221,8 @@ swfDisplayEntry_t* idSWFSpriteInstance::AddDisplayEntry( int depth, int characte
 			display.spriteInstance->abcFile = this->abcFile;
 			if( dictEntry->scriptClass.IsValid() )
 			{
-				display.spriteInstance->scriptObject = idSWFScriptObject::Alloc( );
-				auto* super = dictEntry->scriptClass.GetObject( );
+				display.spriteInstance->scriptObject = idSWFScriptObject::Alloc();
+				auto* super = dictEntry->scriptClass.GetObject();
 
 				auto dcopy = super->Get( *dictEntry->name );
 				if( dcopy.IsObject() )
@@ -240,9 +240,9 @@ swfDisplayEntry_t* idSWFSpriteInstance::AddDisplayEntry( int depth, int characte
 		{
 			display.textInstance = sprite->swf->textInstanceAllocator.Alloc();
 
-			if( dictEntry->scriptClass.IsValid( ) )
+			if( dictEntry->scriptClass.IsValid() )
 			{
-				auto* super = dictEntry->scriptClass.GetObject( );
+				auto* super = dictEntry->scriptClass.GetObject();
 				auto dcopy = super->Get( *dictEntry->name );
 				if( dcopy.IsObject() )
 				{
@@ -256,8 +256,8 @@ swfDisplayEntry_t* idSWFSpriteInstance::AddDisplayEntry( int depth, int characte
 		}
 		else if( dictEntry->type == SWF_DICT_TEXT )
 		{
-			//display.textInstance = sprite->swf->textInstanceAllocator.Alloc( );
-			//display.textInstance->Init( dictEntry->text, sprite->GetSWF( ) );
+			//display.textInstance = sprite->swf->textInstanceAllocator.Alloc();
+			//display.textInstance->Init( dictEntry->text, sprite->GetSWF() );
 		}
 	}
 	return &display;

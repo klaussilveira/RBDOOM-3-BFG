@@ -62,8 +62,8 @@ SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( MouseEvent )
 	static idSWFScriptObject* mouseEventObj = nullptr;
 	if( mouseEventObj == nullptr )
 	{
-		mouseEventObj = idSWFScriptObject::Alloc( );
-		idSWFScriptObject* eventParms = idSWFScriptObject::Alloc( );
+		mouseEventObj = idSWFScriptObject::Alloc();
+		idSWFScriptObject* eventParms = idSWFScriptObject::Alloc();
 
 		eventParms->Set( "type", "MouseEvent" );
 		mouseEventObj->Set( "[MouseEvent]", eventParms );
@@ -95,8 +95,8 @@ SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( Event )
 	static idSWFScriptObject* eventObj = nullptr;
 	if( eventObj == nullptr )
 	{
-		eventObj = idSWFScriptObject::Alloc( );
-		idSWFScriptObject* eventParms = idSWFScriptObject::Alloc( );
+		eventObj = idSWFScriptObject::Alloc();
+		idSWFScriptObject* eventParms = idSWFScriptObject::Alloc();
 
 		eventParms->Set( "type", "Event" );
 		eventObj->Set( "[Event]", eventParms );
@@ -176,7 +176,7 @@ SWF_EVENTDISPATCHER_FUNCTION_DEFINE( addEventListener )
 	dispatcher->value.GetObject()->Set( parms[0].ToString(), parms[1] );
 	common->DPrintf( "{%s} AddEventListener(%s,%s)\n", thisObject->GetSprite()->name.c_str(), parms[0].ToString().c_str(), parms[1].ToString().c_str() );
 	//add listener
-	return idSWFScriptVar( );
+	return idSWFScriptVar();
 }
 
 

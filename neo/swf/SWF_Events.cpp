@@ -34,7 +34,7 @@ idSWFScriptObject* GetMouseEventDispatcher( idSWFScriptObject* object )
 	idSWFScriptObject* dispatcher = nullptr;
 	if( object->HasValidProperty( "__eventDispatcher__" ) )
 	{
-		dispatcher = object->Get( "__eventDispatcher__" ).GetObject( );
+		dispatcher = object->Get( "__eventDispatcher__" ).GetObject();
 		if( dispatcher->HasValidProperty( "click" )
 				|| dispatcher->HasValidProperty( "contextMenu" )
 				|| dispatcher->HasValidProperty( "doubleClick" )
@@ -327,34 +327,34 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 
 					if( !eventDispatcher.IsUndefined() && !var.IsFunction() )
 					{
-						var = eventDispatcher.GetObject( )->Get( "click" );
-						if( !var.IsFunction( ) )
+						var = eventDispatcher.GetObject()->Get( "click" );
+						if( !var.IsFunction() )
 						{
-							var = eventDispatcher.GetObject( )->Get( "mouseDown" );
+							var = eventDispatcher.GetObject()->Get( "mouseDown" );
 						}
 					}
-					if( var.IsFunction( ) )
+					if( var.IsFunction() )
 					{
 						idSWFScriptVar eventArg;
-						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject( )
-										 ->Get( "MouseEvent" ).GetObject( )
-										 ->Get( "[MouseEvent]" ).GetObject( );
-						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
-						eventArg.GetObject( )->DeepCopy( eventObj );
+						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject()
+										 ->Get( "MouseEvent" ).GetObject()
+										 ->Get( "[MouseEvent]" ).GetObject();
+						eventArg.SetObject( idSWFScriptObject::Alloc() );
+						eventArg.GetObject()->DeepCopy( eventObj );
 						idSWFParmList parms;
 						parms.Append( eventArg );
 						parms.Append( event->inputDevice );
-						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Num( ) )
+						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Num() )
 						{
-							( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Append( globals );
+							( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Append( globals );
 						}
-						var.GetFunction( )->Call( hitObject, parms );
-						parms.Clear( );
+						var.GetFunction()->Call( hitObject, parms );
+						parms.Clear();
 						return true;
 					}
 
 					var = hitObject->Get( "onPress" );
-					if( var.IsFunction( ) )
+					if( var.IsFunction() )
 					{
 						idSWFParmList parms;
 						parms.Append( event->inputDevice );
@@ -387,27 +387,27 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 				{
 					eventDispatcher = mouseObject->Get( "__eventDispatcher__" );
 
-					if( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+					if( !eventDispatcher.IsUndefined() && !var.IsFunction() )
 					{
-						var = eventDispatcher.GetObject( )->Get( "mouseUp" );
+						var = eventDispatcher.GetObject()->Get( "mouseUp" );
 					}
-					if( var.IsFunction( ) )
+					if( var.IsFunction() )
 					{
 						idSWFScriptVar eventArg;
-						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject( )
-										 ->Get( "MouseEvent" ).GetObject( )
-										 ->Get( "[MouseEvent]" ).GetObject( );
-						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
-						eventArg.GetObject( )->DeepCopy( eventObj );
+						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject()
+										 ->Get( "MouseEvent" ).GetObject()
+										 ->Get( "[MouseEvent]" ).GetObject();
+						eventArg.SetObject( idSWFScriptObject::Alloc() );
+						eventArg.GetObject()->DeepCopy( eventObj );
 						idSWFParmList parms;
 						parms.Append( eventArg );
-						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Num( ) )
+						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Num() )
 						{
-							( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Append( globals );
+							( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Append( globals );
 						}
-						var.GetFunction( )->Call( mouseObject, parms );
-						parms.Clear( );
-						mouseObject->Release( );
+						var.GetFunction()->Call( mouseObject, parms );
+						parms.Clear();
+						mouseObject->Release();
 						mouseObject = NULL;
 						return true;
 					}
@@ -608,31 +608,31 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 				idSWFScriptVar var = hoverObject->Get( "onRollOut" );
 
 				eventDispatcher = hoverObject->Get( "__eventDispatcher__" );
-				if( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+				if( !eventDispatcher.IsUndefined() && !var.IsFunction() )
 				{
-					var = eventDispatcher.GetObject( )->Get( "mouseOut" );
-					if( var.IsFunction( ) )
+					var = eventDispatcher.GetObject()->Get( "mouseOut" );
+					if( var.IsFunction() )
 					{
 						idSWFScriptVar eventArg;
-						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject( )
-										 ->Get( "MouseEvent" ).GetObject( )
-										 ->Get( "[MouseEvent]" ).GetObject( );
-						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
-						eventArg.GetObject( )->DeepCopy( eventObj );
+						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject()
+										 ->Get( "MouseEvent" ).GetObject()
+										 ->Get( "[MouseEvent]" ).GetObject();
+						eventArg.SetObject( idSWFScriptObject::Alloc() );
+						eventArg.GetObject()->DeepCopy( eventObj );
 						idSWFParmList parms;
 						parms.Append( eventArg );
-						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Num( ) )
+						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Num() )
 						{
-							( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Append( globals );
+							( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Append( globals );
 						}
-						var.GetFunction( )->Call( hoverObject, parms );
-						parms.Clear( );
+						var.GetFunction()->Call( hoverObject, parms );
+						parms.Clear();
 						retVal = true;
 					}
 				}
-				else if( var.IsFunction( ) )
+				else if( var.IsFunction() )
 				{
-					var.GetFunction( )->Call( hoverObject, idSWFParmList( ) );
+					var.GetFunction()->Call( hoverObject, idSWFParmList() );
 					retVal = true;
 				}
 				hoverObject->Release();
@@ -646,31 +646,31 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 				idSWFScriptVar var = hitObject->Get( "onRollOver" );
 
 				eventDispatcher = hoverObject->Get( "__eventDispatcher__" );
-				if( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+				if( !eventDispatcher.IsUndefined() && !var.IsFunction() )
 				{
-					var = eventDispatcher.GetObject( )->Get( "mouseOver" );
+					var = eventDispatcher.GetObject()->Get( "mouseOver" );
 					if( var.IsFunction() )
 					{
 						idSWFScriptVar eventArg;
-						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject( )
-										 ->Get( "MouseEvent" ).GetObject( )
-										 ->Get( "[MouseEvent]" ).GetObject( );
-						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
-						eventArg.GetObject( )->DeepCopy( eventObj );
+						auto* eventObj = globals->Get( "EventDispatcher" ).GetObject()
+										 ->Get( "MouseEvent" ).GetObject()
+										 ->Get( "[MouseEvent]" ).GetObject();
+						eventArg.SetObject( idSWFScriptObject::Alloc() );
+						eventArg.GetObject()->DeepCopy( eventObj );
 						idSWFParmList parms;
 						parms.Append( eventArg );
-						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Num( ) )
+						if( !( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Num() )
 						{
-							( ( idSWFScriptFunction_Script* ) var.GetFunction( ) )->GetScope( )->Append( globals );
+							( ( idSWFScriptFunction_Script* ) var.GetFunction() )->GetScope()->Append( globals );
 						}
-						var.GetFunction( )->Call( hoverObject, parms );
-						parms.Clear( );
+						var.GetFunction()->Call( hoverObject, parms );
+						parms.Clear();
 						retVal = true;
 					}
 				}
-				else if( var.IsFunction( ) )
+				else if( var.IsFunction() )
 				{
-					var.GetFunction( )->Call( hitObject, idSWFParmList( ) );
+					var.GetFunction()->Call( hitObject, idSWFParmList() );
 					retVal = true;
 				}
 			}

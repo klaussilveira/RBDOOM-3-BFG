@@ -247,7 +247,7 @@ public:
 	{
 		abcFile = _file;
 	}
-	swfMethod_info* GetMethodInfo( )
+	swfMethod_info* GetMethodInfo()
 	{
 		return methodInfo;
 	}

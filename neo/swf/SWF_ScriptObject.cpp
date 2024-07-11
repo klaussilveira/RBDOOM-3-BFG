@@ -63,7 +63,7 @@ void idSWFScriptObject::DeepCopy( idSWFScriptObject* _object )
 {
 	if( _object != NULL )
 	{
-		for( int i = 0; i < _object->NumVariables( ); i++ )
+		for( int i = 0; i < _object->NumVariables(); i++ )
 		{
 			Set( _object->EnumVariable( i ), _object->Get( _object->EnumVariable( i ) ) );
 		}

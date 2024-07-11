@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 class idSWFScriptObject_EventDispatcherPrototype : public idSWFScriptObject
 {
 public:
-	idSWFScriptObject_EventDispatcherPrototype( );
+	idSWFScriptObject_EventDispatcherPrototype();
 #define SWF_EVENTDISPATCHER_FUNCTION_DECLARE( x ) \
 	class idSWFScriptFunction_##x : public idSWFScriptFunction { \
 	public: \

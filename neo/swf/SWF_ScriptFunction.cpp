@@ -306,7 +306,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject* thisObject, 
 		assert( methodInfo->body );
 		auto* body = methodInfo->body;
 		registers[0].SetObject( thisObject );
-		idSWFBitStream abcStream( body->code.Ptr( ), body->codeLength, false );
+		idSWFBitStream abcStream( body->code.Ptr(), body->codeLength, false );
 		retVal = RunAbc( thisObject, stack, abcStream );
 
 		//-- FIXME

@@ -176,42 +176,42 @@ void SWF_AbcFile::traceConstantPool( swfConstant_pool_info& constant_pool )
 	{
 		trace( "^8[^7%i^8]\t ^7%i \n", cnt++, t );
 	}
-	trace( "^8uIntegers ^7: %i\n", constant_pool.uIntegers.Num( ) );
+	trace( "^8uIntegers ^7: %i\n", constant_pool.uIntegers.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.uIntegers )
 	{
 		trace( "^8[^7%i^8]\t ^7%i \n", cnt++, ( int )t );
 	}
-	trace( "^8doubles ^7: %i\n", constant_pool.doubles.Num( ) );
+	trace( "^8doubles ^7: %i\n", constant_pool.doubles.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.doubles )
 	{
 		trace( "^8[^7%i^8]\t ^7%f \n", cnt++, ( float ) t );
 	}
-	trace( "^8utf8Strings ^7: %i\n", constant_pool.utf8Strings.Num( ) );
+	trace( "^8utf8Strings ^7: %i\n", constant_pool.utf8Strings.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.utf8Strings )
 	{
-		trace( "^8[^7%i^8]\t ^7%s \n", cnt++, t.c_str( ) );
+		trace( "^8[^7%i^8]\t ^7%s \n", cnt++, t.c_str() );
 	}
-	trace( "^8namespaceNames ^7: %i\n", constant_pool.namespaceNames.Num( ) );
+	trace( "^8namespaceNames ^7: %i\n", constant_pool.namespaceNames.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.namespaceNames )
 	{
-		trace( "^8[^7%i^8]\t ^7%s \n", cnt++, t->c_str( ) );
+		trace( "^8[^7%i^8]\t ^7%s \n", cnt++, t->c_str() );
 	}
 
-	trace( "^8namespaceSets ^7: %i\n", constant_pool.namespaceSets.Num( ) );
+	trace( "^8namespaceSets ^7: %i\n", constant_pool.namespaceSets.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.namespaceSets )
 	{
 		for( auto& ts : t )
 		{
-			trace( "^8[^7%i^8]\t ^7%s \n", cnt++, ts->c_str( ) );
+			trace( "^8[^7%i^8]\t ^7%s \n", cnt++, ts->c_str() );
 		}
 	}
 
-	trace( "^8multinameInfos ^7: %i\n", constant_pool.multinameInfos.Num( ) );
+	trace( "^8multinameInfos ^7: %i\n", constant_pool.multinameInfos.Num() );
 	cnt = 0;
 	for( auto& t : constant_pool.multinameInfos )
 	{
@@ -248,19 +248,19 @@ void ReadMultiName( idSWFBitStream& bitstream , swfMultiname& target )
 			break;
 
 		case TypeName:
-			target.nameIndex = bitstream.ReadEncodedU32( );
-			target.nameIndexT = bitstream.ReadEncodedU32( );
-			target.indexT = bitstream.ReadEncoded<uint8>( );
+			target.nameIndex = bitstream.ReadEncodedU32();
+			target.nameIndexT = bitstream.ReadEncodedU32();
+			target.indexT = bitstream.ReadEncoded<uint8>();
 			break;
 		case Multiname:
 		case MultinameA:
-			target.nameIndex = bitstream.ReadEncodedU32( );
-			target.index = bitstream.ReadEncodedU32( );
+			target.nameIndex = bitstream.ReadEncodedU32();
+			target.index = bitstream.ReadEncodedU32();
 			break;
 
 		case MultinameL:
 		case MultinameLA:
-			target.index = bitstream.ReadEncodedU32( );
+			target.index = bitstream.ReadEncodedU32();
 			break;
 		default:
 			common->FatalError( "Invalid Multiname type" );
@@ -271,78 +271,78 @@ void ReadMultiName( idSWFBitStream& bitstream , swfMultiname& target )
 void ReadConstantPoolInfo( idSWFBitStream& bitstream ,  swfConstant_pool_info& target )
 {
 	/*cpool_info{}*/
-	uint32 int_count = bitstream.ReadEncodedU32( ) ;
-	target.integers.Alloc( ) = 0;
+	uint32 int_count = bitstream.ReadEncodedU32() ;
+	target.integers.Alloc() = 0;
 	for( uint i = 1; i < int_count; i++ )
 	{
-		target.integers.Alloc( ) = bitstream.ReadEncoded<int32>( );
+		target.integers.Alloc() = bitstream.ReadEncoded<int32>();
 	}
 
-	uint32 uint_count = bitstream.ReadEncodedU32( );
-	target.uIntegers.Alloc( ) = 0;
+	uint32 uint_count = bitstream.ReadEncodedU32();
+	target.uIntegers.Alloc() = 0;
 	for( uint i = 1; i < uint_count; i++ )
 	{
-		target.uIntegers.Alloc( ) = bitstream.ReadEncodedU32( );
+		target.uIntegers.Alloc() = bitstream.ReadEncodedU32();
 	}
 
-	uint32 double_count = bitstream.ReadEncodedU32( );
-	target.doubles.Alloc( ) = 0.0;
+	uint32 double_count = bitstream.ReadEncodedU32();
+	target.doubles.Alloc() = 0.0;
 	for( uint i = 1; i < double_count; i++ )
 	{
 		//WARNING IEEE-754
 		target.doubles.Alloc() = *( double* )bitstream.ReadData( 8 );
 	}
 
-	uint32 string_count = bitstream.ReadEncodedU32( );
-	target.utf8Strings.Alloc( ).Append( "*" );
+	uint32 string_count = bitstream.ReadEncodedU32();
+	target.utf8Strings.Alloc().Append( "*" );
 	for( uint i = 1; i < string_count; i++ )
 	{
-		uint32 str_len = bitstream.ReadEncodedU32( );
-		target.utf8Strings.Alloc( ).Append( ( char* ) bitstream.ReadData( str_len ), str_len );
+		uint32 str_len = bitstream.ReadEncodedU32();
+		target.utf8Strings.Alloc().Append( ( char* ) bitstream.ReadData( str_len ), str_len );
 	}
 
-	uint32 namespace_count = bitstream.ReadEncodedU32( );
-	target.namespaceNames.Alloc( ) = &target.utf8Strings[0];
+	uint32 namespace_count = bitstream.ReadEncodedU32();
+	target.namespaceNames.Alloc() = &target.utf8Strings[0];
 	for( uint i = 1; i < namespace_count; i++ )
 	{
 		target.namespaceKinds.Alloc() = ( swfConstantKind_t )bitstream.ReadU8();
-		uint32 str_idx = bitstream.ReadEncodedU32( );
-		target.namespaceNames.Alloc( ) = &target.utf8Strings[( int )str_idx];
+		uint32 str_idx = bitstream.ReadEncodedU32();
+		target.namespaceNames.Alloc() = &target.utf8Strings[( int )str_idx];
 	}
 
-	uint32 namespace_set_count = bitstream.ReadEncodedU32( );
-	target.namespaceSets.Alloc( ).Alloc() = target.namespaceNames[0];
+	uint32 namespace_set_count = bitstream.ReadEncodedU32();
+	target.namespaceSets.Alloc().Alloc() = target.namespaceNames[0];
 	for( uint i = 1; i < namespace_set_count; i++ )
 	{
-		uint32 count = bitstream.ReadEncodedU32( );
+		uint32 count = bitstream.ReadEncodedU32();
 		auto& newSet = target.namespaceSets.Alloc();
 		for( uint j = 0; j < count; j++ )
 		{
-			uint32 idx = bitstream.ReadEncodedU32( );
+			uint32 idx = bitstream.ReadEncodedU32();
 			newSet.Alloc() = target.namespaceNames[( int )idx];
 		}
 	}
 
-	uint32 multiname_count = bitstream.ReadEncodedU32( );
-	auto& empty = target.multinameInfos.Alloc( );
+	uint32 multiname_count = bitstream.ReadEncodedU32();
+	auto& empty = target.multinameInfos.Alloc();
 	empty.index = 0;
 	empty.nameIndex = 0;
 	empty.type = unused_0x00;
 	for( uint i = 1; i < multiname_count; i++ )
 	{
-		auto& newMn = target.multinameInfos.Alloc( );
+		auto& newMn = target.multinameInfos.Alloc();
 		ReadMultiName( bitstream, newMn );
 	}
 }
 
 void SWF_AbcFile::ReadOptionInfo( idSWFBitStream& bitstream, swfOption_info& newOption )
 {
-	newOption.option_count = bitstream.ReadEncodedU32( );
+	newOption.option_count = bitstream.ReadEncodedU32();
 	for( uint i = 0; i < newOption.option_count; i++ )
 	{
-		auto& newItem = newOption.options.Alloc( );
-		newItem.val = bitstream.ReadEncodedU32( );
-		newItem.kind = constant_pool.namespaceKinds[bitstream.ReadEncodedU32( )];
+		auto& newItem = newOption.options.Alloc();
+		newItem.val = bitstream.ReadEncodedU32();
+		newItem.kind = constant_pool.namespaceKinds[bitstream.ReadEncodedU32()];
 	}
 }
 
@@ -385,24 +385,24 @@ void SWF_AbcFile::ReadTraitData( idSWFBitStream& bitstream, swfTraits_info& newT
 		{
 			newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_method ), TAG_SWF );
 			swfTrait_method& method = *( swfTrait_method* )( newTraitsData.data );
-			method.disp_id = bitstream.ReadEncodedU32( );
-			method.method = &methods[bitstream.ReadEncodedU32( )];
+			method.disp_id = bitstream.ReadEncodedU32();
+			method.method = &methods[bitstream.ReadEncodedU32()];
 		}
 		break;
 		case swfTraits_info::Trait_Class:
 		{
 			newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_class ), TAG_SWF );
 			swfTrait_class& tclass = *( swfTrait_class* )( newTraitsData.data );
-			tclass.slot_id = bitstream.ReadEncodedU32( );
-			tclass.classi = &classes[bitstream.ReadEncodedU32( )];
+			tclass.slot_id = bitstream.ReadEncodedU32();
+			tclass.classi = &classes[bitstream.ReadEncodedU32()];
 		}
 		break;
 		case swfTraits_info::Trait_Function:
 		{
 			newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_function ), TAG_SWF );
 			swfTrait_function& func = *( swfTrait_function* )( newTraitsData.data );
-			func.slot_id = bitstream.ReadEncodedU32( );
-			func.func = &methods[bitstream.ReadEncodedU32( )];
+			func.slot_id = bitstream.ReadEncodedU32();
+			func.func = &methods[bitstream.ReadEncodedU32()];
 		}
 		break;
 
@@ -474,7 +474,7 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 					case QnameA:
 					{
 						idStr& typeName = constant_pool.utf8Strings[slot.vindex];
-						if( globals->HasProperty( typeName.c_str( ) ) )
+						if( globals->HasProperty( typeName.c_str() ) )
 						{
 							newVar->value.SetObject( globals->GetObject( typeName ) );
 						}
@@ -519,7 +519,7 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 			else
 			{
 				idStr& typeName = constant_pool.utf8Strings[slot.type_name->nameIndex];
-				if( globals->HasProperty( typeName.c_str( ) ) )
+				if( globals->HasProperty( typeName.c_str() ) )
 				{
 					auto* newobj = idSWFScriptObject::Alloc();
 					newobj->SetPrototype( globals->GetObject( typeName.c_str() ) );
@@ -556,19 +556,19 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 			slashPos = owner.Find( ":" );
 			if( slashPos != -1 )
 			{
-				owner = idStr( owner.c_str( ), slashPos + 1, owner.Length() );
+				owner = idStr( owner.c_str(), slashPos + 1, owner.Length() );
 			}
 
 			if( globals->HasProperty( owner.c_str() ) )
 			{
-				idSWFScriptFunction_Script* func = idSWFScriptFunction_Script::Alloc( );
+				idSWFScriptFunction_Script* func = idSWFScriptFunction_Script::Alloc();
 				func->SetAbcFile( this );
 				func->SetData( method.method );
 				newVar->value = idSWFScriptVar( func ) ;
 			}
 			else
 			{
-				newVar->value.SetUndefined( );
+				newVar->value.SetUndefined();
 			}
 			break;
 
@@ -579,8 +579,8 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 			int a = 0;
 			//newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_class ) );
 			//swfTrait_class &tclass = *( swfTrait_class * ) ( newTraitsData.data );
-			//tclass.slot_id = bitstream.ReadEncodedU32( );
-			//tclass.classi = &classes[bitstream.ReadEncodedU32( )];
+			//tclass.slot_id = bitstream.ReadEncodedU32();
+			//tclass.classi = &classes[bitstream.ReadEncodedU32()];
 		}
 		break;
 		case swfTraits_info::Trait_Function:
@@ -588,8 +588,8 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 			int a  = 0;
 			//newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_function ) );
 			//swfTrait_function &func = *( swfTrait_function * ) ( newTraitsData.data );
-			//func.slot_id = bitstream.ReadEncodedU32( );
-			//func.func = &methods[bitstream.ReadEncodedU32( )];
+			//func.slot_id = bitstream.ReadEncodedU32();
+			//func.func = &methods[bitstream.ReadEncodedU32()];
 		}
 		break;
 
@@ -603,7 +603,7 @@ idSWFScriptObject::swfNamedVar_t* SWF_AbcFile::GetTrait( const swfTraits_info& t
 
 void SWF_AbcFile::ReadTraitsInfo( idSWFBitStream& bitstream, swfTraits_info& newTraitsData )
 {
-	newTraitsData.name = &constant_pool.multinameInfos[bitstream.ReadEncodedU32( )];
+	newTraitsData.name = &constant_pool.multinameInfos[bitstream.ReadEncodedU32()];
 	//The kind field contains two four-bit fields. The lower four bits determine the kind of this trait. The
 	//	upper four bits comprise a bit vector providing attributes of the trait. See the following tables and
 	//	sections for full descriptions.
@@ -634,12 +634,12 @@ void SWF_AbcFile::ReadClassInfo( idSWFBitStream& bitstream, swfClass_info& newCl
 
 }
 
-//The last entry in that array is the entry point for the ABC file; that is, the last entry’s
-//initialization method contains the first bytecode that’s run when the ABC file is executed.
+//The last entry in that array is the entry point for the ABC file; that is, the last entryï¿½s
+//initialization method contains the first bytecode thatï¿½s run when the ABC file is executed.
 void SWF_AbcFile::ReadScriptInfo( idSWFBitStream& bitstream, swfScript_info& newScriptData )
 {
-	uint32 init = bitstream.ReadEncodedU32( );
-	uint32 trait_count = bitstream.ReadEncodedU32( );
+	uint32 init = bitstream.ReadEncodedU32();
+	uint32 trait_count = bitstream.ReadEncodedU32();
 	newScriptData.init = &methods[init];
 	trace( "%s \n", newScriptData.init->name->c_str() );
 	newScriptData.traits.AssureSize( trait_count );
@@ -662,7 +662,7 @@ void SWF_AbcFile::ReadMethodBodyInfo( idSWFBitStream& bitstream, swfMethod_body_
 	newMethodBody.codeLength = bitstream.ReadEncodedU32();
 	newMethodBody.code.Load( bitstream.ReadData( newMethodBody.codeLength ), newMethodBody.codeLength, true ); // ( byte * ) Mem_ClearedAlloc( sizeof( byte ) * newMethodBody.codeLength );
 	extern void swf_PrintStream( SWF_AbcFile * file , idSWFBitStream & bitstream );
-	if( swf_abc_verbose.GetInteger( ) == 2 )
+	if( swf_abc_verbose.GetInteger() == 2 )
 	{
 		common->Printf( "============================\n" );
 		common->Printf( "Method %s 's bytecode \n", newMethodBody.method->name->c_str() );
@@ -670,23 +670,23 @@ void SWF_AbcFile::ReadMethodBodyInfo( idSWFBitStream& bitstream, swfMethod_body_
 		swf_PrintStream( this, newMethodBody.code );
 	}
 	//memcpy(newMethodBody.code,bitstream.ReadData(newMethodBody.codeLength),newMethodBody.codeLength);
-	uint32 exception_count = bitstream.ReadEncodedU32( );
+	uint32 exception_count = bitstream.ReadEncodedU32();
 	for( uint i = 0; i < exception_count; i++ )
 	{
-		auto& newExceptionInfo = newMethodBody.exceptions.Alloc( );
+		auto& newExceptionInfo = newMethodBody.exceptions.Alloc();
 		ReadExceptionInfo( bitstream, newExceptionInfo );
 	}
-	uint32 trait_count = bitstream.ReadEncodedU32( );
+	uint32 trait_count = bitstream.ReadEncodedU32();
 	for( uint i = 0; i < trait_count; i++ )
 	{
-		auto& newTrait = newMethodBody.traits.Alloc( );
+		auto& newTrait = newMethodBody.traits.Alloc();
 		ReadTraitsInfo( bitstream, newTrait );
 	}
 }
 
 void SWF_AbcFile::ReadExceptionInfo( idSWFBitStream& bitstream, swfException_info& newException )
 {
-	newException.from = bitstream.ReadEncodedU32( );
+	newException.from = bitstream.ReadEncodedU32();
 	newException.to = bitstream.ReadEncodedU32();
 	newException.target = bitstream.ReadEncodedU32();
 	newException.exc_type = &constant_pool.utf8Strings[bitstream.ReadEncodedU32()];
@@ -718,7 +718,7 @@ void SWF_AbcFile::ReadInstanceInfo( idSWFBitStream& bitstream, swfInstance_info&
 
 	newInstancedata.iinit = &methods[bitstream.ReadEncodedU32()];
 
-	uint32 trait_count = bitstream.ReadEncodedU32( );
+	uint32 trait_count = bitstream.ReadEncodedU32();
 
 	for( uint i = 0; i < trait_count; i++ )
 	{
@@ -757,7 +757,7 @@ void SWF_AbcFile::ReadMethodInfo( idSWFBitStream& bitstream , swfMethod_info& ne
 
 		for( uint i = 0; i < newMethod.paramCount; i++ )
 		{
-			idx = bitstream.ReadEncodedU32( );
+			idx = bitstream.ReadEncodedU32();
 			newMethod.paramNames.Alloc() = &constant_pool.utf8Strings[idx];
 
 			trace( "newMethod.param %s \n", constant_pool.utf8Strings[idx].c_str() );
@@ -784,7 +784,7 @@ void SWF_AbcFile::LoadBinary( idFile* file )
 void idSWF::DoABC( idSWFBitStream& bitstream )
 {
 	SWF_AbcFile& newAbcFile = abcFile;
-	int strmSize = bitstream.Length( ) + 6; // codeLength(uin16) + recordLength(uin32)
+	int strmSize = bitstream.Length() + 6; // codeLength(uin16) + recordLength(uin32)
 
 	if( !newAbcFile.AbcTagData.Length() )
 	{
@@ -793,8 +793,8 @@ void idSWF::DoABC( idSWFBitStream& bitstream )
 
 	uint32 flags = bitstream.ReadU32();
 	idStr name = bitstream.ReadString();
-	int dataSize = bitstream.Length( ) - name.Length( );
-	common->Printf( "DoABC %s flags %i tagsize %i bytecode size %i \n", name.c_str( ), flags, strmSize, dataSize );
+	int dataSize = bitstream.Length() - name.Length();
+	common->Printf( "DoABC %s flags %i tagsize %i bytecode size %i \n", name.c_str(), flags, strmSize, dataSize );
 
 	bitstream.ReadLittle( newAbcFile.minor_version );
 	bitstream.ReadLittle( newAbcFile.major_version );
@@ -802,7 +802,7 @@ void idSWF::DoABC( idSWFBitStream& bitstream )
 	ReadConstantPoolInfo( bitstream, newAbcFile.constant_pool );
 	SWF_AbcFile::traceConstantPool( newAbcFile.constant_pool );
 
-	uint32 method_count = bitstream.ReadEncodedU32( ) ;
+	uint32 method_count = bitstream.ReadEncodedU32() ;
 	newAbcFile.methods.AssureSize( method_count );
 	trace( "method_count %i \n", method_count );
 	for( uint i = 0; i < method_count; i++ )
@@ -811,7 +811,7 @@ void idSWF::DoABC( idSWFBitStream& bitstream )
 		newAbcFile.ReadMethodInfo( bitstream, newMethod );
 	}
 
-	uint32 meta_count = bitstream.ReadEncodedU32( );
+	uint32 meta_count = bitstream.ReadEncodedU32();
 	newAbcFile.metadatas.AssureSize( meta_count );
 	trace( "meta_count %i \n", meta_count );
 	for( uint i = 0; i < meta_count; i++ )
@@ -837,7 +837,7 @@ void idSWF::DoABC( idSWFBitStream& bitstream )
 		newAbcFile.ReadClassInfo( bitstream, newClass );
 	}
 
-	uint32 script_count = bitstream.ReadEncodedU32( );
+	uint32 script_count = bitstream.ReadEncodedU32();
 	newAbcFile.scripts.AssureSize( script_count );
 	trace( "script_count %i \n", script_count );
 	for( uint i = 0; i < script_count; i++ )
@@ -846,7 +846,7 @@ void idSWF::DoABC( idSWFBitStream& bitstream )
 		newAbcFile.ReadScriptInfo( bitstream, newScript );
 	}
 
-	uint32 methBody_count = bitstream.ReadEncodedU32( );
+	uint32 methBody_count = bitstream.ReadEncodedU32();
 	newAbcFile.method_bodies.AssureSize( methBody_count );
 	trace( "methBody_count %i \n", methBody_count );
 	for( uint i = 0; i < methBody_count; i++ )
@@ -870,8 +870,8 @@ void idSWF::SymbolClass( idSWFBitStream& bitstream )
 	for( uint i = 0 ; i < numSymbols; i++ )
 	{
 		auto& newSymbol = symbolClasses.symbols.Alloc();
-		newSymbol.tag  = bitstream.ReadU16( );
-		newSymbol.name = bitstream.ReadString( );
+		newSymbol.tag  = bitstream.ReadU16();
+		newSymbol.name = bitstream.ReadString();
 		trace( "SymbolClass ^5%i ^7tag ^5%i  ^2%s \n", i, newSymbol.tag, newSymbol.name.c_str() );
 	}
 }

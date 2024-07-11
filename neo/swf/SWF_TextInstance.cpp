@@ -131,12 +131,12 @@ void idSWFTextInstance::Init( idSWFText* _text, idSWF* _swf )
 
 	inputTextStartChar = 0;
 
-	renderDelay = swf_textRndLetterDelay.GetInteger( );
+	renderDelay = swf_textRndLetterDelay.GetInteger();
 	needsSoundUpdate = false;
 	useDropShadow = false;
 	useStroke = false;
 	strokeStrength = 1.0f;
-	strokeWeight = swf_textStrokeSize.GetFloat( );
+	strokeWeight = swf_textStrokeSize.GetFloat();
 
 	scriptObject.SetPrototype( &textInstanceScriptObjectPrototype );
 	scriptObject.SetText( this );

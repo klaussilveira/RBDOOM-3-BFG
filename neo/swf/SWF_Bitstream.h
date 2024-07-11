@@ -94,7 +94,7 @@ public:
 		T result = 0;
 		for( int i = 0; i < 5; i++ )
 		{
-			byte b = ReadU8( );
+			byte b = ReadU8();
 			result |= ( b & 0x7F ) << ( 7 * i );
 			if( ( b & 0x80 ) == 0 )
 			{
