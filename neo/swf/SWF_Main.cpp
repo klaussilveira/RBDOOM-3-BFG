@@ -52,9 +52,8 @@ extern idCVar in_useJoystick;
 idSWF::idSWF
 ===================
 */
-idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON, bool exportSWF )
+idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON, bool exportSWF, bool exportSVG )
 {
-
 	atlasMaterial = NULL;
 
 	swfScale = 1.0f;
@@ -193,6 +192,15 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 		WriteJSON( jsonFileName );
 	}
 
+	if( exportSVG )
+	{
+		idStr svgFileName = "exported/";
+		svgFileName += filename;
+		svgFileName.SetFileExtension( ".svg" );
+
+		WriteSVG( svgFileName );
+	}
+
 	idStr atlasFileName = binaryFileName;
 	atlasFileName.SetFileExtension( ".png" );
 	atlasMaterial = declManager->FindMaterial( atlasFileName );
@@ -201,7 +209,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 	int atlasExportImageWidth = 0;
 	int atlasExportImageHeight = 0;
 
-	if( /*!loadedFromJSON &&*/ ( exportJSON || exportSWF ) )
+	if( /*!loadedFromJSON &&*/ ( exportJSON || exportSWF || exportSVG ) )
 	{
 		// try loading the TGA first
 		ID_TIME_T timestamp;

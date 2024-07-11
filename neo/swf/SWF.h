@@ -91,7 +91,7 @@ This class handles loading and rendering SWF files
 class idSWF
 {
 public:
-	idSWF( const char* filename, idSoundWorld* soundWorld, bool exportJSON = false, bool exportSWF = false );
+	idSWF( const char* filename, idSoundWorld* soundWorld, bool exportJSON = false, bool exportSWF = false, bool exportSVG = false );
 	~idSWF();
 
 	bool	IsLoaded()
@@ -407,8 +407,8 @@ private:
 	void			Metadata( idSWFBitStream& bitstream );
 	void			SetBackgroundColor( idSWFBitStream& bitstream );
 
-	void			LoadXML( const char* filename );
-	void			WriteXML( const char* filename );
+	void			LoadSVG( const char* filename );
+	void			WriteSVG( const char* filename );
 
 	bool			LoadJSON( const char* filename );
 	void			WriteJSON( const char* filename );
