@@ -45,7 +45,11 @@ void idSWF::WriteSVG( const char* filename )
 		return;
 	}
 
-	file->WriteFloatString( "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" );
+	idStr filenameWithoutExt = filename;
+	filenameWithoutExt.StripFileExtension();
+	filenameWithoutExt.StripLeadingOnce( "exported/swf/" );
+
+	//file->WriteFloatString( "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" );
 
 	// missing timestamp, frameRate
 	file->WriteFloatString( "<svg\n\txmlns=\"http://www.w3.org/2000/svg\"\n\txmlns:xlink=\"http://www.w3.org/1999/xlink\"\n\twidth=\"%i\"\n\theight=\"%i\"\n\tviewBox=\"0 0 600 300\"\n >\n", ( int ) frameWidth, ( int ) frameHeight );
@@ -58,82 +62,80 @@ void idSWF::WriteSVG( const char* filename )
 		//file->WriteFloatString( "\t<DictionaryEntry type=\"%s\">\n", idSWF::GetDictTypeName( dictionary[i].type ) );
 		switch( dictionary[i].type )
 		{
+			/*
 			case SWF_DICT_IMAGE:
 			{
-				file->WriteFloatString( "\t\t<Image characterID=\"%i\" material=\"", i );
-				if( dictionary[i].material )
-				{
-					file->WriteFloatString( "%s\"", dictionary[i].material->GetName() );
-				}
-				else
-				{
-					file->WriteFloatString( ".\"" );
-				}
-
-				file->WriteFloatString( " width=\"%i\" height=\"%i\" atlasOffsetX=\"%i\" atlasOffsetY=\"%i\">\n",
-										entry.imageSize[0], entry.imageSize[1], entry.imageAtlasOffset[0], entry.imageAtlasOffset[1] );
-
-				file->WriteFloatString( "\t\t\t<ChannelScale x=\"%f\" y=\"%f\" z=\"%f\" w=\"%f\"/>\n", entry.channelScale.x, entry.channelScale.y, entry.channelScale.z, entry.channelScale.w );
-
-				file->WriteFloatString( "\t\t</Image>\n" );
+				file->WriteFloatString( "\t\t<image id=\"%i\" ", i );
+				file->WriteFloatString( "xlink:href=\"%s/image_characterid_%i.png\"", filenameWithoutExt.c_str(), i );
+				file->WriteFloatString( " width=\"%i\" height=\"%i\" />\n", entry.imageSize[0], entry.imageSize[1] );
 				break;
 			}
+			*/
 
 			case SWF_DICT_MORPH:
 			case SWF_DICT_SHAPE:
 			{
 				idSWFShape* shape = dictionary[i].shape;
 
-				file->WriteFloatString( "\t\t<Shape characterID=\"%i\">\n", i );
+				//file->WriteFloatString( "\t\t<g id=\"%i\" visibility=\"hidden\">\n", i );
+				file->WriteFloatString( "\t\t<g id=\"%i\" >\n", i );
 
 				float x = shape->startBounds.tl.y;
 				float y = shape->startBounds.tl.x;
 				float width = fabs( shape->startBounds.br.y - shape->startBounds.tl.y );
 				float height = fabs( shape->startBounds.br.x - shape->startBounds.tl.x );
 
-				file->WriteFloatString( "\t\t\t<StartBounds x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" />\n", x, y, width, height );
+				//file->WriteFloatString( "\t\t\t<StartBounds x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" />\n", x, y, width, height );
 
 				x = shape->endBounds.tl.y;
 				y = shape->endBounds.tl.x;
 				width = fabs( shape->endBounds.br.y - shape->endBounds.tl.y );
 				height = fabs( shape->endBounds.br.x - shape->endBounds.tl.x );
 
-				file->WriteFloatString( "\t\t\t<EndBounds x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" />\n", x, y, width, height );
+				//file->WriteFloatString( "\t\t\t<EndBounds x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" />\n", x, y, width, height );
 
 				// export fill draws
-
 				for( int d = 0; d < shape->fillDraws.Num(); d++ )
 				{
 					idSWFShapeDrawFill& fillDraw = shape->fillDraws[d];
 
-					if( exportBitmapShapesOnly && fillDraw.style.type != 4 )
+					//f( exportBitmapShapesOnly && fillDraw.style.type != 4 )
+					//{
+					//	continue;
+					//}
+
+					if( fillDraw.style.type == 4 )
 					{
+						int bitmapID = fillDraw.style.bitmapID;
+						if( bitmapID == 65535 )
+						{
+							continue;
+						}
+
+						const idSWFDictionaryEntry& bitmapEntry = dictionary[bitmapID];
+
+						file->WriteFloatString( "\t\t\t<image id=\"%i\" ", bitmapID );
+						file->WriteFloatString( "xlink:href=\"%s/image_characterid_%i.png\"", filenameWithoutExt.c_str(), bitmapID );
+						file->WriteFloatString( " width=\"%i\" height=\"%i\" />\n", bitmapEntry.imageSize[0], bitmapEntry.imageSize[1] );
+
 						continue;
 					}
 
-					file->WriteFloatString( "\t\t\t<DrawFill>\n" );
+					//<!-- Example of the same polygon shape with stroke and no fill -->
+					// <polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black" />
 
-					file->WriteFloatString( "\t\t\t\t<FillStyle type=" );
-
-					// 0 = solid, 1 = gradient, 4 = bitmap
 					if( fillDraw.style.type == 0 )
 					{
-						file->WriteFloatString( "\"solid\"" );
-					}
-					else if( fillDraw.style.type == 1 )
-					{
-						file->WriteFloatString( "\"gradient\"" );
-					}
-					else if( fillDraw.style.type == 4 )
-					{
-						file->WriteFloatString( "\"bitmap\"" );
+						file->WriteFloatString( "\t\t\t<polygon " );
 					}
 					else
 					{
-						file->WriteFloatString( "\"%i\"", fillDraw.style.type );
+						file->WriteFloatString( "\t\t\t<polygonline " );
 					}
 
+					// TODO sub types
 					// 0 = linear, 2 = radial, 3 = focal; 0 = repeat, 1 = clamp, 2 = near repeat, 3 = near clamp
+					/*
 					file->WriteFloatString( " subType=" );
 					if( fillDraw.style.subType == 0 )
 					{
@@ -155,19 +157,18 @@ void idSWF::WriteSVG( const char* filename )
 					{
 						file->WriteFloatString( "\"%i\"", fillDraw.style.subType );
 					}
+					*/
 
+					/*
+					unused in BFG
 					if( fillDraw.style.type == 1 && fillDraw.style.subType == 3 )
 					{
 						file->WriteFloatString( " focalPoint=\"%f\"", fillDraw.style.focalPoint );
 					}
+					*/
 
-					if( fillDraw.style.type == 4 )
-					{
-						file->WriteFloatString( " bitmapID=\"%i\"", fillDraw.style.bitmapID );
-					}
-
-					file->WriteFloatString( ">\n" );
-
+					// TODO colors
+					/*
 					if( fillDraw.style.type == 0 )
 					{
 						idVec4 color = fillDraw.style.startColor.ToVec4();
@@ -192,55 +193,24 @@ void idSWF::WriteSVG( const char* filename )
 													m.xx, m.yy, m.xy, m.yx, m.tx, m.ty );
 						}
 					}
+					*/
 
-					for( int g = 0; g < fillDraw.style.gradient.numGradients; g++ )
-					{
-						swfGradientRecord_t gr = fillDraw.style.gradient.gradientRecords[g];
-
-						file->WriteFloatString( "\t\t\t\t\t<GradientRecord startRatio=\"%i\" endRatio=\"%i\">\n", gr.startRatio, gr.endRatio );
-
-						idVec4 color = gr.startColor.ToVec4();
-						file->WriteFloatString( "\t\t\t\t\t\t<StartColor r=\"%f\" g=\"%f\" b=\"%f\" a=\"%f\"/>\n",
-												color.x, color.y, color.z, color.w );
-
-						idVec4 endColor = gr.endColor.ToVec4();
-						if( color != endColor )
-						{
-							file->WriteFloatString( "\t\t\t\t\t\t<EndColor r=\"%f\" g=\"%f\" b=\"%f\" a=\"%f\"/>\n",
-													color.x, color.y, color.z, endColor.w );
-						}
-					}
-
-					file->WriteFloatString( "\t\t\t\t</FillStyle>\n" );
-
-					for( int v = 0; v < fillDraw.startVerts.Num(); v++ )
-					{
-						const idVec2& vert = fillDraw.startVerts[v];
-
-						file->WriteFloatString( "\t\t\t\t<StartVertex x=\"%f\" y=\"%f\"/>\n", vert.x, vert.y );
-					}
-
-					for( int v = 0; v < fillDraw.endVerts.Num(); v++ )
-					{
-						const idVec2& vert = fillDraw.endVerts[v];
-
-						file->WriteFloatString( "\t\t\t\t<EndVertex x=\"%f\" y=\"%f\"/>\n",	vert.x, vert.y );
-					}
-
-					file->WriteFloatString( "\t\t\t\t<Indices num=\"%i\">", fillDraw.indices.Num() );
+					file->WriteFloatString( "points=\"" );
 					for( int v = 0; v < fillDraw.indices.Num(); v++ )
 					{
-						const uint16& vert = fillDraw.indices[v];
+						const uint16& vertIndex = fillDraw.indices[v];
 
-						file->WriteFloatString( "%i ", vert );
+						const idVec2& vert = fillDraw.startVerts[vertIndex];
+
+						file->WriteFloatString( "%f,%f ", vert.x, vert.y );
 					}
-					file->WriteFloatString( "</Indices>\n" );
+					file->WriteFloatString( "\"" );
 
-					file->WriteFloatString( "\t\t\t</DrawFill>\n" );
+					file->WriteFloatString( "/>\n" );
 				}
 
 				// export line draws
-#if 1
+#if 0
 				for( int d = 0; d < shape->lineDraws.Num(); d++ )
 				{
 					const idSWFShapeDrawLine& lineDraw = shape->lineDraws[d];
@@ -287,7 +257,7 @@ void idSWF::WriteSVG( const char* filename )
 				}
 #endif
 
-				file->WriteFloatString( "\t\t</Shape>\n" );
+				file->WriteFloatString( "\t\t</g>\n" );
 				break;
 			}
 
@@ -299,10 +269,12 @@ void idSWF::WriteSVG( const char* filename )
 
 			case SWF_DICT_FONT:
 			{
-				const idSWFFont* font = dictionary[i].font;
+				// TODO
 
-				file->WriteFloatString( "\t\t<Font characterID=\"%i\" name=\"%s\" ascent=\"%i\" descent=\"%i\" leading=\"%i\" glyphsNum=\"%i\">\n",
-										i, font->fontID->GetName(), font->ascent, font->descent, font->leading, font->glyphs.Num() );
+				//const idSWFFont* font = dictionary[i].font;
+
+				//file->WriteFloatString( "\t\t<Font characterID=\"%i\" name=\"%s\" ascent=\"%i\" descent=\"%i\" leading=\"%i\" glyphsNum=\"%i\">\n",
+				//						i, font->fontID->GetName(), font->ascent, font->descent, font->leading, font->glyphs.Num() );
 
 #if 0
 				for( int g = 0; g < font->glyphs.Num(); g++ )
@@ -330,12 +302,14 @@ void idSWF::WriteSVG( const char* filename )
 #endif
 				}
 #endif
-				file->WriteFloatString( "\t\t</Font>\n" );
+				//file->WriteFloatString( "\t\t</Font>\n" );
 				break;
 			}
 
 			case SWF_DICT_TEXT:
 			{
+				// RB: not used in BFG files
+
 				const idSWFText* text = dictionary[i].text;
 
 				file->WriteFloatString( "\t\t<Text characterID=\"%i\">\n", i );
@@ -399,6 +373,7 @@ void idSWF::WriteSVG( const char* filename )
 
 			case SWF_DICT_EDITTEXT:
 			{
+#if 0
 				const idSWFEditText* et = dictionary[i].edittext;
 
 				idStr initialText = idStr::CStyleQuote( et->initialText.c_str() );
@@ -447,6 +422,7 @@ void idSWF::WriteSVG( const char* filename )
 				//file->WriteBig( et->leading );
 				//file->WriteString( et->variable );
 				//file->WriteString( et->initialText );
+#endif
 				break;
 			}
 		}

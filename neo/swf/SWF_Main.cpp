@@ -1195,7 +1195,7 @@ CONSOLE_COMMAND_SHIP( exportFlash, "Export all .bswf files to the exported/swf/ 
 
 		bswfName.StripLeadingOnce( "generated/" );
 
-		idSWF* swf = new idSWF( bswfName, NULL, true, true ); //exportSWF );
+		idSWF* swf = new idSWF( bswfName, NULL, true, true, true ); //exportSWF );
 		delete swf;
 	}
 
