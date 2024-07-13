@@ -1872,8 +1872,6 @@ int idFile_InZip::Seek( long offset, fsOrigin_t origin )
 	return -1;
 }
 
-#if 1
-
 /*
 =================================================================================
 
@@ -2003,7 +2001,6 @@ int idFile_InnerResource::Seek( long offset, fsOrigin_t origin )
 	}
 	return -1;
 }
-#endif
 
 /*
 ================================================================================================

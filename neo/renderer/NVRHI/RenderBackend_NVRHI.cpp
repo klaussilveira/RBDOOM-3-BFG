@@ -60,7 +60,7 @@ idCVar stereoRender_warpTargetFraction( "stereoRender_warpTargetFraction", "1.0"
 idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
 idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU buffer execution past swapbuffers" );
 
-idCVar r_vkUploadBufferSizeMB( "r_vkUploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT, "Size of gpu upload buffer (Vulkan only)" );
+idCVar r_vkUploadBufferSizeMB( "r_vkUploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Size of gpu upload buffer (Vulkan only)" );
 
 
 constexpr std::size_t MAX_IMAGE_PARMS = 16;
@@ -2528,7 +2528,7 @@ void idRenderBackend::SetCurrentImage( idImage* image )
 	if( !image->IsLoaded() && !image->IsDefaulted() )
 	{
 		// TODO(Stephen): Fix me.
-		image->FinalizeImage( true, commandList );
+		image->ActuallyLoadImage( true, commandList );
 	}
 
 	context.imageParms[context.currentImageParm] = image;

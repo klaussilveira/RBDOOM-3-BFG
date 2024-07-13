@@ -47,12 +47,6 @@ option(WINDOWS10
 option(USE_SYSTEM_ZLIB
          "Use the system zlib instead of the bundled one" OFF)
 
-option(USE_SYSTEM_LIBPNG
-         "Use the system libpng instead of the bundled one" OFF)
-
-option(USE_SYSTEM_LIBJPEG
-         "Use the system libjpeg instead of the bundled one" OFF)
-
 option(USE_SYSTEM_RAPIDJSON
          "Use the system rapidjson instead of the bundled one" OFF)
 
@@ -132,6 +126,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	#add_definitions(-Wall)
 	add_definitions(-Werror=format-security)
 	add_definitions(-Werror=format)
+	add_definitions(-Wno-format-zero-length)
+	add_definitions(-Wno-nonnull)
 
 	# Compiler check (needs -std=c++17 flag)
 	include(CheckCXXCompilerFlag)
@@ -287,45 +283,17 @@ if(APPLE)
 	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
 
-# SRS - set libjpeg as first include path to prioritize bundled format_message() fix
-if (USE_SYSTEM_LIBJPEG)
-	find_package(JPEG)
+if(USE_SYSTEM_ZLIB)
+	find_package(ZLIB)
 endif()
 
-if (JPEG_FOUND)
-    include_directories(${JPEG_INCLUDE_DIRS})
-    set(JPEG_LIBRARY ${JPEG_LIBRARIES})
-    add_definitions(-DUSE_NEWER_JPEG)
+if(ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
 else()
-    include_directories("libs/jpeg-6")
-    set(JPEG_LIBRARY "" )
-endif (JPEG_FOUND)
-
-if (USE_SYSTEM_LIBPNG)
-	find_package(PNG)
-endif (USE_SYSTEM_LIBPNG)
-
-# SRS - if system libpng was found, then system zlib was also found via cmake dependency
-if (PNG_FOUND)
-    include_directories(${PNG_INCLUDE_DIRS})
-    set(PNG_LIBRARY ${PNG_LIBRARIES})
-else (PNG_FOUND)
-    include_directories("libs/png")
-    set(PNG_LIBRARY "" )
-
-	# SRS - search for system zlib only if we have not already searched via system libpng
-	if (USE_SYSTEM_ZLIB AND NOT USE_SYSTEM_LIBPNG)
-	  find_package(ZLIB)
-	endif (USE_SYSTEM_ZLIB AND NOT USE_SYSTEM_LIBPNG)
-
-	if (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-		include_directories(${ZLIB_INCLUDE_DIRS})
-		set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-	else (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-		include_directories("libs/zlib")
-		set(ZLIB_LIBRARY "" )
-	endif (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-endif (PNG_FOUND)
+	include_directories("libs/zlib")
+	set(ZLIB_LIBRARY "" )
+endif()
 
 #SRS - move rapidjson before vulkan and other includes to prioritize bundled iterator fixes
 if (USE_SYSTEM_RAPIDJSON)
@@ -340,6 +308,7 @@ else (RAPIDJSON_FOUND)
 endif (RAPIDJSON_FOUND)
 
 include_directories("libs/imgui")
+include_directories("libs/mikktspace")
 
 if(WIN32)
 	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/openvr/lib/win64)
@@ -462,6 +431,12 @@ endif()
 
 add_subdirectory(idlib)
 
+# RB: there haven't been requests for a separate map compiler executable by macOS users
+# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
+if(NOT APPLE)
+	add_subdirectory(tools/compilers)
+endif()
+
 file(GLOB NATVIS_SOURCES .natvis)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -505,89 +480,14 @@ file(GLOB TINYEXR_INCLUDES libs/tinyexr/*.h)
 file(GLOB MIKKTSPACE_INCLUDES libs/mikktspace/*.h)
 file(GLOB MIKKTSPACE_SOURCES libs/mikktspace/*.c)
 
-if (NOT JPEG_FOUND)
-    set(JPEG_INCLUDES
-        libs/jpeg-6/jchuff.h
-        libs/jpeg-6/jconfig.h
-        libs/jpeg-6/jdct.h
-        libs/jpeg-6/jdhuff.h
-        libs/jpeg-6/jerror.h
-        libs/jpeg-6/jinclude.h
-        libs/jpeg-6/jmemsys.h
-        libs/jpeg-6/jmorecfg.h
-        libs/jpeg-6/jpegint.h
-        libs/jpeg-6/jpeglib.h
-        libs/jpeg-6/jversion.h)
-
-    set(JPEG_SOURCES
-        libs/jpeg-6/jcapimin.cpp
-        libs/jpeg-6/jcapistd.cpp
-        libs/jpeg-6/jccoefct.cpp
-        libs/jpeg-6/jccolor.cpp
-        libs/jpeg-6/jcdctmgr.cpp
-        libs/jpeg-6/jchuff.cpp
-        libs/jpeg-6/jcinit.cpp
-        libs/jpeg-6/jcmainct.cpp
-        libs/jpeg-6/jcmarker.cpp
-        libs/jpeg-6/jcmaster.cpp
-        libs/jpeg-6/jcomapi.cpp
-        libs/jpeg-6/jcparam.cpp
-        libs/jpeg-6/jcphuff.cpp
-        libs/jpeg-6/jcprepct.cpp
-        libs/jpeg-6/jcsample.cpp
-        libs/jpeg-6/jctrans.cpp
-        libs/jpeg-6/jdapimin.cpp
-        libs/jpeg-6/jdapistd.cpp
-        libs/jpeg-6/jdatadst.cpp
-        libs/jpeg-6/jdatasrc.cpp
-        libs/jpeg-6/jdcoefct.cpp
-        libs/jpeg-6/jdcolor.cpp
-        libs/jpeg-6/jddctmgr.cpp
-        libs/jpeg-6/jdhuff.cpp
-        libs/jpeg-6/jdinput.cpp
-        libs/jpeg-6/jdmainct.cpp
-        libs/jpeg-6/jdmarker.cpp
-        libs/jpeg-6/jdmaster.cpp
-        libs/jpeg-6/jdmerge.cpp
-        libs/jpeg-6/jdphuff.cpp
-        libs/jpeg-6/jdpostct.cpp
-        libs/jpeg-6/jdsample.cpp
-        libs/jpeg-6/jdtrans.cpp
-        libs/jpeg-6/jerror.cpp
-        libs/jpeg-6/jfdctflt.cpp
-        libs/jpeg-6/jfdctfst.cpp
-        libs/jpeg-6/jfdctint.cpp
-        libs/jpeg-6/jidctflt.cpp
-        libs/jpeg-6/jidctfst.cpp
-        libs/jpeg-6/jidctint.cpp
-        libs/jpeg-6/jidctred.cpp
-        #libs/jpeg-6/jload.cpp
-        libs/jpeg-6/jmemmgr.cpp
-        libs/jpeg-6/jmemnobs.cpp
-        #libs/jpeg-6/jpegtran.cpp
-        libs/jpeg-6/jquant1.cpp
-        libs/jpeg-6/jquant2.cpp
-        libs/jpeg-6/jutils.cpp)
-else (NOT JPEG_FOUND)
-   set(JPEG_INCLUDES "")
-   set(JPEG_SOURCES "")
-endif (NOT JPEG_FOUND)
-
-if (NOT PNG_FOUND)
-    file(GLOB PNG_INCLUDES libs/png/*.h)
-    file(GLOB PNG_SOURCES libs/png/*.c)
-else (NOT PNG_FOUND)
-    set(PNG_INCLUDES "")
-    set(PNG_SOURCES "")
-endif (NOT PNG_FOUND)
 
 if (NOT ZLIB_FOUND)
-file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
-file(GLOB ZLIB_SOURCES libs/zlib/*.c)
-else (NOT ZLIB_FOUND)
-  set(ZLIB_INCLUDES "")
-  set(ZLIB_SOURCES "")
-endif (NOT ZLIB_FOUND)
+	file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
+	file(GLOB ZLIB_SOURCES libs/zlib/*.c)
+else()
+	set(ZLIB_INCLUDES "")
+	set(ZLIB_SOURCES "")
+endif()
 
 if(BINKDEC)
 	file(GLOB BINKDEC_INCLUDES libs/libbinkdec/include/*.h)
@@ -1102,14 +1002,8 @@ source_group("libs\\tinyexr" FILES ${TINYEXR_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_SOURCES})
 
-source_group("libs\\jpeg-6" FILES ${JPEG_INCLUDES})
-source_group("libs\\jpeg-6" FILES ${JPEG_SOURCES})
-
 source_group("libs\\libbinkdec" FILES ${BINKDEC_INCLUDES})
 source_group("libs\\libbinkdec" FILES ${BINKDEC_SOURCES})
-
-source_group("libs\\png" FILES ${PNG_INCLUDES})
-source_group("libs\\png" FILES ${PNG_SOURCES})
 
 source_group("libs\\zlib" FILES ${ZLIB_INCLUDES})
 source_group("libs\\zlib" FILES ${ZLIB_SOURCES})
@@ -1280,8 +1174,6 @@ set(RBDOOM3_INCLUDES
 			${MESA_INCLUDES}
 			${TINYEXR_INCLUDES}
 			${MIKKTSPACE_INCLUDES}
-			${JPEG_INCLUDES}
-			${PNG_INCLUDES}
 			${ZLIB_INCLUDES}
 			${MINIZIP_INCLUDES}
 			${BINKDEC_INCLUDES}
@@ -1332,8 +1224,6 @@ set(RBDOOM3_SOURCES
 			${FRAMEWORK_IMGUI_SOURCES}
 			${IMGUI_SOURCES}
 			${MIKKTSPACE_SOURCES}
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			${BINKDEC_SOURCES}
@@ -1496,7 +1386,7 @@ if(MSVC)
 	
 	if(USE_PRECOMPILED_HEADERS) 
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1522,8 +1412,6 @@ if(MSVC)
 	
 	# SRS - disable certain MSVC warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
 			${OGGVORBIS_SOURCES}
 			PROPERTIES
 			COMPILE_FLAGS "/wd4101 /wd4267"	# C4101: unreferenced local variable, C4267: type conversion with possible loss of data
@@ -1560,8 +1448,6 @@ if(MSVC)
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
-        ${PNG_LIBRARY}
-        ${JPEG_LIBRARY}
 		${CMAKE_DL_LIBS}
 		${OPENVR_LIBRARY}
 		sapi.lib
@@ -1646,7 +1532,7 @@ else()
 	
 	if(USE_PRECOMPILED_HEADERS) 	
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1672,8 +1558,6 @@ else()
 
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
-			${JPEG_SOURCES}
-			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			PROPERTIES
 			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
@@ -1780,8 +1664,6 @@ else()
 			${OPENAL_LIBRARY}
 			${FFMPEG_LIBRARIES}
             ${ZLIB_LIBRARY}
-            ${PNG_LIBRARY}
-            ${JPEG_LIBRARY}
 	    	${CMAKE_DL_LIBS}
 			${OPENVR_LIBRARY}
 			)

@@ -47,7 +47,7 @@ If you have questions concerning this license or the applicable additional terms
 
 extern DeviceManager* deviceManager;
 
-idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL, "use the new SSAO pass from Donut" );
+idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "use the new SSAO pass from Donut" );
 
 idCVar r_drawEyeColor( "r_drawEyeColor", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a colored box, red = left eye, blue = right eye, grey = non-stereo" );
 idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "1 - 5, log2 of the number of motion blur samples" );
@@ -5396,6 +5396,9 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	GL_StartFrame();
 
+	// RB: we need to load all images left before rendering
+	// this can be expensive here because of the runtime image compression
+	//globalImages->LoadDeferredImages( commandList );
 	uint64 backEndStartTime = Sys_Microseconds();
 
 	// needed for editor rendering

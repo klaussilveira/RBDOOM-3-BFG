@@ -19,6 +19,147 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - July 11, 2024
+
+This update fixes a critical issue where the loading screen inadvertently caused textures to load recursively. This fix ensures a smoother, more efficient experience by optimizing texture management and significantly reducing redundancy in video memory on low VRAM graphics cards.
+
+Changelog:
+
+* Updated README to reflect some of the newer changes
+
+* Allow skipping intro videos with Escape or Xbox controller Menu button
+
+* Fixed VRAM memory leak when reloading maps
+
+* Added cvar binaryLoadGuis so mods can override .gui files
+
+* Extended listCvars with -new option to show all RBDoom related cvars
+
+* Added new loading screen progressbar when loading textures
+
+* Fixed a couple of bugs regarding Flash JSON reimport
+
+* Show binarization indicator for 2D packed mipchain EXR files
+
+
+## .plan - June 28, 2024
+
+This build brings back .pk4 support and the classic flash light through a gameplay option.
+
+It also should help modders to organize the content as the filesystem has been slightly changed so paks in mod folders are ensured to have a higher priority regardless of multimod filename clashes. So there is no need to name your pak files zzzWhatever.resources.
+
+E.g. a Multimod setup: 
+```
+RBDoom3BFG.exe +set fs_game mod_E3_Alpha_Weapons +set fs_game_base mod_D3HDP_Lite
+```
+
+mod_D3HDP_Lite is the base mod and mod_E3_Alpha_Weapons is a submod that extends it even further.
+
+The path command shows the priority how a file is being looked up in the virtual filesystem.
+Higher is better. 
+```
+Current search path:
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/mod_E3_Alpha_Weapons
+C:\Projects\RBDOOM-3-BFG/mod_E3_Alpha_Weapons
+C:\Projects\RBDOOM-3-BFG/mod_E3_Alpha_Weapons/zzz_E3_Alpha_Weapons.resources (41 files)
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/mod_D3HDP_Lite
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite06.resources (1641 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite05.resources (3173 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite04.resources (1683 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite03.resources (1047 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite02.resources (777 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite01.resources (524 files)
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/base
+C:\Projects\RBDOOM-3-BFG/base
+C:\Projects\RBDOOM-3-BFG/base/maps/site3.resources (1725 files)
+...
+C:\Projects\RBDOOM-3-BFG/base/maps/admin.resources (2148 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc_gr.resources (830 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc_en.resources (840 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc.resources (4759 files)
+C:\Projects\RBDOOM-3-BFG/base/_ordered.resources (1336 files)
+C:\Projects\RBDOOM-3-BFG/base/_common.resources (2262 files)
+```
+
+zzz_E3_Alpha_Weapons.resources has a higher priority now regardless of how the other paks are named.
+
+Changelog:
+
+* Updated tools/bfgpakexplorer to version 1.0.5 (thanks to George Kalampokis)
+
+* Fixed PBR _rmao lookup hack on the wrong textures
+
+* Added classic flashlight from Doom BFA (single player only)
+
+* Replaced flashlight shadows option with classic flashlight
+
+* Added detection for Doom 2004/2019 .pk4 files or .resources
+
+* Added missing script event so we can boot vanilla Doom 3
+
+* Added back .pk4 support but only for paks without a dll inside
+
+* Changed file lookup order in .resources paks like in previous id Tech engines
+
+
+## .plan - June 22, 2024
+
+Some people requested a separate oldschool map compiler so they don't have to open the engine every time they compile a map. Now you can just hit a button in TrenchBroomBFG. 
+The version also dumps a lot of legacy image loading code like the JPG and PNG libraries and replaces those with STB image header only libs like it is handled in the dhewm3 source port.
+
+rbdmap.exe is not only dmap but also provides the collision manager and AAS builder (runAAS cmd).
+So like in the embedded dmap cmd the .cm files and .aas files are also automatically built.
+
+rbdmap.exe uses Imtui with pdcurses on Windows to have features a like progress bar and just the old terminal output on Linux.
+
+Changelog:
+
+* Added rbdmap -nogui option because pdcurses does not work with TrenchBroom
+
+* Drastic dmap speed boost by reducing prints like in q3map
+
+* Added collision manager and AAS builder to dmap
+
+* Replaced JPG/PNG code with stb_image snippets from dhewm3
+
+* Allow static glTF2 models to be inlined in dmap and kicked unused Collada DAE support
+
+
+## .plan - June 14, 2024
+
+This is a preview build that solves several issues with TrenchBroom and the required convertMapToValve220 command.
+
+Light entities that have models get automatically grouped to new light groups and the models are moved to new func_static entities.
+Neither the vanilla Doom 3 ingame light editor which editLights is based on nor TrenchBroom supported editing those lights properly and this is the proper workaround to work with TrenchBroom's clean architecture where point entities can't have optional brushes/patches.
+
+Changelog:
+
+* Allow scalable models like in Quake 3 using modelscale/modelscale_vec keys in TrenchBroom
+
+* Support linked group instances by TrenchBroom
+
+* Restored internal envprobe fallback if map has no envprobes
+
+* Bumped savegame version for idLight::modelTarget
+
+* Split lights with brushes/patches into light groups for TrenchBroom
+
+* Fixed leaking problems when converting a map to the Valve 220 format
+
+* New makeMaterials `<folder>` cmd that generates a .mtr file based on PBR naming conventions
+
+* extractResourceFile copysound automatically converts .idwav files to .wav files in the ADPCM format
+
+* Added options "all" and "copysound" to extractResourceFile cmd
+
+* Save .bcanim files under generated/cameraanim/. close #866
+
+* Reduced Spam and crashes when r_useValidationLayers 2 was enabled (Thanks to Stephen Saunders)
+
+* Fixed crash with Vulkan when using the colorProcess shader (bathroom mirror horror effect)
+
+
 ## .plan - April 24, 2024
 
 Cudos to Stephen Saunders for most changes in this build. NVRHI was updated to the version on 25 February.

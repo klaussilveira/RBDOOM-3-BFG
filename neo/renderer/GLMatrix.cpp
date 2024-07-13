@@ -212,6 +212,7 @@ R_GlobalToNormalizedDeviceCoordinates
 -1 to 1 range in x, y, and z
 ==========================
 */
+#if !defined( DMAP )
 void R_GlobalToNormalizedDeviceCoordinates( const idVec3& global, idVec3& ndc )
 {
 	idPlane	view;
@@ -241,6 +242,7 @@ void R_GlobalToNormalizedDeviceCoordinates( const idVec3& global, idVec3& ndc )
 	ndc[1] = clip[1] * invW;
 	ndc[2] = clip[2] * invW;		// NOTE: in D3D this is in the range [0,1]
 }
+#endif
 
 /*
 ======================
@@ -411,6 +413,8 @@ idCVar r_centerY( "r_centerY", "0", CVAR_FLOAT, "projection matrix center adjust
 idCVar r_centerScale( "r_centerScale", "1", CVAR_FLOAT, "projection matrix center adjust" );
 
 
+
+#if !defined( DMAP )
 
 void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 {
@@ -657,6 +661,8 @@ void R_SetupUnprojection( viewDef_t* viewDef )
 	idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldRenderMatrix );
 }
 */
+
+#endif // #if !defined( DMAP )
 
 void R_MatrixFullInverse( const float a[16], float r[16] )
 {
