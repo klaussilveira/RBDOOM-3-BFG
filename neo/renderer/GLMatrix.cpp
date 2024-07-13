@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "RenderCommon.h"
-#include <vr/Vr.h>
+#include "../vr/Vr.h"
 
 /*
 ==========================================================================================
