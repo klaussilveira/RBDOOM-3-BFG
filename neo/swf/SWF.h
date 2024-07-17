@@ -40,14 +40,12 @@ extern "C"
 #include "../libs/luasocket/src/luasocket.h"
 }
 // RB end
-#include "SWF_ScriptVar.h"
-#include "SWF_Sprites.h"
-#include "SWF_ScriptObject.h"
-#include "SWF_ParmList.h"
-#include "SWF_ScriptFunction.h"
-#include "SWF_SpriteInstance.h"
-#include "SWF_ShapeParser.h"
-#include "SWF_TextInstance.h"
+
+class idSWFShape;
+class idSWFSprite;
+class idSWFFont;
+class idSWFText;
+class idSWFEditText;
 
 class idSWFDictionaryEntry
 {
@@ -71,6 +69,15 @@ public:
 	// color must be scaled down by this
 	idVec4				channelScale;
 };
+
+#include "SWF_ScriptVar.h"
+#include "SWF_Sprites.h"
+#include "SWF_ScriptObject.h"
+#include "SWF_ParmList.h"
+#include "SWF_ScriptFunction.h"
+#include "SWF_SpriteInstance.h"
+#include "SWF_ShapeParser.h"
+#include "SWF_TextInstance.h"
 
 struct purgableSwfImage_t
 {

@@ -49,12 +49,11 @@ void idSWF::WriteSVG( const char* filename )
 	filenameWithoutExt.StripFileExtension();
 	filenameWithoutExt.StripLeadingOnce( "exported/swf/" );
 
-	//file->WriteFloatString( "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" );
-
 	// missing timestamp, frameRate
-	file->WriteFloatString( "<svg\n\txmlns=\"http://www.w3.org/2000/svg\"\n\txmlns:xlink=\"http://www.w3.org/1999/xlink\"\n\twidth=\"%i\"\n\theight=\"%i\"\n\tviewBox=\"0 0 600 300\"\n >\n", ( int ) frameWidth, ( int ) frameHeight );
+	// \tviewBox=\"0 0 600 300\"\n
+	file->WriteFloatString( "<svg\n\txmlns=\"http://www.w3.org/2000/svg\"\n\txmlns:xlink=\"http://www.w3.org/1999/xlink\"\n\twidth=\"%i\"\n\theight=\"%i\"\n >\n", ( int ) frameWidth, ( int ) frameHeight );
 
-	//file->WriteFloatString( "\t<Dictionary>\n" );
+	file->WriteFloatString( "\t<defs>\n" );
 	for( int i = 0; i < dictionary.Num(); i++ )
 	{
 		const idSWFDictionaryEntry& entry = dictionary[i];
@@ -118,6 +117,10 @@ void idSWF::WriteSVG( const char* filename )
 						file->WriteFloatString( "xlink:href=\"%s/image_characterid_%i.png\"", filenameWithoutExt.c_str(), bitmapID );
 						file->WriteFloatString( " width=\"%i\" height=\"%i\" />\n", bitmapEntry.imageSize[0], bitmapEntry.imageSize[1] );
 
+						continue;
+					}
+					else if( exportBitmapShapesOnly )
+					{
 						continue;
 					}
 
@@ -263,7 +266,7 @@ void idSWF::WriteSVG( const char* filename )
 
 			case SWF_DICT_SPRITE:
 			{
-				//dictionary[i].sprite->WriteXML( file, i, "\t\t" );
+				dictionary[i].sprite->WriteSVG( file, i, dictionary );
 				break;
 			}
 
@@ -430,9 +433,9 @@ void idSWF::WriteSVG( const char* filename )
 		//file->WriteFloatString( "\t</DictionaryEntry>\n" );
 	}
 
-	//file->WriteFloatString( "\t</Dictionary>\n" );
+	file->WriteFloatString( "\t</defs>\n" );
 
-	//mainsprite->WriteXML( file, dictionary.Num(), "\t" );
+	mainsprite->WriteSVG( file, dictionary.Num(), dictionary );
 
 	file->WriteFloatString( "</svg>\n" );
 }

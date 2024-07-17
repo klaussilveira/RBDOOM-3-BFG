@@ -60,6 +60,9 @@ public:
 	void	WriteJSON_DoAction( idFile* f, idFile* luaFile, idSWFBitStream& bitstream, int characterID, int commandID, const char* indentPrefix = "" );
 	void	WriteJSON_DoLua( idFile* f, idFile* luaFile, idSWFBitStream& bitstream, int characterID, int commandID, const char* indentPrefix = "" );
 
+	void	WriteSVG( idFile* f, int characterID, const idList< idSWFDictionaryEntry, TAG_SWF >& dict );
+	void	WriteSVG_PlaceObject2( idFile* f, idSWFBitStream& bitstream, int characterID, int commandID, const idList< idSWFDictionaryEntry, TAG_SWF >& dict );
+
 	void	WriteSWF( idFile_SWF& f, int characterID );
 
 	uint16	GetFrameCount()
