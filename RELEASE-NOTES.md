@@ -19,34 +19,133 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
-## .plan - July 11, 2024
+## .plan - September 06, 2024
 
-This update fixes a critical issue where the loading screen inadvertently caused textures to load recursively. This fix ensures a smoother, more efficient experience by optimizing texture management and significantly reducing redundancy in video memory on low VRAM graphics cards.
+This is a test build for the Masked Software Occlusion Culling (MOC) implementation. Many modern engines have a solution like Umbra integrated that automatically hides hidden objects in the renderer before they even get rendered to optimize the performance.
+
+MOC is a technique for efficient CPU occlusion culling. It supplements the traditional BSP portal culling method. MOC works by directly updating a hierarchical Z-buffer without computing the full resolution depth buffer. This allows culling many pixels in parallel using SIMD instructions. The algorithm has very low memory overhead but can reduce the number of draw calls in worst case scenarios by up to 40% which makes it also very interesting for the VR implementation.
+
+Steve Saunders also provided a few Linux/Posix specific cleanups.
 
 Changelog:
 
-* Updated README to reflect some of the newer changes
+* Fixed glTF normals when transforms have not been applied in Blender. close #929
 
-* Allow skipping intro videos with Escape or Xbox controller Menu button
+* Added Masked Software Occlusion Culling library by Intel
 
-* Fixed VRAM memory leak when reloading maps
+* Added material textures/common/occlusion
 
-* Added cvar binaryLoadGuis so mods can override .gui files
+* Only draw BSP surfs/patches to masked buffer to reduce tris
 
-* Extended listCvars with -new option to show all RBDoom related cvars
+* Fixed a few bugs in the convertMapQuakeToDoom command
 
-* Added new loading screen progressbar when loading textures
+* Show masked occlusion time with com_showFPS 3
 
-* Fixed a couple of bugs regarding Flash JSON reimport
+* Increased vertex cache limits for TSM mod #918 #660
 
-* Show binarization indicator for 2D packed mipchain EXR files
+* rbdmap for Win32: Suppress warnings from imtui / imgui / pdcurses / wincon third-party source libraries
+
+* rbdmap for Linux/Posix: Replace deprecated readdir_r() with readdir() to eliminate warnings
+
+* rbdmap: Suppress warnings from zlib and minizip third-party source libraries
+
+* Fix rbdmap / idlib PCH mismatch and cleanup rbdmap PCH files after build
 
 
-## .plan - June 28, 2024
+## .plan - August 17, 2024
 
-This build brings back .pk4 support and the classic flash light through a gameplay option.
+This update improves the PSX render mode to be more faithful to the original output of the PS1.
+It emulates the lack of floating point rasterizer hardware and affine texture mapping.
 
-It also should help modders to organize the content as the filesystem has been slightly changed so paks in mod folders are ensured to have a higher priority regardless of multimod filename clashes. So there is no need to name your pak files zzzWhatever.resources.
+Besides that there is a new 4 Color CGA mode and new NES render mode with 55 colors.
+
+There is also a third advanced CRT shader that is a nice alternative if you prefer the look of a TV shadow mask.
+
+Changelog:
+
+* Fixed corpse burn effect of demons
+
+* PSX affine texture mapping
+
+* Ported advanced CRT shader by whkrmrgks0
+
+* Added 4 color CGA shader
+
+* Added NES render modes
+
+* Store world normals in gbuffer
+
+* Some experiments similar to Obra Dinn and fixed old SSAO
+
+* Made PSX vertex jitter resolution independent
+
+* Implemented typical PSX style vertex jittering
+
+
+
+<img src="https://i.imgur.com/vIPuu3x.png">
+
+# RBDOOM-3-BFG 1.6.0 adds Retro Rendering Support and Better Modding Support
+
+## Retro Rendering
+Experience the nostalgia of the 8-bit and 16-bit eras with the Retro Rendering Modes, including the Commodore 64, Amstrad CPC 6128, Sega Genesis/Megadrive and Sony PSX styles.
+
+Immerse yourself in the authentic Commodore 64 mode, faithfully replicating the original 16-color palette. Step into the vibrant world of Sega Genesis, with its impressive 512-color range thanks to 3-bit per channel technology. And for those seeking a true PlayStation experience, the PSX mode brings back unfiltered textures and adds a captivating screen space dithering effect.
+
+The retro rendering modes transport you back to the golden age of gaming, with a resolution that mimics the beloved 320x240 display, now extended to a widescreen 480x270 format. To enhance the arcade feel, two new CRT filters are included that overlay the entire game, including Doom 1 & 2.
+
+To access these retro rendering modes, simply navigate to the menu options and select your desired mode. Alternatively, you can control the rendering mode by modifying the `r_renderMode` variable. The available values for `r_renderMode` are as follows: Default (0) for Doom 3, Commodore 64 (1), Commodore 64 Highres (2), Amstrad CPC (3), Amstrad CPC Highres (4), Sega Genesis (5), Sega Genesis Highres (6) and Sony PSX (7).
+
+<img src="https://i.imgur.com/W8umJ3a.png" width="800">
+
+## Better Ingame Light Editor
+The Light editor has undergone a complete revision, bringing you an enhanced and intuitive editing experience. With the new and improved Light editor, you can effortlessly modify and fine-tune your lighting setups.
+
+To access the Light editor, simply use the `editLights` command in the console or bind it to a convenient key, such as F1. Once opened, the Light editor can be docked into different screen areas, allowing you to customize your workspace to suit your preferences.
+
+The Light editor features a range of powerful gizmos that enable you to easily manipulate lights in your scene. Whether you need to translate, rotate, or scale lights, the gizmos provide precise control over every aspect of your lighting setup. Additionally, you can edit light transforms directly, giving you even more flexibility and control.
+
+To ensure accuracy and precision, the Light editor includes snapping functionality. By default, the grid snapping is set to 4 units, angle snapping to 15 degrees, and scale snapping to 10%. This allows you to align lights perfectly and achieve the desired look and feel for your scene.
+
+To streamline your workflow, the Light editor also provides a set of convenient keyboard shortcuts.
+
+```
+G: Change to the translation gizmo
+R: Change to rotation gizmo
+Alt + R: Reset the current rotation
+S: Change to scaling gizmo
+
+Ctrl + S - Save all changed lights
+Ctrl + D - Duplicate the current light
+```
+
+[![Ingame Light Editor](https://img.youtube.com/vi/vmuJ7f3FSio/0.jpg)](https://www.youtube.com/watch?v=vmuJ7f3FSio)
+
+## Better TrenchBroomBFG Support
+TrenchBroomBFG has some exciting updates! Now, you can toggle the visibility of patches, giving you more control over your designs. Additionally, models can be scaled using the modelscale/modelscale_vec keys in TrenchBroom. We've also introduced linked group instances, making it easier to create complex structures. And if you've had issues with leaking when using the `convertMapToValve220` command, those problems have been fixed.
+
+Light entities with models are automatically grouped into new light groups and the models are moved to new func_static entities when using the `convertMapToValve220` console command. This workaround allows you to work with TrenchBroom's clean architecture where point entities cannot have optional brushes or patches.
+
+Upgrade your mapping experience with TrenchBroomBFG!
+
+## Standalone BSP Compiler
+Some people requested a separate oldschool map compiler so they don't have to open the engine every time they compile a map. Now you can just hit a button in TrenchBroomBFG using this sample configuration:
+
+<img src="https://i.imgur.com/Tvkj0SW.png">
+
+
+rbdmap.exe is not only dmap but also provides the collision manager and AAS builder (runAAS cmd).
+So like in the embedded dmap cmd the .cm files and .aas files are also automatically built.
+
+rbdmap.exe uses Imtui with pdcurses on Windows to have features a like progress bar and just the old terminal output on Linux.
+
+Also, there is a `significant improvement in dmap speed` by reducing the number of prints to a level similar to q3map. 
+For example, Mars City 1 now compiles in 15 seconds instead of 88 seconds on the developer machine.
+
+## Improved Modding Support
+The virtual filesystem has been revised, bringing back .pk4 support and changing the file lookup order in .resources paks to match previous id Tech engines.
+
+It should help modders to organize the content as the filesystem has been slightly changed so paks in mod folders are ensured to have a higher priority regardless of multimod filename clashes. So there is no need to name your pak files zzzWhatever.resources.
 
 E.g. a Multimod setup: 
 ```
@@ -84,7 +183,45 @@ C:\Projects\RBDOOM-3-BFG/base/_common.resources (2262 files)
 
 zzz_E3_Alpha_Weapons.resources has a higher priority now regardless of how the other paks are named.
 
+
+## Miscellaneous Changes & Bugfixes
+
+Steven Pridham has resolved the fullscreen FX effects, enhancing the game's visuals.
+
+A classic flashlight option has been added for a nostalgic gameplay experience.
+
+Private multiplayer matches now function flawlessly, with ongoing efforts to fix the online game browser and leaderboards.
+
+Steven Saunders, has addressed many Linux/macOS related compiler warnings and improved the renderer by minimizing the swapchain latency with DX12 / Vulkan.
+The renderer now also supports the Optick profiler using the Vulkan backend. Optick has been enhanced for macOS and Vulkan users.
+
+NVRHI has been updated to the latest version, and a new tool called ShaderMake by Nvidia has been integrated.
+
+Blender users can seamlessly integrate Blender lights into their glTF workflow.
+
+VRAM memory usage can be monitored by setting com_showFPS to a value greater than 2.
+
+A critical issue with recursive texture loading during the loading screen has been fixed, resulting in improved performance and optimized texture management.
+
+The bug causing the game to crash when triggering the bathroom mirror horror effect in Vulkan has been resolved.
+
+
+
 Changelog:
+
+* Allow skipping intro videos with Escape or Xbox controller Menu button
+
+* Fixed enemy corpse burn effect
+
+* Fixed VRAM memory leak when reloading maps
+
+* Extended listCvars with -new option to show all RBDoom related cvars
+
+* Added cvar binaryLoadGuis so mods can override .gui files
+
+* Added new loading screen progressbar when loading textures
+
+* Fixed a couple of bugs regarding Flash JSON reimport
 
 * Updated tools/bfgpakexplorer to version 1.0.5 (thanks to George Kalampokis)
 
@@ -96,44 +233,19 @@ Changelog:
 
 * Added detection for Doom 2004/2019 .pk4 files or .resources
 
-* Added missing script event so we can boot vanilla Doom 3
+* Added missing script event so we can boot vanilla Doom 3 by just adding _common.resources and _ordered.resources from BFG
 
 * Added back .pk4 support but only for paks without a dll inside
 
 * Changed file lookup order in .resources paks like in previous id Tech engines
 
-
-## .plan - June 22, 2024
-
-Some people requested a separate oldschool map compiler so they don't have to open the engine every time they compile a map. Now you can just hit a button in TrenchBroomBFG. 
-The version also dumps a lot of legacy image loading code like the JPG and PNG libraries and replaces those with STB image header only libs like it is handled in the dhewm3 source port.
-
-rbdmap.exe is not only dmap but also provides the collision manager and AAS builder (runAAS cmd).
-So like in the embedded dmap cmd the .cm files and .aas files are also automatically built.
-
-rbdmap.exe uses Imtui with pdcurses on Windows to have features a like progress bar and just the old terminal output on Linux.
-
-Changelog:
-
 * Added rbdmap -nogui option because pdcurses does not work with TrenchBroom
 
 * Drastic dmap speed boost by reducing prints like in q3map
 
-* Added collision manager and AAS builder to dmap
-
 * Replaced JPG/PNG code with stb_image snippets from dhewm3
 
 * Allow static glTF2 models to be inlined in dmap and kicked unused Collada DAE support
-
-
-## .plan - June 14, 2024
-
-This is a preview build that solves several issues with TrenchBroom and the required convertMapToValve220 command.
-
-Light entities that have models get automatically grouped to new light groups and the models are moved to new func_static entities.
-Neither the vanilla Doom 3 ingame light editor which editLights is based on nor TrenchBroom supported editing those lights properly and this is the proper workaround to work with TrenchBroom's clean architecture where point entities can't have optional brushes/patches.
-
-Changelog:
 
 * Allow scalable models like in Quake 3 using modelscale/modelscale_vec keys in TrenchBroom
 
@@ -159,20 +271,6 @@ Changelog:
 
 * Fixed crash with Vulkan when using the colorProcess shader (bathroom mirror horror effect)
 
-
-## .plan - April 24, 2024
-
-Cudos to Stephen Saunders for most changes in this build. NVRHI was updated to the version on 25 February.
-The shader compiling part was also split out of NVRHI into a new ShaderMake tool by Nvidia.
-
-You can get Blender lights to work with the glTF workflow without the need to place fake light entities in Blender.
-VR options are stripped from the settings menu and com_showFPS > 2 show the VRAM memory usage.
-
-Optick has been improved for macOS and Vulkan and otherwise most changes are developer related.
-The renderdemo code has been removed and if you compile the engine without Classic Doom support then you will bypass the startup screen and get into the main menu immediatly.
-
-Changelog:
-
 * Read Blender lights directly through the KHR_lights_punctual glTF extension
 
 * Don't let VR options of other VR builds to break rendering of the non-VR master
@@ -197,8 +295,6 @@ Changelog:
 
 * Skip startup if not compiled with Doom Classic support, closes #874
 
-* More renderdemo code removed
-
 * Killed hard to maintain renderdemo code
 
 * Fix for cinematic audio when playing Bink video files with ffmpeg decoder, improve ffmpeg a/v resync
@@ -213,15 +309,6 @@ Changelog:
 
 * Complete Optick instrumentation and align with HUD GPU timers
 
-
-
-## .plan - January 20, 2024
-
-Cudos to Stephen Saunders for this build and to reeFridge for finding the issue.
-This fixes a number of multiplayer issues. Create Private Match with clients now works reliably. The missing functionality of the online game browser and leaderboards hasn't been fixed.
-
-Changelog:
-
 * Fixes regression Multiplayer: Accessing memory after it has been freed #846 caused by an earlier, but broken memory leak fix on my part. The fix is almost identical to PR Free idLobby memory inside destructor #847
 
 * Fixes a critical issue with mis-reading network snapshot data on the client side, which caused no end of problems with mis-rendering, slowdowns, unstable connections, etc. The client was ignoring the entity network-synced flag which tells it whether it should read entity class-specific data. It was trying to read it all the time and sometimes coming up with null data which caused tons of problems with rendering and physics calculations (e.g. operations on NaN numbers). Simple fix was to respect the entity's network-synced flag on the client side but it makes all the difference.
@@ -233,27 +320,6 @@ Changelog:
 * Fixed a couple of uninitialized variables that showed up in valgrind when in multiplayer mode
 
 * Added Amstrad CPC 6128 Retro rendering mode
-
-
-## .plan - January 03, 2024
-
-This is a preview build of the new Retro 8-bit/16-bit/PSX rendering modes.
-
-The new rendering modes can be set in the menu options but it's controlled mainly r_renderMode.
-The values are 0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Sega Genesis, 4 = Sega Genesis Highres, 5 = Sony PSX
-
-The Commodore 64 mode regulates all colors down to the original 16 color palette.
-The Sega mode mimics 9 bit color HW which means 3 bit per color channel resulting in a total of 512 colors.
-The PSX mode only turns off linear filtering for the textures and applies a screen space dithering effect.
-
-All retro rendering modes try to mimic the 320x240 resolution but it is extended to 16:9 so it is 480 x 270.
-Highres modes only apply a higher resolution dithering on the pixelated output.
-
-The PSX mode has no additional artifacts yet like wiggling vertices or textures.
-
-There are also 2 new CRT filters that are drawn on top of everything else (even the console) for more arcade vibes.
-
-Changelog:
 
 * Fixed scissor clipping issues of regular surfaces like light flares #651
 
@@ -273,39 +339,6 @@ Changelog:
 
 * Changed devtools.cfg so you can easily switch between the new render modes with F7 and F8
 
-
-Changelog TrenchBroomBFG:
-
-* Added Show patches option to View Options
-
-
-## .plan - October 27, 2023
-
-This is a preview build of the new WIP ingame Light Editor with some important bugfixes in the convertMapToValve220 command.
-
-The Light editor can be opened using the `editLights` command in the console. Just bind F1 editLights.
-
-It docked into certain screen areas.
-It features a gizmos for translation, rotation and scaling lights and a experimental menu bar.
-Light transforms can also be edited directly. 
-Gizmos can use snapping with defaults: 4 units for grid snapping, 15 degrees for angle snapping and 10% for scale snapping.
-
-It also provides a few keyboard shortcuts:
-
-G: Change to the translation gizmo
-R: Change to rotation gizmo
-Alt + R: Reset the current rotation
-s: Change to scaling gizmo
-
-Ctrl + S - Save all changed lights
-Ctrl + D - Duplicate the existing light (Should not be used yet beause it adds a light every frame. It is better to add lights in TrenchBroom)
-
-Steven Pridham also fixed the game related post-processing fullscreen FX effects.
-Steven Saunders fixed many Linux/macOS specific compiler warnings and extended the renderer to support the Optick profiler using the Vulkan backend.
-That feature is for coders and not part of the binary.
-
-Changelog:
-
 * Added new helper entityDefs like func_elevator_model in base/def/_tb_helpers.def for TrenchBroomBFG
 
 * Prioritize .wav and .ogg files over shipped .idwav files so overriding existing sounds works better
@@ -320,15 +353,11 @@ Changelog:
 
 * Wrote simple exportMaterialsToBlender command which saves all materials to base/_bl/materials.json
 
-* Started to simplify the light editor
-
 * Use same Instance pattern of AF editor for light editor
 
 * Always draw the console after Imgui
 
 * Added code to load UE5 editor themes into Imgui
-
-* Imgui ingame tools can use the docking feature now
 
 * Updated Imgui to newest docking release v1.89.9
 
@@ -344,20 +373,23 @@ Changelog:
 
 * Update rapidjson lib to remove deprecated std::iterator template and replace with required iterator types
 
-* Update jpeglib's format_message() error routine to use snprintf() for buffer security
-
 * Replace sprintf() / vsprintf() with idStr::snPrintf() / idStr::vsnPrintf() for buffer security
-
-* BFG Resource File Manager under tools/bfgpakexplorer has been updated
 
 
 Changelog TrenchBroomBFG:
+
+* Added Show patches option to View Options
 
 * Updated FGDs exported from the engine which can be found in base/_tb/fgd/*
 
 * Bezier patches can be duplicated and copy pasted within a map and copied from another TrenchBroomBFG instance
 
 * the DOOM-3-models.fgd has been restored
+
+
+
+
+
 
 
 _______________________________________
