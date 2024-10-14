@@ -271,6 +271,10 @@ extern idCVar g_CTFArrows;
 
 extern idCVar	net_clientSelfSmoothing;
 
+// RB: new game mode vars
+extern idCVar ng_classicFlashlight;
+// RB end
+
 //fluff start (Thanks fluff :3)
 extern idCVar	si_shootDoors;
 extern idCVar	si_itemRespawn; // added for coop

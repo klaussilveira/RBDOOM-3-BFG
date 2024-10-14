@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-idCVar image_pixelLook( "image_pixelLook", "0", CVAR_BOOL | CVAR_ARCHIVE, "Turn off linear filtering on most textures to achieve the 90s software renderer look" );
+idCVar image_pixelLook( "image_pixelLook", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "Turn off linear filtering on most textures to achieve the 90s software renderer look" );
 
 #include "../RenderCommon.h"
 
@@ -133,6 +133,16 @@ idImage::idImage( const char* name ) : imgName( name )
 	sourceFileTime = FILE_NOT_FOUND_TIMESTAMP;
 	binaryFileTime = FILE_NOT_FOUND_TIMESTAMP;
 	refCount = 0;
+
+#if 0
+	// debugging code
+	idStr ext;
+	imgName.ExtractFileExtension( ext );
+	if( ext.Length() > 0 )
+	{
+		common->Printf( "Image %s has extension\n", imgName.c_str() );
+	}
+#endif
 
 	DeferredLoadImage();
 }

@@ -29,10 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 #pragma hdrstop
-#include "../renderer/Image.h"
-#include "../renderer/DXT/DXTCodec.h"
-#include "../renderer/Color/ColorSpace.h"
-#include "../renderer/CmdlineProgressbar.h"
+
+#if !defined( DMAP )
+	#include "../renderer/Image.h"
+	#include "../renderer/DXT/DXTCodec.h"
+	#include "../renderer/Color/ColorSpace.h"
+	#include "../renderer/CmdlineProgressbar.h"
+#endif
 
 /*
 
@@ -189,6 +192,7 @@ class idDeclManagerLocal : public idDeclManager
 public:
 	virtual void				Init();
 	virtual void				Init2();
+	virtual void				InitTool();
 	virtual void				Shutdown();
 	virtual void				Reload( bool force );
 	virtual void				BeginLevelLoad();
@@ -218,12 +222,15 @@ public:
 	virtual void				WritePrecacheCommands( idFile* f );
 
 	virtual const idMaterial* 		FindMaterial( const char* name, bool makeDefault = true );
-	virtual const idDeclSkin* 		FindSkin( const char* name, bool makeDefault = true );
-	virtual const idSoundShader* 	FindSound( const char* name, bool makeDefault = true );
-
 	virtual const idMaterial* 		MaterialByIndex( int index, bool forceParse = true );
+
+	virtual const idDeclSkin* 		FindSkin( const char* name, bool makeDefault = true );
 	virtual const idDeclSkin* 		SkinByIndex( int index, bool forceParse = true );
+
+#if !defined( DMAP )
+	virtual const idSoundShader* 	FindSound( const char* name, bool makeDefault = true );
 	virtual const idSoundShader* 	SoundByIndex( int index, bool forceParse = true );
+#endif
 
 	virtual void					Touch( const idDecl* decl );
 
@@ -895,7 +902,6 @@ idDeclManagerLocal::Init
 */
 void idDeclManagerLocal::Init()
 {
-
 	common->Printf( "----- Initializing Decls -----\n" );
 
 	checksum = 0;
@@ -912,9 +918,10 @@ void idDeclManagerLocal::Init()
 	RegisterDeclType( "table",				DECL_TABLE,			idDeclAllocator<idDeclTable> );
 	RegisterDeclType( "material",			DECL_MATERIAL,		idDeclAllocator<idMaterial> );
 	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
-	RegisterDeclType( "sound",				DECL_SOUND,			idDeclAllocator<idSoundShader> );
-
 	RegisterDeclType( "entityDef",			DECL_ENTITYDEF,		idDeclAllocator<idDeclEntityDef> );
+
+#if !defined( DMAP )
+	RegisterDeclType( "sound",				DECL_SOUND,			idDeclAllocator<idSoundShader> );
 	RegisterDeclType( "mapDef",				DECL_MAPDEF,		idDeclAllocator<idDeclEntityDef> );
 	RegisterDeclType( "fx",					DECL_FX,			idDeclAllocator<idDeclFX> );
 	RegisterDeclType( "particle",			DECL_PARTICLE,		idDeclAllocator<idDeclParticle> );
@@ -923,9 +930,11 @@ void idDeclManagerLocal::Init()
 	RegisterDeclType( "email",				DECL_EMAIL,			idDeclAllocator<idDeclEmail> );
 	RegisterDeclType( "video",				DECL_VIDEO,			idDeclAllocator<idDeclVideo> );
 	RegisterDeclType( "audio",				DECL_AUDIO,			idDeclAllocator<idDeclAudio> );
+#endif
 
 	RegisterDeclFolder( "materials",		".mtr",				DECL_MATERIAL );
 
+#if !defined( DMAP )
 	// add console commands
 	cmdSystem->AddCommand( "listDecls", ListDecls_f, CMD_FL_SYSTEM, "lists all decls" );
 
@@ -974,6 +983,7 @@ void idDeclManagerLocal::Init()
 	cmdSystem->AddCommand( "exportImagesToTrenchBroom", ExportImagesToTrenchBroom_f, CMD_FL_SYSTEM, "exports all generated bimages to _tb/*.png" );
 
 	cmdSystem->AddCommand( "makeZooMapForModels", MakeZooMapForModels_f, CMD_FL_SYSTEM, "make a Source engine style zoo map with all generated models like .blwo, .base, .bmd5mesh et cetera" );
+#endif
 	// RB end
 
 	common->Printf( "------------------------------\n" );
@@ -983,6 +993,46 @@ void idDeclManagerLocal::Init2()
 {
 	RegisterDeclFolder( "skins",			".skin",			DECL_SKIN );
 	RegisterDeclFolder( "sound",			".sndshd",			DECL_SOUND );
+}
+
+/*
+===================
+idDeclManagerLocal::InitTool
+
+RB: only called by rbdmap
+===================
+*/
+
+#include "../d3xp/anim/Anim.h"
+
+void idDeclManagerLocal::InitTool()
+{
+	common->Printf( "----- Initializing Decls -----\n" );
+
+	checksum = 0;
+
+#ifdef USE_COMPRESSED_DECLS
+	SetupHuffman();
+#endif
+
+#ifdef GET_HUFFMAN_FREQUENCIES
+	ClearHuffmanFrequencies();
+#endif
+
+	// decls used throughout the engine
+	RegisterDeclType( "table",				DECL_TABLE,			idDeclAllocator<idDeclTable> );
+	RegisterDeclType( "material",			DECL_MATERIAL,		idDeclAllocator<idMaterial> );
+	RegisterDeclType( "model",				DECL_MODELDEF,		idDeclAllocator<idDeclModelDef> );
+	RegisterDeclType( "export",				DECL_MODELEXPORT,	idDeclAllocator<idDecl> );
+	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
+	RegisterDeclType( "entityDef",			DECL_ENTITYDEF,		idDeclAllocator<idDeclEntityDef> );
+	RegisterDeclType( "mapDef",				DECL_MAPDEF,		idDeclAllocator<idDeclEntityDef> );
+
+	RegisterDeclFolder( "materials",		".mtr",				DECL_MATERIAL );
+	RegisterDeclFolder( "skins",			".skin",			DECL_SKIN );
+	RegisterDeclFolder( "def",				".def",				DECL_ENTITYDEF );
+
+	common->Printf( "------------------------------\n" );
 }
 
 /*
@@ -1793,6 +1843,8 @@ const idDeclSkin* idDeclManagerLocal::SkinByIndex( int index, bool forceParse )
 	return static_cast<const idDeclSkin*>( DeclByIndex( DECL_SKIN, index, forceParse ) );
 }
 
+#if !defined( DMAP )
+
 /********************************************************************/
 
 const idSoundShader* idDeclManagerLocal::FindSound( const char* name, bool makeDefault )
@@ -1804,6 +1856,8 @@ const idSoundShader* idDeclManagerLocal::SoundByIndex( int index, bool forcePars
 {
 	return static_cast<const idSoundShader*>( DeclByIndex( DECL_SOUND, index, forceParse ) );
 }
+
+#endif
 
 /*
 ===================
@@ -1978,6 +2032,8 @@ void idDeclManagerLocal::TouchDecl_f( const idCmdArgs& args )
 }
 
 // RB begin
+#if !defined( DMAP )
+
 void idDeclManagerLocal::ExportEntityDefsToBlender_f( const idCmdArgs& args )
 {
 	idStr jsonStringsFileName = "_bl/entities.json";
@@ -2641,16 +2697,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 
 						// precache model/animations
 						const idDeclModelDef* modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, kv->GetValue(), false ) );
-						if( modelDef == NULL )
-						{
-							// there is no modelDef so use direct path
-							renderModelManager->FindModel( kv->GetValue() );
-
-							exportedModelFileName = "_tb/";
-							exportedModelFileName.AppendPath( kv->GetValue() );
-							exportedModelFileName.SetFileExtension( ".obj" );
-						}
-						else
+						if( modelDef != NULL )
 						{
 							idRenderModel* renderModel = modelDef->ModelHandle();
 							if( renderModel )
@@ -2659,6 +2706,15 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 								exportedModelFileName.AppendPath( renderModel->Name() );
 								exportedModelFileName.SetFileExtension( ".obj" );
 							}
+						}
+						else
+						{
+							// there is no modelDef so use direct path
+							renderModelManager->FindModel( kv->GetValue() );
+
+							exportedModelFileName = "_tb/";
+							exportedModelFileName.AppendPath( kv->GetValue() );
+							exportedModelFileName.SetFileExtension( ".obj" );
 						}
 					}
 				}
@@ -2669,6 +2725,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 				file->Printf( "model({ \"path\": \"%s\" }) ", exportedModelFileName.c_str() );
 			}
 			else if( idStr::Icmp( decl->GetName(), "misc_model" ) == 0 ||
+					 idStr::Icmp( decl->GetName(), "func_animate" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_bobbing_model" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_door_model" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_elevator_model" ) == 0 ||
@@ -2871,7 +2928,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 	}
 
 	//declManagerLocal.Reload( true );
-	common->FatalError( "Exporting successful, need to restart manually" );
+	common->FatalError( "Exporting successful, need to restart engine manually" );
 }
 
 void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
@@ -3035,7 +3092,7 @@ void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
 
 					if( img.width > 16 && img.height > 16 )
 					{
-						R_WritePNG( exportName, scaled, 4, img.width, img.height, true, "fs_basepath" );
+						R_WritePNG( exportName, scaled, 4, img.width, img.height, "fs_basepath" );
 					}
 					else
 					{
@@ -3049,7 +3106,7 @@ void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
 				{
 					if( img.width > 16 && img.height > 16 )
 					{
-						R_WritePNG( exportName, rgba.Ptr(), 4, img.width, img.height, true, "fs_basepath" );
+						R_WritePNG( exportName, rgba.Ptr(), 4, img.width, img.height, "fs_basepath" );
 					}
 					else
 					{
@@ -4082,6 +4139,9 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 	common->Printf( "Wrote %d Entities in %d Groups and %d Cateogories\n", totalEntitiesCount, entitiesPerFolder.Num(), categories.Num() );
 }
 // RB  end
+
+
+#endif // #if !defined( DMAP )
 
 /*
 ===================

@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -211,6 +211,7 @@ R_GlobalToNormalizedDeviceCoordinates
 -1 to 1 range in x, y, and z
 ==========================
 */
+#if !defined( DMAP )
 void R_GlobalToNormalizedDeviceCoordinates( const idVec3& global, idVec3& ndc )
 {
 	idPlane	view;
@@ -240,6 +241,7 @@ void R_GlobalToNormalizedDeviceCoordinates( const idVec3& global, idVec3& ndc )
 	ndc[1] = clip[1] * invW;
 	ndc[2] = clip[2] * invW;		// NOTE: in D3D this is in the range [0,1]
 }
+#endif
 
 /*
 ======================
@@ -471,6 +473,8 @@ void ModifyProjectionMatrix( viewDef_t* viewDef, const idPlane& clipPlane )
 	memcpy( viewDef->projectionMatrix, matrix, sizeof( float ) * 16 );
 }
 
+#if !defined( DMAP )
+
 void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 {
 	// random jittering is usefull when multiple
@@ -677,6 +681,8 @@ void R_SetupUnprojection( viewDef_t* viewDef )
 
 	idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldRenderMatrix );
 }
+
+#endif // #if !defined( DMAP )
 
 void R_MatrixFullInverse( const float a[16], float r[16] )
 {

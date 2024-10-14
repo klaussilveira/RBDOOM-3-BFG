@@ -56,7 +56,7 @@ idCVar stereoRender_warpTargetFraction( "stereoRender_warpTargetFraction", "1.0"
 idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
 idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU buffer execution past swapbuffers" );
 
-idCVar r_vkUploadBufferSizeMB( "r_vkUploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT, "Size of gpu upload buffer (Vulkan only)" );
+idCVar r_vkUploadBufferSizeMB( "r_vkUploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Size of gpu upload buffer (Vulkan only)" );
 
 
 constexpr std::size_t MAX_IMAGE_PARMS = 16;
@@ -1528,6 +1528,76 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 			desc[1].bindings[1].resourceHandle = commonPasses.m_LinearWrapSampler;
 		}
 	}
+	else if( type == BINDING_LAYOUT_POST_PROCESS_FINAL2 )
+	{
+		if( desc[0].bindings.empty() )
+		{
+			desc[0].bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 3, ( nvrhi::ITexture* )GetImageAt( 3 )->GetTextureID() )
+			};
+		}
+		else
+		{
+			desc[0].bindings[0].resourceHandle = paramCb;
+			desc[0].bindings[0].range = range;
+			desc[0].bindings[1].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID();
+			desc[0].bindings[2].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID();
+			desc[0].bindings[3].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID();
+			desc[0].bindings[4].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 3 )->GetTextureID();
+		}
+
+		if( desc[1].bindings.empty() )
+		{
+			desc[1].bindings =
+			{
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_LinearClampSampler ),
+				nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_LinearWrapSampler )
+			};
+		}
+		else
+		{
+			desc[1].bindings[0].resourceHandle = commonPasses.m_LinearClampSampler;
+			desc[1].bindings[1].resourceHandle = commonPasses.m_LinearWrapSampler;
+		}
+	}
+	else if( type == BINDING_LAYOUT_POST_PROCESS_CRT )
+	{
+		if( desc[0].bindings.empty() )
+		{
+			desc[0].bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID() )
+			};
+		}
+		else
+		{
+			desc[0].bindings[0].resourceHandle = paramCb;
+			desc[0].bindings[0].range = range;
+			desc[0].bindings[1].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID();
+			desc[0].bindings[2].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID();
+		}
+
+		if( desc[1].bindings.empty() )
+		{
+			desc[1].bindings =
+			{
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_PointClampSampler ),
+				nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_LinearWrapSampler )
+			};
+		}
+		else
+		{
+			desc[1].bindings[0].resourceHandle = commonPasses.m_PointClampSampler;
+			desc[1].bindings[1].resourceHandle = commonPasses.m_LinearWrapSampler;
+		}
+	}
 	else if( type == BINDING_LAYOUT_NORMAL_CUBE )
 	{
 		if( desc[0].bindings.empty() )
@@ -2270,7 +2340,7 @@ void idRenderBackend::SetCurrentImage( idImage* image )
 	if( !image->IsLoaded() && !image->IsDefaulted() )
 	{
 		// TODO(Stephen): Fix me.
-		image->FinalizeImage( true, commandList );
+		image->ActuallyLoadImage( true, commandList );
 	}
 
 	context.imageParms[context.currentImageParm] = image;

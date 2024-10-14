@@ -234,6 +234,27 @@ void idCommonLocal::DrawWipeModel()
 	renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, wipeMaterial );
 }
 
+// RB begin
+void idCommonLocal::DrawLoadPacifierProgressbar()
+{
+	if( loadPacifierExpectedCount <= 0 )
+	{
+		return;
+	}
+
+	float loadPacifierProgress = float( loadPacifierCount ) / loadPacifierExpectedCount;
+
+	// draw our basic overlay
+	renderSystem->SetColor( idVec4( 0.55f, 0.0f, 0.0f, 1.0f ) );
+	renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 64, renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+	//renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
+	renderSystem->SetColor( colorGold );
+	renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 64, loadPacifierProgress * renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+
+	renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 64, loadPacifierStatus, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+}
+// RB end
+
 /*
 ===============
 idCommonLocal::Draw
@@ -247,7 +268,7 @@ void idCommonLocal::Draw()
 		Sys_Sleep( com_sleepDraw.GetInteger() );
 	}
 
-	if( loadPacifierBinarizeActive )
+	if( loadPacifierBinarizeActive || LoadPacifierRunning() )
 	{
 		// foresthale 2014-05-30: when binarizing an asset we show a special
 		// overlay indicating progress
@@ -261,40 +282,47 @@ void idCommonLocal::Draw()
 			loadGUI->Render( renderSystem, Sys_Milliseconds() );
 		}
 
-		// update our progress estimates
-		int time = Sys_Milliseconds();
-		if( loadPacifierBinarizeProgress > 0.0f )
-		{
-			loadPacifierBinarizeTimeLeft = ( 1.0 - loadPacifierBinarizeProgress ) * ( time - loadPacifierBinarizeStartTime ) * 0.001f / loadPacifierBinarizeProgress;
-		}
-		else
-		{
-			loadPacifierBinarizeTimeLeft = -1.0f;
-		}
+		// draw general progress bar
+		DrawLoadPacifierProgressbar();
 
-		// prepare our strings
-		const char* text;
-		if( loadPacifierBinarizeTimeLeft >= 99.5f )
+		if( loadPacifierBinarizeActive )
 		{
-			text = va( "Binarizing %3.0f%% ETA %2.0f minutes", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft / 60.0f );
-		}
-		else if( loadPacifierBinarizeTimeLeft )
-		{
-			text = va( "Binarizing %3.0f%% ETA %2.0f seconds", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft );
-		}
-		else
-		{
-			text = va( "Binarizing %3.0f%%", loadPacifierBinarizeProgress * 100.0f );
-		}
+			// update our progress estimates
+			int time = Sys_Milliseconds();
+			if( loadPacifierBinarizeProgress > 0.0f )
+			{
+				loadPacifierBinarizeTimeLeft = ( 1.0 - loadPacifierBinarizeProgress ) * ( time - loadPacifierBinarizeStartTime ) * 0.001f / loadPacifierBinarizeProgress;
+			}
+			else
+			{
+				loadPacifierBinarizeTimeLeft = -1.0f;
+			}
 
-		// draw our basic overlay
-		renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.5f, 1.0f ) );
-		renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, renderSystem->GetVirtualWidth(), 48, 0, 0, 1, 1, whiteMaterial );
-		renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
-		renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeProgress * renderSystem->GetVirtualWidth(), 32, 0, 0, 1, 1, whiteMaterial );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeFilename.c_str(), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 32, va( "%s %d/%d lvls", loadPacifierBinarizeInfo.c_str(), loadPacifierBinarizeMiplevel, loadPacifierBinarizeMiplevelTotal ), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 16, text, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			// prepare our strings
+			const char* text;
+			if( loadPacifierBinarizeTimeLeft >= 99.5f )
+			{
+				text = va( "Binarizing %3.0f%% ETA %2.0f minutes", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft / 60.0f );
+			}
+			else if( loadPacifierBinarizeTimeLeft )
+			{
+				text = va( "Binarizing %3.0f%% ETA %2.0f seconds", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft );
+			}
+			else
+			{
+				text = va( "Binarizing %3.0f%%", loadPacifierBinarizeProgress * 100.0f );
+			}
+
+			// draw our basic overlay
+			renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 0.75f ) );
+			renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, renderSystem->GetVirtualWidth(), 48, 0, 0, 1, 1, whiteMaterial );
+			//renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
+			renderSystem->SetColor( colorBrown );
+			renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeProgress * renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeFilename.c_str(), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 32, va( "%s %d/%d lvls", loadPacifierBinarizeInfo.c_str(), loadPacifierBinarizeMiplevel, loadPacifierBinarizeMiplevelTotal ), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 16, text, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+		}
 	}
 	else if( loadGUI != NULL )
 	{
@@ -427,7 +455,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 
 	// this should exit right after vsync, with the GPU idle and ready to draw
 	frameTiming.startRenderTime = Sys_Microseconds();   // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
-	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
+	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 
 	// get the GPU busy with new commands
 	renderSystem->RenderCommandBuffers( cmd );
@@ -603,13 +631,13 @@ void idCommonLocal::Frame()
 		// foresthale 2014-05-12: also check com_editors as many of them are not particularly thread-safe (editLights for example)
 		if( com_smp.GetBool() && com_editors == 0 )
 		{
-			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
+			renderCommands = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 		}
 		else
 		{
 			// the GPU will stay idle through command generation for minimal
 			// input latency
-			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
+			renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 		}
 		frameTiming.finishSyncTime = Sys_Microseconds();
 

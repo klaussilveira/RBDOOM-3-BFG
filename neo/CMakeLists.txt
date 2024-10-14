@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
 project(RBDoom3BFG-LibreCoop)
 
@@ -30,10 +30,10 @@ option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
 
 option(FFMPEG
-		"Use FMPEG to render Bink videos" ON)
+		"Use FMPEG to render Bink videos" OFF)
 
 option(BINKDEC
-		"Use included libbinkdec to render Bink videos" OFF)
+		"Use included libbinkdec to render Bink videos" ON)
 
 option(USE_MoltenVK
 		"Link directly to MoltenVK library instead of Vulkan loader on macOS" OFF)
@@ -46,12 +46,6 @@ option(WINDOWS10
 		
 option(USE_SYSTEM_ZLIB
          "Use the system zlib instead of the bundled one" OFF)
-
-option(USE_SYSTEM_LIBPNG
-         "Use the system libpng instead of the bundled one" OFF)
-
-option(USE_SYSTEM_LIBJPEG
-         "Use the system libjpeg instead of the bundled one" OFF)
 
 option(USE_SYSTEM_RAPIDJSON
          "Use the system rapidjson instead of the bundled one" OFF)
@@ -75,16 +69,16 @@ set(NVRHI_INSTALL OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
-# SRS - Turn on optimization when cross-compiling from Apple arm64 to x86_64
+# SRS - Turn on compiler optimizations for x86 and also when cross-compiling from Apple arm64 to x86_64
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" OR CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
-	set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU specific optimitations should be used beside the compiler's default?")
+	set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU-specific optimizations should be used besides the compiler's default?")
 endif()
 
-# SRS - Turn off MMX/SSE intrinsics when cross-compiling from Apple x86_64 to arm64
+# SRS - Turn on MMX/SSE intrinsics for x86 but not when cross-compiling from Apple x86_64 to arm64
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(e2k)|(E2K)" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
-	option(USE_INTRINSICS_SSE "Compile using SSE intrinsics (e.g mmx, sse, msse2)" ON)
+	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" ON)
 else()
-	option(USE_INTRINSICS_SSE "Compile using SSE intrinsics (e.g mmx, sse, msse2)" OFF)
+	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" OFF)
 endif()
 
 if(FFMPEG AND BINKDEC)
@@ -128,10 +122,12 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
-	add_definitions(-pipe)
-	#add_definitions(-Wall)
-	add_definitions(-Werror=format-security)
-	add_definitions(-Werror=format)
+	add_compile_options(-pipe)
+	#add_compile_options(-Wall)
+	add_compile_options(-Werror=format-security)
+	add_compile_options(-Werror=format)
+	add_compile_options(-Wno-format-zero-length)
+	add_compile_options(-Wno-nonnull)
 
 	# Compiler check (needs -std=c++17 flag)
 	include(CheckCXXCompilerFlag)
@@ -148,7 +144,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 		add_definitions(-DCPUSTRING="${CPU_TYPE}")
 	endif()
 	if (CPU_OPTIMIZATION)
-		add_definitions(${CPU_OPTIMIZATION})
+		SEPARATE_ARGUMENTS(CPU_OPTIMIZATION)
+		add_compile_options(${CPU_OPTIMIZATION})
 	endif()
 	if(WIN32)
 		# require msvcr70.dll or newer for _aligned_malloc etc
@@ -170,14 +167,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 		# add clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
 		# SRS - Add -Wno-expansion-to-defined, Wno-nullability-completeness and -Wno-shorten-64-to-32 to list of warning settings
-		add_definitions(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness -Wno-shorten-64-to-32)
+		add_compile_options(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness -Wno-shorten-64-to-32)
 	endif()
 	
 	if(NOT CMAKE_CROSSCOMPILING AND ONATIVE)
 		if(CMAKE_SYSTEM_PROCESSOR MATCHES "((powerpc|ppc)64le)|(mips64)")
-			add_definitions(-mcpu=native)
+			add_compile_options(-mcpu=native)
 		else()
-			add_definitions(-march=native)
+			add_compile_options(-march=native)
 		endif()
 	endif()
 
@@ -186,13 +183,13 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	# SRS - Make sure OSX can find system headers and add support for minimum OSX runtime version
     if(APPLE)
 		# SRS - Also add -fasm-blocks otherwise Xcode complains and -Qunused-arguments to silence MMX/SSE unused arg warnings when compiling for Apple arm64
-		add_definitions(-fasm-blocks -Qunused-arguments)
+		add_compile_options(-fasm-blocks -Qunused-arguments)
         if(CMAKE_OSX_SYSROOT)
-            add_definitions(-isysroot "${CMAKE_OSX_SYSROOT}")
+            add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
             message(STATUS "Using macOS sysroot: " ${CMAKE_OSX_SYSROOT})
         endif()
 		if(CMAKE_OSX_DEPLOYMENT_TARGET)
-			add_definitions(-mmacosx-version-min="${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 	endif()
 
@@ -287,45 +284,17 @@ if(APPLE)
 	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
 
-# SRS - set libjpeg as first include path to prioritize bundled format_message() fix
-if (USE_SYSTEM_LIBJPEG)
-	find_package(JPEG)
-endif (USE_SYSTEM_LIBJPEG)
+if(USE_SYSTEM_ZLIB)
+	find_package(ZLIB)
+endif()
 
-if (JPEG_FOUND)
-    include_directories(${JPEG_INCLUDE_DIRS})
-    set(JPEG_LIBRARY ${JPEG_LIBRARIES})
-    add_definitions(-DUSE_NEWER_JPEG)
-else (JPEG_FOUND)
-    include_directories("libs/jpeg-6")
-    set(JPEG_LIBRARY "" )
-endif (JPEG_FOUND)
-
-if (USE_SYSTEM_LIBPNG)
-	find_package(PNG)
-endif (USE_SYSTEM_LIBPNG)
-
-# SRS - if system libpng was found, then system zlib was also found via cmake dependency
-if (PNG_FOUND)
-    include_directories(${PNG_INCLUDE_DIRS})
-    set(PNG_LIBRARY ${PNG_LIBRARIES})
-else (PNG_FOUND)
-    include_directories("libs/png")
-    set(PNG_LIBRARY "" )
-
-	# SRS - search for system zlib only if we have not already searched via system libpng
-	if (USE_SYSTEM_ZLIB AND NOT USE_SYSTEM_LIBPNG)
-	  find_package(ZLIB)
-	endif (USE_SYSTEM_ZLIB AND NOT USE_SYSTEM_LIBPNG)
-
-	if (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-		include_directories(${ZLIB_INCLUDE_DIRS})
-		set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-	else (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-		include_directories("libs/zlib")
-		set(ZLIB_LIBRARY "" )
-	endif (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
-endif (PNG_FOUND)
+if(ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+else()
+	include_directories("libs/zlib")
+	set(ZLIB_LIBRARY "" )
+endif()
 
 #SRS - move rapidjson before vulkan and other includes to prioritize bundled iterator fixes
 if (USE_SYSTEM_RAPIDJSON)
@@ -340,6 +309,7 @@ else (RAPIDJSON_FOUND)
 endif (RAPIDJSON_FOUND)
 
 include_directories("libs/imgui")
+include_directories("libs/mikktspace")
 
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
@@ -453,6 +423,17 @@ endif()
 
 add_subdirectory(idlib)
 
+# RB: there haven't been requests for a separate map compiler executable by macOS users
+# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
+if(NOT APPLE)
+	add_subdirectory(tools/compilers)
+endif()
+
+if(USE_INTRINSICS_SSE)
+	add_subdirectory(libs/moc)
+	set(MASKED_OCCLUSION_LIBRARY MaskedOcclusionCulling)
+endif()
+
 file(GLOB NATVIS_SOURCES .natvis)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -496,89 +477,14 @@ file(GLOB TINYEXR_INCLUDES libs/tinyexr/*.h)
 file(GLOB MIKKTSPACE_INCLUDES libs/mikktspace/*.h)
 file(GLOB MIKKTSPACE_SOURCES libs/mikktspace/*.c)
 
-if (NOT JPEG_FOUND)
-    set(JPEG_INCLUDES
-        libs/jpeg-6/jchuff.h
-        libs/jpeg-6/jconfig.h
-        libs/jpeg-6/jdct.h
-        libs/jpeg-6/jdhuff.h
-        libs/jpeg-6/jerror.h
-        libs/jpeg-6/jinclude.h
-        libs/jpeg-6/jmemsys.h
-        libs/jpeg-6/jmorecfg.h
-        libs/jpeg-6/jpegint.h
-        libs/jpeg-6/jpeglib.h
-        libs/jpeg-6/jversion.h)
-
-    set(JPEG_SOURCES
-        libs/jpeg-6/jcapimin.cpp
-        libs/jpeg-6/jcapistd.cpp
-        libs/jpeg-6/jccoefct.cpp
-        libs/jpeg-6/jccolor.cpp
-        libs/jpeg-6/jcdctmgr.cpp
-        libs/jpeg-6/jchuff.cpp
-        libs/jpeg-6/jcinit.cpp
-        libs/jpeg-6/jcmainct.cpp
-        libs/jpeg-6/jcmarker.cpp
-        libs/jpeg-6/jcmaster.cpp
-        libs/jpeg-6/jcomapi.cpp
-        libs/jpeg-6/jcparam.cpp
-        libs/jpeg-6/jcphuff.cpp
-        libs/jpeg-6/jcprepct.cpp
-        libs/jpeg-6/jcsample.cpp
-        libs/jpeg-6/jctrans.cpp
-        libs/jpeg-6/jdapimin.cpp
-        libs/jpeg-6/jdapistd.cpp
-        libs/jpeg-6/jdatadst.cpp
-        libs/jpeg-6/jdatasrc.cpp
-        libs/jpeg-6/jdcoefct.cpp
-        libs/jpeg-6/jdcolor.cpp
-        libs/jpeg-6/jddctmgr.cpp
-        libs/jpeg-6/jdhuff.cpp
-        libs/jpeg-6/jdinput.cpp
-        libs/jpeg-6/jdmainct.cpp
-        libs/jpeg-6/jdmarker.cpp
-        libs/jpeg-6/jdmaster.cpp
-        libs/jpeg-6/jdmerge.cpp
-        libs/jpeg-6/jdphuff.cpp
-        libs/jpeg-6/jdpostct.cpp
-        libs/jpeg-6/jdsample.cpp
-        libs/jpeg-6/jdtrans.cpp
-        libs/jpeg-6/jerror.cpp
-        libs/jpeg-6/jfdctflt.cpp
-        libs/jpeg-6/jfdctfst.cpp
-        libs/jpeg-6/jfdctint.cpp
-        libs/jpeg-6/jidctflt.cpp
-        libs/jpeg-6/jidctfst.cpp
-        libs/jpeg-6/jidctint.cpp
-        libs/jpeg-6/jidctred.cpp
-        #libs/jpeg-6/jload.cpp
-        libs/jpeg-6/jmemmgr.cpp
-        libs/jpeg-6/jmemnobs.cpp
-        #libs/jpeg-6/jpegtran.cpp
-        libs/jpeg-6/jquant1.cpp
-        libs/jpeg-6/jquant2.cpp
-        libs/jpeg-6/jutils.cpp)
-else (NOT JPEG_FOUND)
-   set(JPEG_INCLUDES "")
-   set(JPEG_SOURCES "")
-endif (NOT JPEG_FOUND)
-
-if (NOT PNG_FOUND)
-    file(GLOB PNG_INCLUDES libs/png/*.h)
-    file(GLOB PNG_SOURCES libs/png/*.c)
-else (NOT PNG_FOUND)
-    set(PNG_INCLUDES "")
-    set(PNG_SOURCES "")
-endif (NOT PNG_FOUND)
 
 if (NOT ZLIB_FOUND)
-file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
-file(GLOB ZLIB_SOURCES libs/zlib/*.c)
-else (NOT ZLIB_FOUND)
-  set(ZLIB_INCLUDES "")
-  set(ZLIB_SOURCES "")
-endif (NOT ZLIB_FOUND)
+	file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
+	file(GLOB ZLIB_SOURCES libs/zlib/*.c)
+else()
+	set(ZLIB_INCLUDES "")
+	set(ZLIB_SOURCES "")
+endif()
 
 if(BINKDEC)
 	file(GLOB BINKDEC_INCLUDES libs/libbinkdec/include/*.h)
@@ -1091,14 +997,8 @@ source_group("libs\\tinyexr" FILES ${TINYEXR_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_SOURCES})
 
-source_group("libs\\jpeg-6" FILES ${JPEG_INCLUDES})
-source_group("libs\\jpeg-6" FILES ${JPEG_SOURCES})
-
 source_group("libs\\libbinkdec" FILES ${BINKDEC_INCLUDES})
 source_group("libs\\libbinkdec" FILES ${BINKDEC_SOURCES})
-
-source_group("libs\\png" FILES ${PNG_INCLUDES})
-source_group("libs\\png" FILES ${PNG_SOURCES})
 
 source_group("libs\\zlib" FILES ${ZLIB_INCLUDES})
 source_group("libs\\zlib" FILES ${ZLIB_SOURCES})
@@ -1266,8 +1166,6 @@ set(RBDOOM3_INCLUDES
 			${MESA_INCLUDES}
 			${TINYEXR_INCLUDES}
 			${MIKKTSPACE_INCLUDES}
-			${JPEG_INCLUDES}
-			${PNG_INCLUDES}
 			${ZLIB_INCLUDES}
 			${MINIZIP_INCLUDES}
 			${BINKDEC_INCLUDES}
@@ -1317,8 +1215,6 @@ set(RBDOOM3_SOURCES
 			${FRAMEWORK_IMGUI_SOURCES}
 			${IMGUI_SOURCES}
 			${MIKKTSPACE_SOURCES}
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			${BINKDEC_SOURCES}
@@ -1480,7 +1376,7 @@ if(MSVC)
 	
 	if(USE_PRECOMPILED_HEADERS) 
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1506,8 +1402,6 @@ if(MSVC)
 	
 	# SRS - disable certain MSVC warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
 			${OGGVORBIS_SOURCES}
 			PROPERTIES
 			COMPILE_FLAGS "/wd4101 /wd4267"	# C4101: unreferenced local variable, C4267: type conversion with possible loss of data
@@ -1538,8 +1432,6 @@ if(MSVC)
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
-        ${PNG_LIBRARY}
-        ${JPEG_LIBRARY}
 		${CMAKE_DL_LIBS}
 		)
 		
@@ -1620,9 +1512,13 @@ else()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
-	if(USE_PRECOMPILED_HEADERS) 	
+	if(USE_PRECOMPILED_HEADERS)
+		# we need to recreate the precompiled header for RBDoom3BFG
+		# (i.e. can't use the one created for idlib before)
+		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
+
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1644,11 +1540,34 @@ else()
 		FOREACH(item ${_directory_flags})
 			LIST(APPEND _compiler_FLAGS " -I${item}")
 		ENDFOREACH(item)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
+		LIST(APPEND _compiler_FLAGS ${_directory_flags})
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS "-D${item}")
+		ENDFOREACH(item)
+
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
+
+		add_custom_target(precomp_header_rbdoom3bfg ALL
+				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				)
+
+		# make sure this is run after creating idlib
+		add_dependencies(precomp_header_rbdoom3bfg idlib)
 	endif()
 
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
-			${JPEG_SOURCES}
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			PROPERTIES
@@ -1664,29 +1583,6 @@ else()
 				)
 	endif()
 	
-	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
-	LIST(APPEND _compiler_FLAGS ${_directory_flags})
-	SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
-	if(USE_PRECOMPILED_HEADERS)
-		# we need to recreate the precompiled header for RBDoom3BFG 
-		# (i.e. can't use the one created for idlib before)
-		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
-		if(OPTICK)
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
-		else()
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
-		endif()
-		add_custom_target(precomp_header_rbdoom3bfg ALL
-				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
-				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
-				)
-				
-		# make sure this is run after creating idlib
-		add_dependencies(precomp_header_rbdoom3bfg idlib)
-	endif()
-
 	if(MACOSX_BUNDLE)
 		# define contents of macOS app bundle Resources folder
 		set(MACOS_RESOURCES sys/posix/res/Doom3BFG.icns ../base)
@@ -1712,6 +1608,7 @@ else()
 	if(USE_VULKAN)
         add_dependencies(DoomCoop nvrhi_vk)
     endif()
+
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
 		add_dependencies(DoomCoop precomp_header_rbdoom3bfg)
@@ -1756,8 +1653,6 @@ else()
 			${OPENAL_LIBRARY}
 			${FFMPEG_LIBRARIES}
             ${ZLIB_LIBRARY}
-            ${PNG_LIBRARY}
-            ${JPEG_LIBRARY}
 	    	${CMAKE_DL_LIBS}
 			)
 	endif()
@@ -1785,9 +1680,9 @@ endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(DoomCoop nvrhi)
-target_link_libraries(DoomCoop ShaderMakeBlob)
+target_link_libraries(DoomCoop ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(DoomCoop Shaders)
+add_dependencies(DoomCoop Shaders ${MASKED_OCCLUSION_LIBRARY})
 
