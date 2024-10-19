@@ -447,26 +447,27 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 		float sx = vrSystem->hmdEye[pEye].projectionOpenVR.projRight + vrSystem->hmdEye[pEye].projectionOpenVR.projLeft;
 		float sy = vrSystem->hmdEye[pEye].projectionOpenVR.projDown + vrSystem->hmdEye[pEye].projectionOpenVR.projUp;
 
-		viewDef->projectionMatrix[0 * 4 + 0] = 2.0f * idx;
-		viewDef->projectionMatrix[1 * 4 + 0] = 0.0f;
-		viewDef->projectionMatrix[2 * 4 + 0] = sx * idx;
-		viewDef->projectionMatrix[3 * 4 + 0] = 0.0f;
+		float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
 
-		viewDef->projectionMatrix[0 * 4 + 1] = 0.0f;
-		viewDef->projectionMatrix[1 * 4 + 1] = 2.0f * idy;
-		viewDef->projectionMatrix[2 * 4 + 1] = sy * idy;	// normally 0
-		viewDef->projectionMatrix[3 * 4 + 1] = 0.0f;
+		projectionMatrix[0 * 4 + 0] = 2.0f * idx;
+		projectionMatrix[1 * 4 + 0] = 0.0f;
+		projectionMatrix[2 * 4 + 0] = sx * idx;
+		projectionMatrix[3 * 4 + 0] = 0.0f;
 
-		viewDef->projectionMatrix[0 * 4 + 2] = 0.0f;
-		viewDef->projectionMatrix[1 * 4 + 2] = 0.0f;
-		viewDef->projectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
-		viewDef->projectionMatrix[3 * 4 + 2] = -2.0f * zNear;
+		projectionMatrix[0 * 4 + 1] = 0.0f;
+		projectionMatrix[1 * 4 + 1] = 2.0f * idy;
+		projectionMatrix[2 * 4 + 1] = sy * idy;	// normally 0
+		projectionMatrix[3 * 4 + 1] = 0.0f;
 
-		viewDef->projectionMatrix[0 * 4 + 3] = 0.0f;
-		viewDef->projectionMatrix[1 * 4 + 3] = 0.0f;
-		viewDef->projectionMatrix[2 * 4 + 3] = -1.0f;
-		viewDef->projectionMatrix[3 * 4 + 3] = 0.0f;
+		projectionMatrix[0 * 4 + 2] = 0.0f;
+		projectionMatrix[1 * 4 + 2] = 0.0f;
+		projectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
+		projectionMatrix[3 * 4 + 2] = -2.0f * zNear;
 
+		projectionMatrix[0 * 4 + 3] = 0.0f;
+		projectionMatrix[1 * 4 + 3] = 0.0f;
+		projectionMatrix[2 * 4 + 3] = -1.0f;
+		projectionMatrix[3 * 4 + 3] = 0.0f;
 	}
 	else
 	{
