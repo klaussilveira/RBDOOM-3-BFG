@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -30,6 +30,14 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#if defined(USE_INTRINSICS_SSE)
+	#if MOC_MULTITHREADED
+		#include "CullingThreadPool.h"
+	#else
+		#include "../libs/moc/MaskedOcclusionCulling.h"
+	#endif
+#endif
+
 #include "RenderCommon.h"
 #include "Model_local.h"
 
@@ -46,64 +54,7 @@ idCVar r_lodMaterialDistance( "r_lodMaterialDistance", "500", CVAR_RENDERER | CV
 
 static const float CHECK_BOUNDS_EPSILON = 1.0f;
 
-/*
-==================
-R_SortViewEntities
-==================
-*/
-viewEntity_t* R_SortViewEntities( viewEntity_t* vEntities )
-{
-	SCOPED_PROFILE_EVENT( "R_SortViewEntities" );
 
-	// We want to avoid having a single AddModel for something complex be
-	// the last thing processed and hurt the parallel occupancy, so
-	// sort dynamic models first, _area models second, then everything else.
-	viewEntity_t* dynamics = NULL;
-	viewEntity_t* areas = NULL;
-	viewEntity_t* others = NULL;
-	for( viewEntity_t* vEntity = vEntities; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		const idRenderModel* model = vEntity->entityDef->parms.hModel;
-		if( model->IsDynamicModel() != DM_STATIC )
-		{
-			vEntity->next = dynamics;
-			dynamics = vEntity;
-		}
-		else if( model->IsStaticWorldModel() )
-		{
-			vEntity->next = areas;
-			areas = vEntity;
-		}
-		else
-		{
-			vEntity->next = others;
-			others = vEntity;
-		}
-		vEntity = next;
-	}
-
-	// concatenate the lists
-	viewEntity_t* all = others;
-
-	for( viewEntity_t* vEntity = areas; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		vEntity->next = all;
-		all = vEntity;
-		vEntity = next;
-	}
-
-	for( viewEntity_t* vEntity = dynamics; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		vEntity->next = all;
-		all = vEntity;
-		vEntity = next;
-	}
-
-	return all;
-}
 
 /*
 ==================
@@ -584,6 +535,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 	idRenderMatrix viewMat;
 	idRenderMatrix::Transpose( *( idRenderMatrix* )vEntity->modelViewMatrix, viewMat );
 	idRenderMatrix::Multiply( viewDef->projectionRenderMatrix, viewMat, vEntity->mvp );
+	idRenderMatrix::Multiply( viewDef->unjitteredProjectionRenderMatrix, viewMat, vEntity->unjitteredMVP );
 	if( renderEntity->weaponDepthHack )
 	{
 		idRenderMatrix::ApplyDepthHack( vEntity->mvp );
@@ -724,11 +676,91 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		// than the entire entity reference bounds
 		// If the entire model wasn't visible, there is no need to check the
 		// individual surfaces.
-		const bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->bounds );
+		bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->bounds );
 
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
-		// RB end
+
+		//const char* shaderName = shader->GetName();
+		//if( idStr::Cmp( shaderName, "textures/rock/sharprock_dark") == 0 )
+		//{
+		//	tr.pc.c_mocTests += 0;
+		//}
+
+#if defined(USE_INTRINSICS_SSE)
+
+		const bool viewInsideSurface = tri->bounds.ContainsPoint( localViewOrigin );
+
+		//if( viewInsideSurface && idStr::Cmp( shaderName, "models/weapons/berserk/fist") != 0 )
+		//{
+		//	tr.pc.c_mocTests += 1;
+		//
+		//	tr.viewDef->renderWorld->DebugBounds( colorCyan, tri->bounds, renderEntity->origin );
+		//}
+
+		// RB: test surface visibility by drawing the triangles of the bounds
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideSurface && !viewDef->isMirror && !viewDef->isSubview )
+		{
+			if( //!model->IsStaticWorldModel() &&
+				!renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
+			{
+				idVec4 triVerts[8];
+
+				tr.pc.c_mocIndexes += 36;
+				tr.pc.c_mocVerts += 8;
+
+				const float size = 16.0f;
+				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
+				//debugBounds = vEntity->entityDef->localReferenceBounds;
+#if 0
+				if( gpuSkinned )
+				{
+					//debugBounds = vEntity->entityDef->localReferenceBounds;
+					debugBounds = model->Bounds();
+				}
+				else
+#endif
+				{
+					debugBounds = tri->bounds;
+				}
+
+				idRenderMatrix modelRenderMatrix;
+				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
+				idRenderMatrix inverseBaseModelProject;
+				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
+
+				idRenderMatrix invProjectMVPMatrix;
+				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
+
+				tr.pc.c_mocTests += 1;
+
+				// NOTE: unit cube instead of zeroToOne cube
+				idVec4* verts = tr.maskedUnitCubeVerts;
+				for( int i = 0; i < 8; i++ )
+				{
+					// transform to clip space
+					invProjectMVPMatrix.TransformPoint( verts[i], triVerts[i] );
+				}
+
+
+				// backface none so objects are still visible where we run into
+#if MOC_MULTITHREADED
+				tr.maskedOcclusionThreaded->SetMatrix( NULL );
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionThreaded->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, MaskedOcclusionCulling::BACKFACE_NONE );
+#else
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+#endif
+				if( result != MaskedOcclusionCulling::VISIBLE )
+				{
+					tr.pc.c_mocCulledSurfaces += 1;
+					surfaceDirectlyVisible = false;
+				}
+			}
+		}
+#endif // #if defined(USE_INTRINSICS_SSE)
+
+
 
 		//--------------------------
 		// base drawing surface
@@ -1115,7 +1147,8 @@ void R_AddModels()
 {
 	SCOPED_PROFILE_EVENT( "R_AddModels" );
 
-	tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
+	// RB: already done in R_FillMaskedOcclusionBufferWithModels
+	// tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
 
 	//-------------------------------------------------
 	// Go through each view entity that is either visible to the view, or to
