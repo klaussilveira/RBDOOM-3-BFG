@@ -119,12 +119,18 @@ file(GLOB MC_IMTUI_SOURCES ../../libs/imtui/*.cpp)
 file(GLOB MC_IMGUI_INCLUDES ../../libs/imtui/imgui/*.h)
 file(GLOB MC_IMGUI_SOURCES ../../libs/imtui/imgui/*.cpp)
 
-if (NOT ZLIB_FOUND)
-	file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
-	file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
-else()
+if(ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+
 	set(MC_ZLIB_INCLUDES "")
 	set(MC_ZLIB_SOURCES "")
+else()
+	include_directories("libs/zlib")
+	set(ZLIB_LIBRARY "" )
+	
+	file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
+	file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
 endif()
 
 
@@ -262,9 +268,24 @@ if(MSVC)
 		OBJECT_DEPENDS "precompiled.pch"
 		)
 
+	# SRS - disable certain MSVC warnings for select third-party source libraries, consider updating versions in the future?
+	# C4005: macro redefinition, C4244: type conversion with possible loss of data, C4305: trucation from double to float
+	set_source_files_properties(
+			${MC_IMTUI_SOURCES} ${MC_IMGUI_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "/wd4005 /wd4244 /wd4305"
+			)
+
+	# C4244, C4267: type conversion with possible loss of data, C4996: declared deprecated
+	set_source_files_properties(
+			${PDCURSES_SOURCES} ${WINCON_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "/wd4244 /wd4267 /wd4996"
+			)
+
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
-	target_link_libraries(rbdmap idlib winmm imtui-pdcurses)
+	target_link_libraries(rbdmap idlib winmm imtui-pdcurses ${ZLIB_LIBRARY})
 
 	# set MSVC default debug directory on executable	
 	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
@@ -272,49 +293,93 @@ if(MSVC)
 	endif()
 	
 else()
-	if (USE_PRECOMPILED_HEADERS)
-	foreach( src_file ${MC_PRECOMPILED_SOURCES} )
-		#message(STATUS "-include precompiled.h for ${src_file}")
-		set_source_files_properties(
-			${src_file}
-			PROPERTIES
-			COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h"
-			)
-	endforeach()
-	endif()
-
 	include_directories(.)
-	
+
 	if (USE_PRECOMPILED_HEADERS)
-	# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
-	STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
-	SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
-	GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
-	FOREACH(item ${_directory_flags})
-		LIST(APPEND _compiler_FLAGS " -I${item}")
-	ENDFOREACH(item)
+		foreach( src_file ${MC_PRECOMPILED_SOURCES} )
+			#message(STATUS "-include precompiled.h for ${src_file}")
+			set_source_files_properties(
+				${src_file}
+				PROPERTIES
+				COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h"
+				)
+		endforeach()
+
+		# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
+		STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
+		SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
+		GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS " -I${item}")
+		ENDFOREACH(item)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
+		LIST(APPEND _compiler_FLAGS ${_directory_flags})
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS "-D${item}")
+		ENDFOREACH(item)
+
+		# SRS - USE_OPTICK not useful for rbdmap, but definition required to avoid mismatch with idlib precompiled header
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
+
+		add_custom_target(precomp_header_rbdmap ALL
+						COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header precompiled.h -o precompiled.h.gch
+						WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+						COMMENT "Creating tools/compilers/precompiled.h.gch for rbdmap"
+						)
 	endif()
 
-	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
-	LIST(APPEND _compiler_FLAGS ${_directory_flags})
-	
-	SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
-	if (USE_PRECOMPILED_HEADERS)
-	add_custom_target(precomp_header_rbdmap ALL
-	                  COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header precompiled.h -o precompiled.h.gch
-	                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	                  COMMENT "Creating tools/compilers/precompiled.h.gch for rbdmap"
-	                  )
-	endif()
-	
+	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${MC_ZLIB_SOURCES}
+			${MC_MINIZIP_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
+			)
+
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
+
 	if (USE_PRECOMPILED_HEADERS)
-	add_dependencies(rbdmap precomp_header_rbdmap)
+		add_dependencies(rbdmap precomp_header_rbdmap)
+
+		if(WIN32)
+			set(remove_command "del")
+			set(idlib_dir_slash "${CMAKE_SOURCE_DIR}\\idlib\\")
+		else()
+			set(remove_command "rm")
+			set(idlib_dir_slash "${CMAKE_SOURCE_DIR}/idlib/")
+		endif()
+
+		# SRS - delete precompiled header file after executable is compiled: command line build case
+		if(CMAKE_GENERATOR MATCHES "Makefiles" OR CMAKE_GENERATOR MATCHES "Ninja")
+			add_custom_target(rm_precomp_header_rbdmap ALL
+					COMMAND ${remove_command} "precompiled.h.gch"
+					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+					COMMENT "remove tools/compilers/precompiled.h.gch"
+					)
+			add_dependencies(rm_precomp_header_rbdmap rbdmap)
+
+		# SRS - delete precompiled header files after executable is compiled: IDE build case (e.g. Xcode)
+		else()
+			add_custom_command(TARGET rbdmap POST_BUILD
+					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
+					COMMAND ${remove_command} "${idlib_dir_slash}precompiled.h*.gch*"
+					COMMAND ${remove_command} "precompiled.h*.gch*"
+					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+					COMMENT "remove idlib/precompiled.h.gch and tools/compilers/precompiled.h.gch"
+			)
+		endif()
 	endif()
-	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY})
-	
+
+	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY})
 endif()
 	
 
