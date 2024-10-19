@@ -646,7 +646,6 @@ R_SetupUnprojection
 create a matrix with similar functionality like gluUnproject, project from window space to world space
 =================
 */
-/*
 void R_SetupUnprojection( viewDef_t* viewDef )
 {
 	// RB: I don't like that this doesn't work
@@ -660,7 +659,6 @@ void R_SetupUnprojection( viewDef_t* viewDef )
 
 	idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldRenderMatrix );
 }
-*/
 
 #endif // #if !defined( DMAP )
 

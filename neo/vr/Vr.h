@@ -119,9 +119,6 @@ public:
 
 	void				StartFrame();
 
-	//void				OpenVrGetRight( idVec3& position, idQuat& rotation );
-	//void				OpenVrGetLeft( idVec3& position, idQuat& rotation );
-
 	void				MotionControlGetHand( int hand, idVec3& position, idQuat& rotation );
 	void				MotionControlGetLeftHand( idVec3& position, idQuat& rotation );
 	void				MotionControlGetRightHand( idVec3& position, idQuat& rotation );

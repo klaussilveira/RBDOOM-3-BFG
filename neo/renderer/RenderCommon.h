@@ -552,11 +552,11 @@ struct viewDef_t
 	float				unjitteredProjectionMatrix[16];		// second version without TAA subpixel jittering
 	idRenderMatrix		unjitteredProjectionRenderMatrix;
 
-//	float				unprojectionToCameraMatrix[16];
-//	idRenderMatrix		unprojectionToCameraRenderMatrix;
+	float				unprojectionToCameraMatrix[16];
+	idRenderMatrix		unprojectionToCameraRenderMatrix;
 
-//	float				unprojectionToWorldMatrix[16];
-//	idRenderMatrix		unprojectionToWorldRenderMatrix;
+	float				unprojectionToWorldMatrix[16];
+	idRenderMatrix		unprojectionToWorldRenderMatrix;
 	// RB end
 
 	viewEntity_t		worldSpace;

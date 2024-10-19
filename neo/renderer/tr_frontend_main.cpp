@@ -690,7 +690,9 @@ void R_RenderView( viewDef_t* parms )
 
 	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value
 	// for some post process shaders
-//	R_SetupUnprojection( tr.viewDef );
+
+	// FIXME move this to render backend
+	R_SetupUnprojection( tr.viewDef );
 	// RB end
 
 	// setup render matrices for faster culling
