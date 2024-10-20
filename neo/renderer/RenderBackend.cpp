@@ -6075,12 +6075,12 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 	// update projection matrices for the case we submit only 1 view
 #if !VR_EMITSTEREO
-	if( vrSystem->IsActive() && stereoEye == -1 )
+	if( vrSystem->IsActive() )//&& stereoEye == -1 )
 	{
 		cmd->viewDef->renderView.viewEyeBuffer = stereoEye;
 
-		R_SetupProjectionMatrix( cmd->viewDef, true );
-		R_SetupProjectionMatrix( cmd->viewDef, false );
+		R_SetupProjectionMatrix( cmd->viewDef, true, false );
+		R_SetupProjectionMatrix( cmd->viewDef, false, false );
 
 		// setup render matrices for faster culling
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );

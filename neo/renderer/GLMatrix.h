@@ -60,7 +60,7 @@ void R_GlobalPlaneToLocal( const float modelMatrix[16], const idPlane& in, idPla
 void R_LocalPlaneToGlobal( const float modelMatrix[16], const idPlane& in, idPlane& out );
 
 void R_SetupViewMatrix( viewDef_t* viewDef, stereoOrigin_t so );
-void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter );
+void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, bool fullFOV );
 
 // RB begin
 void R_SetupUnprojection( viewDef_t* viewDef );

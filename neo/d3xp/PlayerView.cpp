@@ -746,7 +746,9 @@ stereoDistances_t	CaclulateStereoDistances(
 		// head mounted display mode
 		dists.worldSeparation = CentimetersToWorldUnits( interOcularCentimeters * 0.5 );
 		dists.screenSeparation = 0.0f;
-		dists.combinedSeperation = CentimetersToWorldUnits( ( interOcularCentimeters * 0.5 ) / idMath::Tan( vrSystem->hmdEye[1].projectionOpenVR.projRight ) );
+
+		float tanRoverN = Max( vrSystem->hmdEye[1].projectionOpenVR.projLeft, vrSystem->hmdEye[1].projectionOpenVR.projRight );
+		dists.combinedSeperation = dists.worldSeparation * ( 1.0f / tanRoverN );
 		return dists;
 	}
 
@@ -819,9 +821,9 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
 	eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
 
-	// TODO offset view origin for combined frustum
-	//eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] - ( dists.combinedSeperation * eyeView.viewaxis[0] );
-	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
+	// offset view origin for combined frustum
+	// see formular https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues/878
+	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] - ( dists.combinedSeperation * eyeView.viewaxis[0] );
 #endif
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;

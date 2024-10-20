@@ -416,7 +416,7 @@ idCVar r_centerScale( "r_centerScale", "1", CVAR_FLOAT, "projection matrix cente
 
 #if !defined( DMAP )
 
-void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
+void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, bool fullFOV )
 {
 	// random jittering is usefull when multiple
 	// frames are going to be blended together
@@ -437,10 +437,8 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
 
-	if( vrSystem->IsActive() )
+	if( vrSystem->IsActive() && !fullFOV )
 	{
-		// TODO calculate viewDef->vieworg[STEREOPOS_CULLING]
-
 		int pEye = viewDef->renderView.viewEyeBuffer == -1 ? 0 : 1;
 		float idx = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projRight - vrSystem->hmdEye[pEye].projectionOpenVR.projLeft );
 		float idy = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projDown - vrSystem->hmdEye[pEye].projectionOpenVR.projUp );
