@@ -425,7 +425,7 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, bool fullFOV, c
 
 	if( R_UseTemporalAA() && doJitter && !( viewDef->renderView.rdflags & RDF_IRRADIANCE ) )
 	{
-		idVec2 jitter = tr.backend.GetCurrentPixelOffset();
+		idVec2 jitter = tr.backend.GetCurrentPixelOffset( viewDef->taaFrameCount );
 		jitterx = jitter.x;
 		jittery = jitter.y;
 	}

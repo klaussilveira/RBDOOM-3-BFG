@@ -4944,11 +4944,11 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef, const int stere
 	renderLog.CloseMainBlock();
 }
 
-idVec2 idRenderBackend::GetCurrentPixelOffset() const
+idVec2 idRenderBackend::GetCurrentPixelOffset( int frameIndex ) const
 {
 	if( taaPass[0] )
 	{
-		return taaPass[0]->GetCurrentPixelOffset();
+		return taaPass[0]->GetCurrentPixelOffset( frameIndex );
 	}
 
 	return idVec2( 0, 0 );
@@ -5705,7 +5705,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 #else
 
 	// only render shadow atlas for the first eye and then reuse the data for the second
-	if( stereoEye == 1 )
+	if( stereoEye == 1 || stereoEye == 0 )
 	{
 		ShadowAtlasPass( _viewDef, stereoOrigin );
 	}

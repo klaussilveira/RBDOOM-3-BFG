@@ -212,7 +212,7 @@ void TemporalAntiAliasingPass::TemporalResolve(
 	taaConstants.inputViewSize = idVec2( viewportInput.width() + 1, viewportInput.height() + 1 );
 	taaConstants.outputViewOrigin = idVec2( viewportOutput.minX, viewportOutput.minY );
 	taaConstants.outputViewSize = idVec2( viewportOutput.width() + 1, viewportOutput.height() + 1 );
-	taaConstants.inputPixelOffset = GetCurrentPixelOffset();
+	taaConstants.inputPixelOffset = GetCurrentPixelOffset( viewDef->taaFrameCount );
 	taaConstants.outputTextureSizeInv = idVec2( 1.0f, 1.0f ) / idVec2( float( renderSystem->GetWidth() ), float( renderSystem->GetHeight() ) );
 	taaConstants.inputOverOutputViewSize = taaConstants.inputViewSize / taaConstants.outputViewSize;
 	taaConstants.outputOverInputViewSize = taaConstants.outputViewSize / taaConstants.inputViewSize;
@@ -266,7 +266,7 @@ static float VanDerCorput( size_t base, size_t index )
 	return ret;
 }
 
-idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
+idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset( int frameIndex )
 {
 	switch( r_taaJitter.GetInteger() )
 	{
@@ -279,11 +279,11 @@ idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
 				idVec2( -0.3125f, 0.3125f ), idVec2( -0.4375f, 0.0625f ), idVec2( 0.1875f, 0.4375f ), idVec2( 0.4375f, -0.4375f )
 			};
 
-			return offsets[m_FrameIndex % 8];
+			return offsets[frameIndex % 8];
 		}
 		case( int )TemporalAntiAliasingJitter::Halton:
 		{
-			uint32_t index = ( m_FrameIndex % 16 ) + 1;
+			uint32_t index = ( frameIndex % 16 ) + 1;
 			return idVec2{ VanDerCorput( 2, index ), VanDerCorput( 3, index ) } - idVec2( 0.5f, 0.5f );
 		}
 		case( int )TemporalAntiAliasingJitter::R2:
@@ -292,7 +292,7 @@ idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
 		}
 		case( int )TemporalAntiAliasingJitter::WhiteNoise:
 		{
-			std::mt19937 rng( m_FrameIndex );
+			std::mt19937 rng( frameIndex );
 			std::uniform_real_distribution<float> dist( -0.5f, 0.5f );
 			return idVec2{ dist( rng ), dist( rng ) };
 		}

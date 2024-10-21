@@ -680,6 +680,9 @@ void R_RenderView( viewDef_t* parms )
 
 	tr.viewDef = parms;
 
+	// use this same frame index for the projection matrix jittering here and in the backend!
+	tr.viewDef->taaFrameCount = tr.frameCount;
+
 	// setup the matrix for world space to eye space
 	R_SetupViewMatrix( tr.viewDef, STEREOPOS_CULLING );
 

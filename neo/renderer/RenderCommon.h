@@ -631,6 +631,8 @@ struct viewDef_t
 	idVec4				radianceImageBlends;		// blending weights
 
 	Framebuffer*		targetRender;				// SP: The framebuffer to render to
+
+	int					taaFrameCount;				// RB: so we have the same frame index in frontend and backend
 };
 
 

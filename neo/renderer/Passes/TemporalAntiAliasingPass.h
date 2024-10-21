@@ -123,7 +123,7 @@ public:
 		const viewDef_t* viewDef );
 
 	void AdvanceFrame();
-	idVec2 GetCurrentPixelOffset();
+	idVec2 GetCurrentPixelOffset( int frameIndex );
 
 	uint32_t GetFrameIndex() const
 	{

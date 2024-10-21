@@ -1943,6 +1943,7 @@ void idRenderBackend::GL_EndFrame()
 
 	// update jitter for perspective matrix
 	taaPass[0]->AdvanceFrame();
+	taaPass[1]->AdvanceFrame();
 }
 
 /*
