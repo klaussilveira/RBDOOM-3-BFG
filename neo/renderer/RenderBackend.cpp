@@ -4739,7 +4739,7 @@ void idRenderBackend::FogAllLights( const stereoOrigin_t stereoOrigin )
 	renderLog.CloseMainBlock();
 }
 
-void idRenderBackend::DrawMotionVectors()
+void idRenderBackend::DrawMotionVectors( const int stereoEye )
 {
 	if( !viewDef->viewEntitys )
 	{
@@ -4833,28 +4833,28 @@ void idRenderBackend::DrawMotionVectors()
 		DrawElementsWithCounters( surf );
 	}
 
-	globalFramebuffers.taaMotionVectorsFBO->Bind();
-
-	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
-
 	// in stereo rendering, each eye needs to get a separate previous frame mvp
-	int mvpIndex = ( viewDef->renderView.viewEyeBuffer == 1 ) ? 1 : 0;
+	const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+	globalFramebuffers.taaMotionVectorsFBO[ targetEye ]->Bind();
+
+	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage[ targetEye ]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
 
 	// derive the matrix to go from current pixels to previous frame pixels
 	bool cameraMoved = false;
 	idRenderMatrix	motionMatrix;
 
-	if( memcmp( &viewDef->worldSpace.unjitteredMVP[0][0], &prevMVP[mvpIndex][0][0], sizeof( idRenderMatrix ) ) != 0 )
+	if( memcmp( &viewDef->worldSpace.unjitteredMVP[0][0], &prevMVP[ targetEye ][0][0], sizeof( idRenderMatrix ) ) != 0 )
 	{
 		idRenderMatrix	inverseMVP;
 		idRenderMatrix::Inverse( viewDef->worldSpace.unjitteredMVP, inverseMVP );
 
-		idRenderMatrix::Multiply( prevMVP[mvpIndex], inverseMVP, motionMatrix );
+		idRenderMatrix::Multiply( prevMVP[ targetEye ], inverseMVP, motionMatrix );
 
 		cameraMoved = true;
 	}
 
-	prevMVP[mvpIndex] = viewDef->worldSpace.unjitteredMVP;
+	prevMVP[ targetEye ] = viewDef->worldSpace.unjitteredMVP;
 
 	// make sure rpWindowCoord is set even without post processing surfaces in the view
 	int x = viewDef->viewport.x1;
@@ -4870,7 +4870,7 @@ void idRenderBackend::DrawMotionVectors()
 	windowCoordParm[3] = h;
 	SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
-	if( r_taaMotionVectors.GetBool() && prevViewsValid && cameraMoved )
+	if( r_taaMotionVectors.GetBool() && prevViewsValid[ targetEye ] && cameraMoved )
 	{
 		RB_SetMVP( motionMatrix );
 
@@ -4891,7 +4891,7 @@ void idRenderBackend::DrawMotionVectors()
 	renderLog.CloseMainBlock();
 }
 
-void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
+void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef, const int stereoEye )
 {
 	// if we are just doing 2D rendering, no need for HDR TAA
 	if( viewDef->viewEntitys == NULL )
@@ -4934,8 +4934,11 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 		r_taaMaxRadiance.GetFloat(),
 		r_taaEnableHistoryClamping.GetBool()
 	};
-	taaPass->TemporalResolve( commandList, params, prevViewsValid, _viewDef );
-	prevViewsValid = true;
+
+	const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+	taaPass[ targetEye ]->TemporalResolve( commandList, params, prevViewsValid[ targetEye ], _viewDef );
+	prevViewsValid[ targetEye ] = true;
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
@@ -4943,9 +4946,9 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 
 idVec2 idRenderBackend::GetCurrentPixelOffset() const
 {
-	if( taaPass )
+	if( taaPass[0] )
 	{
-		return taaPass->GetCurrentPixelOffset();
+		return taaPass[0]->GetCurrentPixelOffset();
 	}
 
 	return idVec2( 0, 0 );
@@ -5817,7 +5820,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// motion vectors are useful for TAA and motion blur
 	//-------------------------------------------------
-	DrawMotionVectors();
+	DrawMotionVectors( stereoEye );
 
 	//-------------------------------------------------
 	// resolve of HDR target using temporal anti aliasing before any tonemapping and post processing
@@ -5825,7 +5828,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// use this to eat all stochastic noise like from volumetric light sampling or SSAO
 	// runs at full resolution
 	//-------------------------------------------------
-	TemporalAAPass( _viewDef );
+	TemporalAAPass( _viewDef, stereoEye );
 
 	//-------------------------------------------------
 	// tonemapping: convert back from HDR to LDR range
@@ -5913,6 +5916,7 @@ Experimental feature
 */
 void idRenderBackend::MotionBlur()
 {
+#if 0
 	if( !viewDef->viewEntitys )
 	{
 		// 3D views only
@@ -6011,6 +6015,7 @@ void idRenderBackend::MotionBlur()
 	globalImages->currentDepthImage->Bind();
 
 	DrawElementsWithCounters( &unitSquareSurface );
+#endif
 }
 
 /*
@@ -6077,10 +6082,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 #if !VR_EMITSTEREO
 	if( vrSystem->IsActive() )//&& stereoEye == -1 )
 	{
-		cmd->viewDef->renderView.viewEyeBuffer = stereoEye;
-
-		R_SetupProjectionMatrix( cmd->viewDef, true, false );
-		R_SetupProjectionMatrix( cmd->viewDef, false, false );
+		R_SetupProjectionMatrix( cmd->viewDef, true, false, stereoEye );
+		R_SetupProjectionMatrix( cmd->viewDef, false, false, stereoEye );
 
 		// setup render matrices for faster culling
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
@@ -6163,10 +6166,11 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 			// setup new camera matrix with adjusted view
 			R_SetupViewMatrix( cmd->viewDef, stereoOrigin );
-			idRenderMatrix drawViewRenderMatrix;
+			idRenderMatrix viewRenderMatrix;
 			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
-			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, drawViewRenderMatrix );
-			idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, drawViewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+			idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
+			idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+			idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
 
 			// update modelview and mvp matrices for all view entitities
 			for( viewEntity_t* vEntity = cmd->viewDef->viewEntitys; vEntity != NULL; vEntity = vEntity->next )

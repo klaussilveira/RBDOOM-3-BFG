@@ -587,10 +587,10 @@ public:
 	idImage*			blueNoiseImage256;
 	idImage*			currentRenderHDRImage;
 	idImage*			ldrImage;						// tonemapped result which can be used for further post processing
-	idImage*			taaMotionVectorsImage;			// motion vectors for TAA projection
+	idImage*			taaMotionVectorsImage[2];		// motion vectors for TAA projection, doubled for VR
+	idImage*			taaFeedback1Image[2];
+	idImage*			taaFeedback2Image[2];
 	idImage*			taaResolvedImage;
-	idImage*			taaFeedback1Image;
-	idImage*			taaFeedback2Image;
 	idImage*			bloomRenderImage[2];
 	idImage*			glowImage[2];					// contains any glowable surface information.
 	idImage*			glowDepthImage[2];

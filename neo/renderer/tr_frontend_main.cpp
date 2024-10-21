@@ -686,12 +686,12 @@ void R_RenderView( viewDef_t* parms )
 	// we need to set the projection matrix before doing
 	// portal-to-screen scissor calculations
 #if VR_EMITSTEREO
-	R_SetupProjectionMatrix( tr.viewDef, true, false );
-	R_SetupProjectionMatrix( tr.viewDef, false, false );
+	R_SetupProjectionMatrix( tr.viewDef, true, false, tr.viewDef->renderView.viewEyeBuffer );
+	R_SetupProjectionMatrix( tr.viewDef, false, false, tr.viewDef->renderView.viewEyeBuffer );
 #else
 	// combined view for culling requires full FOV of both eyes
-	R_SetupProjectionMatrix( tr.viewDef, true, true );
-	R_SetupProjectionMatrix( tr.viewDef, false, true );
+	R_SetupProjectionMatrix( tr.viewDef, true, true, 0 );
+	R_SetupProjectionMatrix( tr.viewDef, false, true, 0 );
 #endif
 
 	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value

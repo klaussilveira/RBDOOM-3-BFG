@@ -1081,10 +1081,13 @@ void idImageManager::CreateIntrinsicImages()
 	currentRenderHDRImage = globalImages->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative_MSAAOpt );
 	ldrImage = globalImages->ImageFromFunction( "_currentRenderLDR", R_LdrNativeImage );
 
-	taaMotionVectorsImage = ImageFromFunction( "_taaMotionVectors", R_HDR_RG16FImage_ResNative ); // RB: could be shared with _currentNormals.zw
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+	{
+		taaMotionVectorsImage[i] = ImageFromFunction( va( "_taaMotionVectors_%i", i ), R_HDR_RG16FImage_ResNative ); // RB: could be shared with _currentNormals.zw
+		taaFeedback1Image[i] = ImageFromFunction( va( "_taaFeedback1_%i", i ), R_HDR_RGBA16SImage_ResNative_UAV );
+		taaFeedback2Image[i] = ImageFromFunction( va( "_taaFeedback2_%i", i ), R_HDR_RGBA16SImage_ResNative_UAV );
+	}
 	taaResolvedImage = ImageFromFunction( "_taaResolved", R_HDR_RGBA16FImage_ResNative_UAV );
-	taaFeedback1Image = ImageFromFunction( "_taaFeedback1", R_HDR_RGBA16SImage_ResNative_UAV );
-	taaFeedback2Image = ImageFromFunction( "_taaFeedback2", R_HDR_RGBA16SImage_ResNative_UAV );
 
 	envprobeHDRImage = globalImages->ImageFromFunction( "_envprobeHDR", R_EnvprobeImage_HDR );
 	envprobeDepthImage = ImageFromFunction( "_envprobeDepth", R_EnvprobeImage_Depth );

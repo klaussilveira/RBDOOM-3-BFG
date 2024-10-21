@@ -195,8 +195,8 @@ private:
 	void				ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin );
 	//void				SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef );
 
-	void				DrawMotionVectors();
-	void				TemporalAAPass( const viewDef_t* _viewDef );
+	void				DrawMotionVectors( const int stereoEye );
+	void				TemporalAAPass( const viewDef_t* _viewDef, const int stereoEye );
 
 	// RB: outdated HDR stuff
 	void				Bloom( const viewDef_t* viewDef );
@@ -360,7 +360,7 @@ private:
 	bool				currentRenderCopied;	// true if any material has already referenced _currentRender
 
 	idRenderMatrix		prevMVP[2];				// world MVP from previous frame for motion blur
-	bool				prevViewsValid;
+	bool				prevViewsValid[2];
 
 	// RB begin
 	// TODO remove
@@ -398,7 +398,7 @@ private:
 	SsaoPass*						ssaoPass;
 	MipMapGenPass*					hiZGenPass;
 	TonemapPass*					toneMapPass;
-	TemporalAntiAliasingPass*		taaPass;
+	TemporalAntiAliasingPass*		taaPass[2];		// two separate history buffers for VR
 
 	BindingCache					bindingCache;
 	SamplerCache					samplerCache;

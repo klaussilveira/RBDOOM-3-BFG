@@ -2,7 +2,7 @@
 * Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
 * Copyright (C) 2022 Stephen Pridham (id Tech 4x integration)
 * Copyright (C) 2023 Stephen Saunders (id Tech 4x integration)
-* Copyright (C) 2023 Robert Beckebans (id Tech 4x integration)
+* Copyright (C) 2023-2024 Robert Beckebans (id Tech 4x integration)
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,8 @@
 #include "renderer/RenderSystem.h"
 #include "framework/Common_local.h"
 #include <sys/DeviceManager.h>
+
+#include <vr/Vr.h>
 
 #include <Windows.h>
 #include <dxgi1_5.h>
@@ -304,6 +306,12 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	GetClientRect( ( HWND )windowHandle, &clientRect );
 	UINT width = clientRect.right - clientRect.left;
 	UINT height = clientRect.bottom - clientRect.top;
+
+	if( vrSystem->IsActive() )
+	{
+		width = m_DeviceParams.backBufferWidth;
+		height = m_DeviceParams.backBufferHeight;
+	}
 
 	ZeroMemory( &m_SwapChainDesc, sizeof( m_SwapChainDesc ) );
 	m_SwapChainDesc.Width = width;

@@ -816,6 +816,8 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 		eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_RIGHT];
 	}
 	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
+
+	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 #else
 
 	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
@@ -826,7 +828,6 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] - ( dists.combinedSeperation * eyeView.viewaxis[0] );
 #endif
 
-	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 	eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
 
 	// Koz begin

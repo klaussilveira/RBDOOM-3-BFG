@@ -254,7 +254,9 @@ void idGuiModel::EmitFullScreen( Framebuffer* renderTarget )
 		viewDef->renderView.stereoScreenSeparation = screenSeparation;
 
 		extern idCVar stereoRender_swapEyes;
+#if VR_EMITSTEREO
 		viewDef->renderView.viewEyeBuffer = 0;	// render to both buffers
+#endif
 		if( stereoRender_swapEyes.GetBool() )
 		{
 			viewDef->renderView.stereoScreenSeparation = -screenSeparation;

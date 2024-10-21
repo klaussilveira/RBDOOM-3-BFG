@@ -2667,7 +2667,7 @@ stereo3DMode_t idRenderSystemLocal::GetStereo3DMode() const
 	}
 	else
 	{
-		return glConfig.stereo3Dmode;
+		return STEREO3D_OFF; //glConfig.stereo3Dmode;
 	}
 }
 

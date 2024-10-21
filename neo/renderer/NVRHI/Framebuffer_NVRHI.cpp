@@ -151,10 +151,12 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->currentRenderImage->texture ) );
 
-	globalFramebuffers.taaMotionVectorsFBO = new Framebuffer( "_taaMotionVectors",
-			nvrhi::FramebufferDesc()
-			.addColorAttachment( globalImages->taaMotionVectorsImage->texture ) );
-
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+	{
+		globalFramebuffers.taaMotionVectorsFBO[i] = new Framebuffer( va( "_taaMotionVectors%i", i ),
+				nvrhi::FramebufferDesc()
+				.addColorAttachment( globalImages->taaMotionVectorsImage[i]->texture ) );
+	}
 	globalFramebuffers.taaResolvedFBO = new Framebuffer( "_taaResolved",
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->taaResolvedImage->texture ) );
@@ -249,10 +251,15 @@ void Framebuffer::ReloadImages()
 	}
 	globalImages->hierarchicalZbufferImage->Reload( false, tr.backend.commandList );
 	globalImages->gbufferNormalsRoughnessImage->Reload( false, tr.backend.commandList );
-	globalImages->taaMotionVectorsImage->Reload( false, tr.backend.commandList );
+
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+	{
+		globalImages->taaMotionVectorsImage[i]->Reload( false, tr.backend.commandList );
+		globalImages->taaFeedback1Image[i]->Reload( false, tr.backend.commandList );
+		globalImages->taaFeedback2Image[i]->Reload( false, tr.backend.commandList );
+	}
 	globalImages->taaResolvedImage->Reload( false, tr.backend.commandList );
-	globalImages->taaFeedback1Image->Reload( false, tr.backend.commandList );
-	globalImages->taaFeedback2Image->Reload( false, tr.backend.commandList );
+
 	globalImages->smaaEdgesImage->Reload( false, tr.backend.commandList );
 	globalImages->smaaBlendImage->Reload( false, tr.backend.commandList );
 	globalImages->shadowAtlasImage->Reload( false, tr.backend.commandList );

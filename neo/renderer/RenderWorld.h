@@ -269,7 +269,9 @@ typedef struct renderView_s
 	const idMaterial*		globalMaterial;							// used to override everything draw
 
 	// the viewEyeBuffer may be of a different polarity than stereoScreenSeparation if the eyes have been swapped
+#if VR_EMITSTEREO
 	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
+#endif
 	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
 
 	int						rdflags;			// RB: RDF_NOSHADOWS, etc

@@ -254,7 +254,8 @@ void idRenderBackend::Init()
 
 	prevMVP[0] = renderMatrix_identity;
 	prevMVP[1] = renderMatrix_identity;
-	prevViewsValid = false;
+	prevViewsValid[0] = false;
+	prevViewsValid[1] = false;
 
 	currentVertexBuffer = nullptr;
 	currentIndexBuffer = nullptr;
@@ -1878,19 +1879,22 @@ void idRenderBackend::GL_StartFrame()
 		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
 	}
 
-	if( !taaPass )
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
 	{
-		TemporalAntiAliasingPass::CreateParameters taaParams;
-		taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
-		taaParams.motionVectors = globalImages->taaMotionVectorsImage->GetTextureHandle();
-		taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
-		taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
-		taaParams.feedback1 = globalImages->taaFeedback1Image->GetTextureHandle();
-		taaParams.feedback2 = globalImages->taaFeedback2Image->GetTextureHandle();
-		taaParams.motionVectorStencilMask = 0; //0x01;
-		taaParams.useCatmullRomFilter = true;
-		taaPass = new TemporalAntiAliasingPass();
-		taaPass->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
+		if( !taaPass[i] )
+		{
+			TemporalAntiAliasingPass::CreateParameters taaParams;
+			taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
+			taaParams.motionVectors = globalImages->taaMotionVectorsImage[i]->GetTextureHandle();
+			taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
+			taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
+			taaParams.feedback1 = globalImages->taaFeedback1Image[i]->GetTextureHandle();
+			taaParams.feedback2 = globalImages->taaFeedback2Image[i]->GetTextureHandle();
+			taaParams.motionVectorStencilMask = 0; //0x01;
+			taaParams.useCatmullRomFilter = true;
+			taaPass[i] = new TemporalAntiAliasingPass();
+			taaPass[i]->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
+		}
 	}
 }
 
@@ -1938,7 +1942,7 @@ void idRenderBackend::GL_EndFrame()
 	}
 
 	// update jitter for perspective matrix
-	taaPass->AdvanceFrame();
+	taaPass[0]->AdvanceFrame();
 }
 
 /*
@@ -2224,11 +2228,15 @@ void idRenderBackend::ClearCaches()
 		toneMapPass = nullptr;
 	}
 
-	if( taaPass )
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
 	{
-		delete taaPass;
-		taaPass = nullptr;
+		if( taaPass[i] )
+		{
+			delete taaPass[i];
+			taaPass[i] = nullptr;
+		}
 	}
+
 
 	currentVertexBuffer = nullptr;
 	currentIndexBuffer = nullptr;

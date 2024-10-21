@@ -84,17 +84,8 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
-	//std::vector<ShaderMacro> MotionVectorMacros;
-	//MotionVectorMacros.push_back( ShaderMacro( "USE_STENCIL", useStencil ? "1" : "0" ) );
-	//m_MotionVectorPS = shaderFactory->CreateShader( "donut/passes/motion_vectors_ps.hlsl", "main", &MotionVectorMacros, nvrhi::ShaderType::Pixel );
-
 	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
 	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
-
-	//std::vector<ShaderMacro> ResolveMacros;
-	//ResolveMacros.push_back( ShaderMacro( "SAMPLE_COUNT", std::to_string( unresolvedColorDesc.sampleCount ) ) );
-	//ResolveMacros.push_back( ShaderMacro( "USE_CATMULL_ROM_FILTER", params.useCatmullRomFilter ? "1" : "0" ) );
-	//m_TemporalAntiAliasingCS = shaderFactory->CreateShader( "donut/passes/taa_cs.hlsl", "main", &ResolveMacros, nvrhi::ShaderType::Compute );
 
 	switch( r_antiAliasing.GetInteger() )
 	{
@@ -225,8 +216,8 @@ void TemporalAntiAliasingPass::TemporalResolve(
 	taaConstants.outputTextureSizeInv = idVec2( 1.0f, 1.0f ) / idVec2( float( renderSystem->GetWidth() ), float( renderSystem->GetHeight() ) );
 	taaConstants.inputOverOutputViewSize = taaConstants.inputViewSize / taaConstants.outputViewSize;
 	taaConstants.outputOverInputViewSize = taaConstants.outputViewSize / taaConstants.inputViewSize;
-	taaConstants.clampingFactor = params.enableHistoryClamping ? params.clampingFactor : -1.f;
-	taaConstants.newFrameWeight = feedbackIsValid ? params.newFrameWeight : 1.f;
+	taaConstants.clampingFactor = params.enableHistoryClamping ? params.clampingFactor : -1.0f;
+	taaConstants.newFrameWeight = feedbackIsValid ? params.newFrameWeight : 1.0f;
 	taaConstants.pqC = idMath::ClampFloat( 1e-4f, 1e8f, params.maxRadiance );
 	taaConstants.invPqC = 1.f / taaConstants.pqC;
 	commandList->writeBuffer( m_TemporalAntiAliasingCB, &taaConstants, sizeof( taaConstants ) );
