@@ -2635,6 +2635,7 @@ int idRenderSystemLocal::GetVirtualWidth() const
 	//	return SCREEN_WIDTH;
 	//}
 // jmarshall end
+
 	return glConfig.nativeScreenWidth / 2;
 }
 
@@ -2651,6 +2652,12 @@ int idRenderSystemLocal::GetVirtualHeight() const
 	//	return SCREEN_HEIGHT;
 	//}
 // jmarshall end
+
+	//if( vrSystem->IsActive() )
+	//{
+	//	return ( glConfig.nativeScreenHeight / 2 ) * ( 9 / 16.0f );
+	//}
+
 	return glConfig.nativeScreenHeight / 2;
 }
 

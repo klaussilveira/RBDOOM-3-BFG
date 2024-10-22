@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2016-2017 Dustin Land
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
+
+#include <vr/Vr.h>
 
 /*
 ===================
@@ -463,14 +466,35 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 		{
 			const float pixelAspect = renderSystem->GetPixelAspect();
 			const float sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-			const float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
-			float scale = swfScale * sysHeight / ( float )frameHeight;
-			float invScale = 1.0f / scale;
-			float tx = 0.5f * ( sysWidth - ( frameWidth * scale ) );
-			float ty = 0.5f * ( sysHeight - ( frameHeight * scale ) );
+			float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 
-			mouseX = idMath::Ftoi( ( static_cast<float>( event->evValue ) - tx ) * invScale );
-			mouseY = idMath::Ftoi( ( static_cast<float>( event->evValue2 ) - ty ) * invScale );
+			// RB: fit 16:9 screen into square VR screen
+			// this makes the mouse to move only in those 16:9 boundaries
+			float scaleY = swfScale * sysHeight / ( float )frameHeight;
+			float scaleX = scaleY;
+
+			float tx = 0.5f * ( sysWidth - ( frameWidth * scaleX ) );
+			float ty = 0.5f * ( sysHeight - ( frameHeight * scaleY ) );
+
+			if( vrSystem->IsActive() )
+			{
+				const float swfAspect = 16.0f / 9.0f;
+				float adjustedHeight = sysWidth / swfAspect;
+
+				scaleX = swfScale * adjustedHeight / ( float )frameHeight;
+				//scaleY = sysHeight / adjustedHeight; // mirrors at top line
+				scaleY = scaleX;
+
+				tx = 0.5f * ( sysWidth - ( frameWidth * scaleX ) );
+				ty = 0.5f * ( adjustedHeight - ( frameHeight * scaleY ) );
+			}
+
+			float invScaleX = 1.0f / scaleX;
+			float invScaleY = 1.0f / scaleY;
+
+			mouseX = idMath::Ftoi( ( static_cast<float>( event->evValue ) - tx ) * invScaleX );
+			mouseY = idMath::Ftoi( ( static_cast<float>( event->evValue2 ) - ty ) * invScaleY );
+			// RB end
 		}
 		else
 		{

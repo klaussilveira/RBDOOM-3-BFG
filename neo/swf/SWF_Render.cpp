@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,7 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
+
 #include "../renderer/RenderCommon.h"
+#include <vr/Vr.h>
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -139,7 +141,18 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 	const float pixelAspect = renderSystem->GetPixelAspect();
 	const float sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
 	const float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+
 	float scale = swfScale * sysHeight / ( float )frameHeight;
+
+	// RB: fit 16:9 screen into square VR screen
+	if( vrSystem->IsActive() )
+	{
+		const float swfAspect = 16.0f / 9.0f;
+		float adjustedHeight = sysWidth / swfAspect;
+
+		scale = swfScale * adjustedHeight / ( float )frameHeight;
+	}
+	// RB end
 
 	swfRenderState_t renderState;
 	renderState.stereoDepth = ( stereoDepthType_t )mainspriteInstance->GetStereoDepth();
@@ -154,10 +167,16 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 
 	RenderSprite( gui, mainspriteInstance, renderState, time, isSplitscreen );
 
-	if( blackbars )
+	if( blackbars || vrSystem->IsActive() )
 	{
 		float barWidth = renderState.matrix.tx + 0.5f;
 		float barHeight = renderState.matrix.ty + 0.5f;
+
+		if( vrSystem->IsActive() )
+		{
+			barWidth = 0;
+		}
+
 		if( barWidth > 0.0f )
 		{
 			gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
