@@ -18,6 +18,27 @@ _______________________________________
 TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
+## .plan - October 26, 2024
+
+This is a VR test build without support for motion controllers. It's purpose is to test the rendering in VR with DX12 & Vulkan.
+RBDoomVR.exe still works fine without VR if you start it +set vr_enable 0.
+
+Changelog:
+
+* The combined frustum for culling in the renderer frontend works now
+
+* The game code emits only 1 view that is rendered twice in the renderer backend for each eye but only processed 1 time in the renderer frontend
+
+* Masked Occlusion Culling has been adapted to work with VR and gives a nice performance boost
+
+* MOC now renders only at the half resolution for better perf
+
+* The Flash menus fit as 16:9 format into the virtual VR wall view
+
+* TAA is working in VR but still causing some jittering with 3D ingame guis
+
+* Improved interpolation between env_probes, especially when they are parallel placed
+
 
 ## .plan - September 06, 2024
 
