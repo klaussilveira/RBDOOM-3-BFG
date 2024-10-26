@@ -4030,6 +4030,10 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 			{
 				RB_SetMVPWithStereoOffset( space->mvp, currentGuiStereoOffset );
 			}
+			else if( space->isGuiSurface )
+			{
+				RB_SetMVP( space->unjitteredMVP );
+			}
 			else
 			{
 				RB_SetMVP( space->mvp );
@@ -6181,6 +6185,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				idRenderMatrix viewMat;
 				idRenderMatrix::Transpose( *( idRenderMatrix* ) vEntity->modelViewMatrix, viewMat );
 				idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewMat, vEntity->mvp );
+				idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewMat, vEntity->unjitteredMVP );
 				if( vEntity->weaponDepthHack )
 				{
 					idRenderMatrix::ApplyDepthHack( vEntity->mvp );
