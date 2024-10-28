@@ -223,8 +223,6 @@ idCVar vr_chaperoneColor( "vr_chaperoneColor", "0", CVAR_INTEGER | CVAR_ARCHIVE,
 idCVar vr_handSwapsAnalogs( "vr_handSwapsAnalogs", "0", CVAR_BOOL | CVAR_ARCHIVE, "Should swapping the weapon hand affect analog controls (stick or touchpad) or just buttons/triggers? 0 = only swap buttons, 1 = swap all controls" );
 idCVar vr_autoSwitchControllers( "vr_autoSwitchControllers", "1", CVAR_BOOL | CVAR_ARCHIVE, "Automatically switch to/from gamepad mode when using gamepad/motion controller. Should be true unless you're trying to use both together, or you get false detections. 0 = no, 1 = yes." );
 
-idCVar vr_cinematics( "vr_cinematics", "0", CVAR_INTEGER | CVAR_ARCHIVE, "Cinematic type. 0 = Immersive, 1 = Cropped, 2 = Projected" );
-
 idCVar vr_instantAccel( "vr_instantAccel", "1", CVAR_BOOL | CVAR_ARCHIVE, "Instant Movement Acceleration. 0 = Disabled 1 = Enabled" );
 idCVar vr_shotgunChoke( "vr_shotgunChoke", "0", CVAR_FLOAT | CVAR_ARCHIVE, "% To choke shotgun. 0 = None, 100 = Full Choke\n" );
 idCVar vr_headshotMultiplier( "vr_headshotMultiplier", "2.5", CVAR_FLOAT | CVAR_ARCHIVE, "Damage multiplier for headshots when using Fists,Pistol,Shotgun,Chaingun or Plasmagun.", 1, 5 );
@@ -238,6 +236,101 @@ iVr* vrSystem = &vrCom;
 
 iVoice _voice; //avoid nameclash with timidity
 iVoice* vrVoice = &_voice;
+
+struct hmdTrackState_t
+{
+	// the current states are updated by the input thread at 250 hz
+	vr::TrackedDevicePose_t current[vr::k_unMaxTrackedDeviceCount];
+
+	// the previous state is latched at polling time
+	vr::TrackedDevicePose_t previous[vr::k_unMaxTrackedDeviceCount];
+
+	// Only valid controllers will have their rumble set
+	bool			valid;
+};
+
+/*
+========================
+JoystickSamplingThread
+========================
+*/
+static int	threadTimeDeltas[256];
+static int	threadPacket[256];
+static int	threadCount;
+
+static idSysMutex mutexHMD;		// lock this before using currentXis or stickIntegrations
+static HANDLE	 threadTimer;	// fire every 4 msec
+
+static hmdTrackState_t trackState;
+
+void HMDSamplingThread( void* data )
+{
+	static uint64 prevTime = 0;
+	static uint64 nextCheck = 0;
+	const uint64 waitTime = 5000000; // poll every 5 seconds to see if a controller was connected
+	while( 1 )
+	{
+		// hopefully we see close to 4000 usec each loop
+		uint64	now = Sys_Microseconds();
+		int	delta;
+		if( prevTime == 0 )
+		{
+			delta = 4000;
+		}
+		else
+		{
+			delta = now - prevTime;
+		}
+		prevTime = now;
+		threadTimeDeltas[threadCount & 255] = delta;
+		threadCount++;
+
+		{
+			//XINPUT_STATE	joyData[MAX_JOYSTICKS];
+			//bool			validData[MAX_JOYSTICKS];
+
+			static vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+
+			{
+				if( now >= nextCheck )
+				{
+					// WaitGetPoses might block... for a _really_ long time..
+
+					//do
+					{
+						vr::VRCompositor()->WaitGetPoses( trackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+					}
+					//while( !trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid );
+
+					// allow an immediate data poll if the input device is connected else
+					// wait for some time to see if another device was reconnected.
+					// Checking input state infrequently for newly connected devices prevents
+					// severe slowdowns on PC, especially on WinXP64.
+					if( trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid )
+					{
+						nextCheck = 0;
+					}
+					else
+					{
+						nextCheck = now + waitTime;
+					}
+				}
+			}
+
+			{
+				// do this short amount of processing inside a critical section
+				idScopedCriticalSection cs( mutexHMD );
+
+				trackState.valid = trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid;
+
+				memcpy( trackState.current, trackedDevicePose, sizeof( trackedDevicePose ) );
+			}
+		}
+
+		// we want this to be processed at least 250 times a second
+		WaitForSingleObject( threadTimer, INFINITE );
+	}
+}
 
 
 /*
@@ -679,7 +772,7 @@ void iVr::HMDInitializeDistortion()
 		common->Printf( "Init Hmd FOV x,y = %f , %f. Aspect = %f\n", hmdFovX, hmdFovY, hmdAspect );
 	}
 
-#if 1
+#if 0
 	{
 		// override the default steam skybox, initially just set to black.  UpdateScreen can copy static images to skyBoxFront during level loads/saves
 		nvrhi::IDevice* device = deviceManager->GetDevice();
@@ -751,13 +844,30 @@ void iVr::HMDInitializeDistortion()
 #endif
 
 	{
+#if 1
 		do
 		{
 			vr::VRCompositor()->WaitGetPoses( m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
 		}
 		while( !m_rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid );
+#endif
 
-		//Seems to take a few frames before a vaild yaw is returned, so zero the current tracked player position by pulling multiple poses;
+#if 0
+		// setup the timer that the high frequency thread will wait on
+		// to fire every 4 msec
+		threadTimer = CreateWaitableTimer( NULL, FALSE, "HmdTimer" );
+		LARGE_INTEGER dueTime;
+		dueTime.QuadPart = -1;
+		if( !SetWaitableTimer( threadTimer, &dueTime, 4, NULL, NULL, FALSE ) )
+		{
+			idLib::FatalError( "SetWaitableTimer for HMD failed" );
+		}
+
+		// spawn the high frequency joystick reading thread
+		Sys_CreateThread( ( xthread_t )HMDSamplingThread, NULL, THREAD_HIGHEST, "HMD", CORE_1B );
+#endif
+
+		// Seems to take a few frames before a validd yaw is returned, so zero the current tracked player position by pulling multiple poses;
 		for( int t = 0; t < 20; t++ )
 		{
 			HMDResetTrackingOriginOffset();
@@ -1248,7 +1358,18 @@ void iVr::StartFrame()
 	poseLastHmdBodyPositionDelta = poseHmdBodyPositionDelta;
 	poseLastHmdAbsolutePosition = poseHmdAbsolutePosition;
 
-	vr::VRCompositor()->WaitGetPoses( m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+	{
+		OPTICK_CATEGORY( "VR_WaitGetPoses", Optick::Category::Wait );
+
+#if 1
+		vr::VRCompositor()->WaitGetPoses( m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+#else
+		idScopedCriticalSection crit( mutexHMD );
+
+		memcpy( m_rTrackedDevicePose, trackState.current, sizeof( trackState.current ) );
+		memcpy( trackState.previous, trackState.current, sizeof( trackState.current ) );
+#endif
+	}
 
 	leftControllerDeviceNo = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_LeftHand );
 	rightControllerDeviceNo = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_RightHand );
