@@ -2388,6 +2388,13 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 {
 	GL_StartFrame();
 
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+
 	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
 
 	// RB: we need to load all images left before rendering
