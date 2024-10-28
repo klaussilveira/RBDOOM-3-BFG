@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include <vr/Vr.h>
+
 #include "../Game_local.h"
 
 CLASS_DECLARATION( idPhysics_Actor, idPhysics_Player )
@@ -442,6 +444,75 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 			break;
 		}
 	}
+
+#if 0
+	// FIXME check this
+	//
+	// Leyland
+	blink = false;
+	idVec3 headOrigin = vrSystem->uncrouchedHMDViewOrigin - current.origin;
+	headOrigin.z = 0.f;
+
+	static const float headBodyLimit = 11.f;
+	static const float maxHeadDist = headBodyLimit + 24.5f;
+	static const float headBodyLimitSq = headBodyLimit * headBodyLimit;
+	static const float maxHeadDistSq = maxHeadDist * maxHeadDist;
+
+	idBounds bounds( idVec3( -5, -5, -5 ), idVec3( 5, 5, 5 ) );
+	idVec3 start;
+
+	// see if we can raise our head high enough
+	start = end = current.origin;
+	start.z += 20.f;
+	end.z = vrSystem->uncrouchedHMDViewOrigin.z;
+	gameLocal.clip.TraceBounds( trace, start, end, bounds, clipMask, self );
+	vrSystem->headHeightDiff = trace.endpos.z - end.z;
+
+	if( trace.fraction < 1.f )
+	{
+		if( !headBumped )
+		{
+			blink = true;
+			headBumped = true;
+		}
+	}
+	else
+	{
+		if( headBumped )
+		{
+			blink = true;
+			headBumped = false;
+		}
+	}
+
+	// clamp to a max distance
+	float headDistSq = headOrigin.LengthSqr();
+	if( headDistSq > maxHeadDistSq )
+	{
+		headOrigin *= maxHeadDist / sqrtf( headDistSq );
+		headDistSq = maxHeadDistSq;
+		blink = true;
+	}
+
+	// head collision check if we are outside the body bounds
+	if( headDistSq > headBodyLimitSq )
+	{
+		// see if we can make it there
+		start = current.origin;
+		start.z = vrSystem->uncrouchedHMDViewOrigin.z + vrSystem->headHeightDiff;
+		end = headOrigin + start;
+		gameLocal.clip.TraceBounds( trace, start, end, bounds, clipMask, self );
+
+		if( trace.fraction < 1.0f )
+		{
+			blink = true;
+		}
+
+		headOrigin = trace.endpos - current.origin;
+	}
+	headOrigin.z = vrSystem->headHeightDiff;
+	// end Leyland
+#endif
 
 	// step down
 	if( stepDown && groundPlane )

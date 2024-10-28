@@ -52,10 +52,7 @@ extern DeviceManager* deviceManager;
 idCVar vr_pixelDensity( "vr_pixelDensity", "1", CVAR_FLOAT | CVAR_GAME, "" );
 idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_INIT | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
 idCVar vr_scale( "vr_scale", "1.0", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "World scale. Everything virtual is this times as big." );
-idCVar vr_useOculusProfile( "vr_useOculusProfile", "1", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "TODO REMOVE, Use official profile values. 0 = use user defined profile, 1 = use official profile." );
-idCVar vr_manualIPDEnable( "vr_manualIPDEnable", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, " Override the HMD provided IPD value with value in vr_manualIPD 0 = disable 1= use manual iPD\n" );
-idCVar vr_manualIPD( "vr_manualIPD", "64", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "User defined IPD value in MM" );
-idCVar vr_manualHeight( "vr_manualHeight", "70", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "Unused. User defined player height in inches" );
+
 idCVar vr_minLoadScreenTime( "vr_minLoadScreenTime", "6000", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "Min time to display load screens in ms.", 0.0f, 10000.0f );
 idCVar vr_useFloorHeight( "vr_useFloorHeight", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "0 = Custom eye height. 1 = Marine Eye Height. 2 = Normal View Height. 3 = make floor line up by Doomguy crouching. 4 = make everything line up by scaling world to your height.", 0, 4 );
 idCVar vr_normalViewHeight( "vr_normalViewHeight", "73", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "Height of player's view while standing, in real world inches." );
@@ -131,9 +128,8 @@ idCVar vr_wristStatMon( "vr_wristStatMon", "1", CVAR_INTEGER | CVAR_ARCHIVE, "Us
 
 idCVar vr_disableWeaponAnimation( "vr_disableWeaponAnimation", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "Disable weapon animations in VR. ( 1 = disabled )" );
 idCVar vr_headKick( "vr_headKick", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "Damage can 'kick' the players view. 0 = Disabled in VR." );
-//idCVar vr_showBody( "vr_showBody", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "Dont change this! Will be removed shortly, modifying will cause the player to have extra hands." );
-idCVar vr_joystickMenuMapping( "vr_joystickMenuMapping", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, " Use alternate joy mapping\n in menus/PDA.\n 0 = D3 Standard\n 1 = VR Mode.\n(Both joys can nav menus,\n joy r/l to change\nselect area in PDA." );
 
+idCVar vr_joystickMenuMapping( "vr_joystickMenuMapping", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, " Use alternate joy mapping\n in menus/PDA.\n 0 = D3 Standard\n 1 = VR Mode.\n(Both joys can nav menus,\n joy r/l to change\nselect area in PDA." );
 
 idCVar vr_deadzonePitch( "vr_deadzonePitch", "90", CVAR_FLOAT | CVAR_GAME | CVAR_ARCHIVE, "Vertical Aim Deadzone", 0, 180 );
 idCVar vr_deadzoneYaw( "vr_deadzoneYaw", "30", CVAR_FLOAT | CVAR_GAME | CVAR_ARCHIVE, "Horizontal Aim Deadzone", 0, 180 );
@@ -197,9 +193,7 @@ idCVar vr_playerBodyMode( "vr_playerBodyMode", "1", CVAR_INTEGER | CVAR_GAME | C
 idCVar vr_crouchMode( "vr_crouchMode", "0", CVAR_INTEGER | CVAR_GAME | CVAR_ARCHIVE, "Crouch Mode:\n 0 = Full motion crouch (In game matches real life)\n 1 = Crouch anim triggered by smaller movement." );
 idCVar vr_crouchTriggerDist( "vr_crouchTriggerDist", "7", CVAR_FLOAT | CVAR_ARCHIVE, " Distance ( in real-world inches ) player must crouch in real life to toggle crouch\n" );
 idCVar vr_crouchHideBody( "vr_crouchHideBody", "0", CVAR_FLOAT | CVAR_ARCHIVE, "Hide body ( if displayed )  when crouching. 0 = Dont hide, 1 = hide." );
-idCVar vr_frameCheck( "vr_frameCheck", "0", CVAR_INTEGER | CVAR_ARCHIVE, "0 = bypass frame check" );
 
-idCVar vr_forceOculusAudio( "vr_forceOculusAudio", "1", CVAR_BOOL | CVAR_ARCHIVE, "Request openAL to search for Rift headphones instead of default device\nFails to default device if rift not found." );
 idCVar vr_stereoMirror( "vr_stereoMirror", "1", CVAR_BOOL | CVAR_ARCHIVE, "Render mirror window with stereo views. 0 = Mono , 1 = Stereo Warped" );
 
 idCVar vr_teleportSkipHandrails( "vr_teleportSkipHandrails", "0", CVAR_INTEGER | CVAR_ARCHIVE, "Teleport aim ingnores handrails. 1 = true" );
@@ -705,12 +699,12 @@ idVec2i iVr::GetEyeResolution() const
 
 float iVr::GetIPD() const
 {
-	if( vrSystem->IsActive() && !vr_manualIPDEnable.GetInteger() && vr_useOculusProfile.GetInteger() )
+	if( vrSystem->IsActive() )
 	{
 		return vr::VRSystem()->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_UserIpdMeters_Float ) * 100;
 	}
 
-	return vr_manualIPD.GetFloat() / 10;
+	return 6.2f; // cm
 }
 
 /*
@@ -924,6 +918,7 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	poseLastHmdBodyPositionDelta = poseHmdBodyPositionDelta;
 	poseLastHmdAbsolutePosition = poseHmdAbsolutePosition;
 
+#if 0
 	if( vr_frameCheck.GetInteger() == 1 && idLib::frameNumber == lastFrame ) //&& !renderingSplash )
 	{
 		//make sure to return the same values for this frame.
@@ -969,6 +964,7 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 		common->Printf( "HMDGetOrientation FramCheck Bail == idLib:: framenumber  lf %d  ilfn %d  rendersplash = %d\n", lastFrame, idLib::frameNumber, renderingSplash );
 		return;
 	}
+#endif
 
 	lastFrame = idLib::frameNumber;
 
@@ -992,9 +988,15 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 		m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd] = ConvertSteamVRMatrixToidMat4( m_rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking );
 
 		// Koz convert position (in meters) to inch (1 id unit = 1 inch).
-		hmdPosition.x = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][2] * ( 100.0f / 2.54f ) / vr_scale.GetFloat();
-		hmdPosition.y = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][0] * ( 100.0f / 2.54f ) / vr_scale.GetFloat(); // meters to inches
-		hmdPosition.z = m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][1] * ( 100.0f / 2.54f ) / vr_scale.GetFloat();
+		hmdPosition.x = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][2] * 100.0f;
+		hmdPosition.y = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][0] * 100.0f;
+		hmdPosition.z = m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][1] * 100.0f;
+
+		//common->Printf( "HMD pos %.2f %.2f %.2f\n", hmdPosition.x, hmdPosition.y, hmdPosition.z );
+
+		hmdPosition.x *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
+		hmdPosition.y *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
+		hmdPosition.z *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
 	}
 
 	lastHmdPosition = hmdPosition;
@@ -1024,47 +1026,51 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 
 	hmdPosition += hmdForwardOffset * poseAngles.ToMat3()[0];
 
-	if( resetTrackingOffset == true )
+	const float extraHeight = 0.0f;
+
+	if( resetTrackingOffset )
 	{
 		trackingOriginOffset = lastHmdPosition;
 		trackingOriginHeight = trackingOriginOffset.z;
 
+		// TODO replace vr_useFloorHeight with vr_seatedMode
+#if 0
 		if( vr_useFloorHeight.GetInteger() == 0 )
 		{
-			trackingOriginOffset.z += pm_normalviewheight.GetFloat() + 5 + CM_CLIP_EPSILON - vr_normalViewHeight.GetFloat() / vr_scale.GetFloat();
+			trackingOriginOffset.z += pm_normalviewheight.GetFloat() + extraHeight + CM_CLIP_EPSILON - vr_normalViewHeight.GetFloat() / vr_scale.GetFloat();
 		}
 		else if( vr_useFloorHeight.GetInteger() == 2 )
 		{
-			trackingOriginOffset.z += 5;
+			trackingOriginOffset.z += extraHeight;
 		}
 		else if( vr_useFloorHeight.GetInteger() == 3 )
 		{
-			trackingOriginOffset.z = pm_normalviewheight.GetFloat() + 5 + CM_CLIP_EPSILON;
+			trackingOriginOffset.z = pm_normalviewheight.GetFloat() + extraHeight + CM_CLIP_EPSILON;
 		}
 		else if( vr_useFloorHeight.GetInteger() == 4 )
 		{
 			float oldScale = vr_scale.GetFloat();
 			float h = trackingOriginHeight * oldScale;
-			float newScale = h / ( pm_normalviewheight.GetFloat() + 5 + CM_CLIP_EPSILON );
+			float newScale = h / ( pm_normalviewheight.GetFloat() + extraHeight + CM_CLIP_EPSILON );
 			trackingOriginHeight *= oldScale / newScale;
 			trackingOriginOffset *= oldScale / newScale;
 			vr_scale.SetFloat( newScale );
 		}
+#endif
 
-		common->Printf( "Resetting tracking yaw offset.\n Yaw = %f old offset = %f ", hmdAngles.yaw, trackingOriginYawOffset );
+		common->Printf( "Resetting tracking yaw offset: Yaw = %.2f old offset = %.2f\n", hmdAngles.yaw, trackingOriginYawOffset );
 		trackingOriginYawOffset = hmdAngles.yaw;
-		common->Printf( "New Tracking yaw offset %f\n", hmdAngles.yaw, trackingOriginYawOffset );
+
 		neckInitialized = false;
 		cinematicStartViewYaw = trackingOriginYawOffset;
 
 		return;
 	}
 
-	hmdPosition -= trackingOriginOffset;
-
-	hmdPosition *= idAngles( 0.0f, -trackingOriginYawOffset, 0.0f ).ToMat3();
-
 	absolutePosition = hmdPosition;
+
+	hmdPosition -= trackingOriginOffset;
+	hmdPosition *= idAngles( 0.0f, -trackingOriginYawOffset, 0.0f ).ToMat3();
 
 	hmdAngles.yaw -= trackingOriginYawOffset;
 	hmdAngles.Normalize360();
@@ -1083,11 +1089,12 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	idAngles hmd2 = hmdAngles;
 	hmd2.yaw -= bodyYawOffset;
 
-	//hmdAxis = hmd2.ToMat3();
 	hmdAxis = hmdAngles.ToMat3();
 
-	currentNeckPosition = hmdPosition + hmdAxis[0] * vr_nodalX.GetFloat() / vr_scale.GetFloat() /*+ hmdAxis[1] * 0.0f */ + hmdAxis[2] * vr_nodalZ.GetFloat() / vr_scale.GetFloat();
+	headPositionDelta = hmdPosition;
 
+	// TODO check if this can be removed as it caused problems with the head rotations
+	currentNeckPosition = hmdPosition + hmdAxis[0] * vr_nodalX.GetFloat() / vr_scale.GetFloat() /*+ hmdAxis[1] * 0.0f */ + hmdAxis[2] * vr_nodalZ.GetFloat() / vr_scale.GetFloat();
 	if( !neckInitialized )
 	{
 		lastNeckPosition = currentNeckPosition;
@@ -1102,15 +1109,8 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	bodyPositionDelta = currentNeckPosition - lastNeckPosition; // use this to base movement on neck model
 	bodyPositionDelta.z = currentNeckPosition.z - initialNeckPosition.z;
 
-	//bodyPositionDelta = currentChestPosition - lastChestPosition;
 	lastBodyPositionDelta = bodyPositionDelta;
-
 	lastNeckPosition = currentNeckPosition;
-
-	headPositionDelta = hmdPosition - currentNeckPosition; // use this to base movement on neck model
-	//headPositionDelta = hmdPosition - currentChestPosition;
-	headPositionDelta.z = hmdPosition.z;
-	//bodyPositionDelta.z = 0;
 
 	// how many game units the user has physically ducked in real life from their calibrated position
 	userDuckingAmount = ( trackingOriginHeight - trackingOriginOffset.z ) - hmdPosition.z;

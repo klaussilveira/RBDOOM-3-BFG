@@ -10720,7 +10720,16 @@ idVec3 idPlayer::GetEyePosition() const
 	{
 		org = GetPhysics()->GetOrigin();
 	}
-	return org + ( GetPhysics()->GetGravityNormal() * -eyeOffset.z );
+
+	// RB: align view height with the real world view height
+	if( vrSystem->IsActive() )
+	{
+		return org + idVec3( 0, 0, vrSystem->poseHmdAbsolutePosition.z );
+	}
+	else
+	{
+		return org + ( GetPhysics()->GetGravityNormal() * -eyeOffset.z );
+	}
 }
 
 /*
@@ -10731,6 +10740,12 @@ idPlayer::GetViewPos
 void idPlayer::GetViewPos( idVec3& origin, idMat3& axis ) const
 {
 	idAngles angles;
+
+	if( vrSystem->IsActive() )
+	{
+		GetViewPosVR( origin, axis );
+		return;
+	}
 
 	// if dead, fix the angle and don't add any kick
 	if( health <= 0 )
@@ -10754,6 +10769,38 @@ void idPlayer::GetViewPos( idVec3& origin, idMat3& axis ) const
 
 		// adjust the origin based on the camera nodal distance (eye distance from neck)
 		origin += axis[0] * g_viewNodalX.GetFloat() + axis[2] * g_viewNodalZ.GetFloat();
+	}
+}
+/*
+===============
+idPlayer::GetViewPosVR
+===============
+*/
+void idPlayer::GetViewPosVR( idVec3& origin, idMat3& axis ) const
+{
+	idAngles angles;
+
+	// if dead, fix the angle and don't add any kick
+	if( health <= 0 )
+	{
+		angles = viewAngles;
+		axis = angles.ToMat3();
+		origin = GetEyePosition();
+		return;
+	}
+	else
+	{
+		origin = GetEyePosition() + viewBob;
+		angles = viewAngles + viewBobAngles + playerView.AngleOffset();
+
+		axis = angles.ToMat3() * physicsObj.GetGravityAxis();
+
+		// Move pivot point down so looking straight ahead is a no-op on the Z
+		//const idVec3& gravityVector = physicsObj.GetGravityNormal();
+		//origin += gravityVector * g_viewNodalZ.GetFloat();
+
+		// adjust the origin based on the camera nodal distance (eye distance from neck)^^
+		//origin += axis[0] * g_viewNodalX.GetFloat() + axis[2] * g_viewNodalZ.GetFloat();
 	}
 }
 
@@ -10897,7 +10944,7 @@ void idPlayer::CalculateRenderView()
 		common->Error( "renderView->fov_y == 0" );
 	}
 
-	if( g_showviewpos.GetBool() )
+	if( g_showviewpos.GetBool() && !vrSystem->IsActive() )
 	{
 		gameLocal.Printf( "%s : %s\n", renderView->vieworg[STEREOPOS_MONO].ToString(), renderView->viewaxis.ToAngles().ToString() );
 	}
@@ -10953,13 +11000,15 @@ void idPlayer::CalculateRenderView()
 
 		{
 
-			//move the head in relation to the body.
-			//bodyYawOffsets are external rotations of the body where the head remains looking in the same direction
-			//e.g. when using movepoint and snapping the body to the view.
+			// move the head in relation to the body.
+			// bodyYawOffsets are external rotations of the body where the head remains looking in the same direction
+			// e.g. when using movepoint and snapping the body to the view.
 
 			idAngles bodyAng = axis.ToAngles();
 			idMat3 bodyAx = idAngles( bodyAng.pitch, bodyAng.yaw - yawOffset, bodyAng.roll ).Normalize180().ToMat3();
-			origin = origin + bodyAx[0] * headPositionDelta.x + bodyAx[1] * headPositionDelta.y + bodyAx[2] * headPositionDelta.z;
+
+			idVec3 headDiff = bodyAx[0] * headPositionDelta.x + bodyAx[1] * headPositionDelta.y;// + bodyAx[2] * headPositionDelta.z;
+			origin = origin + headDiff;
 
 			origin += vrSystem->leanOffset;
 
@@ -10988,6 +11037,11 @@ void idPlayer::CalculateRenderView()
 
 		renderView->vieworg[STEREOPOS_MONO] = origin;
 		renderView->viewaxis = axis;
+
+		if( g_showviewpos.GetBool() )
+		{
+			gameLocal.Printf( "%s : %s\n", renderView->vieworg[STEREOPOS_MONO].ToString(), renderView->viewaxis.ToAngles().ToString() );
+		}
 
 		// if leaning, check if the eye is in a wall
 		if( vrSystem->isLeaning )

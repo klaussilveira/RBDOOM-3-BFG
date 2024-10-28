@@ -163,6 +163,8 @@ private:
 	// physics state for client interpolation
 	playerPState_t			previous;
 	playerPState_t			next;
+	bool					blink;
+	bool					headBumped;
 
 	// properties
 	float					walkSpeed;
