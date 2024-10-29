@@ -441,6 +441,11 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, bool fullFOV, c
 	{
 		int pEye = ( stereoEye == 1 ) ? 1 : 0;
 
+		//if( viewDef->isMirror )
+		//{
+		//	pEye ^= 1;
+		//}
+
 		float idx = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projRight - vrSystem->hmdEye[pEye].projectionOpenVR.projLeft );
 		float idy = 1.0f / ( vrSystem->hmdEye[pEye].projectionOpenVR.projDown - vrSystem->hmdEye[pEye].projectionOpenVR.projUp );
 		float sx = vrSystem->hmdEye[pEye].projectionOpenVR.projRight + vrSystem->hmdEye[pEye].projectionOpenVR.projLeft;
@@ -467,6 +472,16 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, bool fullFOV, c
 		projectionMatrix[1 * 4 + 3] = 0.0f;
 		projectionMatrix[2 * 4 + 3] = -1.0f;
 		projectionMatrix[3 * 4 + 3] = 0.0f;
+
+#if 0
+		// convert jitter from pixel space to NDC space
+		jitterx = jitterx / ( 0.5f * projectionMatrix[0 * 4 + 0] );
+		jitterx = jitterx / ( 0.5f * projectionMatrix[1 * 4 + 1] );
+
+		// apply jitter to the projection matrix
+		projectionMatrix[2 * 4 + 0] += jitterx;
+		projectionMatrix[2 * 4 + 1] += jittery;
+#endif
 	}
 	else
 	{

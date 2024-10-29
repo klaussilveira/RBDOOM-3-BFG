@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -33,6 +33,14 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "RenderCommon.h"
 #include "Model_local.h"
+
+#include <vr/Vr.h>
+
+stereoDistances_t	CaclulateStereoDistances(
+	const float	interOcularCentimeters,		// distance between two eyes, typically 6.0 - 7.0
+	const float screenWidthCentimeters,		// read from operating system
+	const float convergenceWorldUnits,		// pass 0 for head mounted display mode
+	const float	fov_x_degrees );
 
 /*
 ==========================================================================================
@@ -251,8 +259,15 @@ static viewDef_t* R_MirrorViewBySurface( const drawSurf_t* drawSurf )
 	camera.axis[1] = surface.axis[1];
 	camera.axis[2] = surface.axis[2];
 
+	extern idCVar	stereoRender_convergence;
+
 	// set the mirrored origin and axis
-	R_MirrorPoint( tr.viewDef->renderView.vieworg[STEREOPOS_MONO], &surface, &camera, parms->renderView.vieworg[STEREOPOS_MONO] );
+	for( int i = 0; i < STEREOPOS_MAX; i++ )
+	{
+		R_MirrorPoint( tr.viewDef->renderView.vieworg[i], &surface, &camera, parms->renderView.vieworg[i] );
+	}
+
+	//std::swap( parms->renderView.vieworg[STEREOPOS_LEFT], parms->renderView.vieworg[STEREOPOS_RIGHT] );
 
 	R_MirrorVector( tr.viewDef->renderView.viewaxis[0], &surface, &camera, parms->renderView.viewaxis[0] );
 	R_MirrorVector( tr.viewDef->renderView.viewaxis[1], &surface, &camera, parms->renderView.viewaxis[1] );
