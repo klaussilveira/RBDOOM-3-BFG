@@ -52,9 +52,10 @@ extern DeviceManager* deviceManager;
 idCVar vr_pixelDensity( "vr_pixelDensity", "1", CVAR_FLOAT | CVAR_GAME, "" );
 idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_INIT | CVAR_GAME, "Enable VR mode. 0 = Disabled 1 = Enabled." );
 idCVar vr_scale( "vr_scale", "1.0", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "World scale. Everything virtual is this times as big." );
-
+idCVar vr_normalHeight( "vr_manualHeight", "183", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "TODO UNUSED: User defined player height in cm" );
+idCVar vr_seatedHeight( "vr_seatedHeight", "120", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "TODO UNUSED: User defined player height in cm while sitting" );
+idCVar vr_seatedMode( "vr_seatedMode", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_GAME, "" );
 idCVar vr_minLoadScreenTime( "vr_minLoadScreenTime", "6000", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "Min time to display load screens in ms.", 0.0f, 10000.0f );
-idCVar vr_useFloorHeight( "vr_useFloorHeight", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "0 = Custom eye height. 1 = Marine Eye Height. 2 = Normal View Height. 3 = make floor line up by Doomguy crouching. 4 = make everything line up by scaling world to your height.", 0, 4 );
 idCVar vr_normalViewHeight( "vr_normalViewHeight", "73", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_GAME, "Height of player's view while standing, in real world inches." );
 
 idCVar vr_weaponHand( "vr_weaponHand", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_GAME, "Which hand holds weapon.\n 0 = Right hand\n 1 = Left Hand\n", 0, 1 );
@@ -231,6 +232,8 @@ iVr* vrSystem = &vrCom;
 iVoice _voice; //avoid nameclash with timidity
 iVoice* vrVoice = &_voice;
 
+float CentimetersToWorldUnits( const float cm );
+
 struct hmdTrackState_t
 {
 	// the current states are updated by the input thread at 250 hz
@@ -356,10 +359,6 @@ iVr::iVr()
 
 	screenSeparation = 0.0f;
 
-	officialIPD = 64.0f;
-	officialHeight = 72.0f;
-
-	manualIPD = 64.0f;
 	manualHeight = 72.0f;
 
 	hmdPositionTracked = false;
@@ -571,8 +570,6 @@ bool iVr::OpenVRInit()
 
 	hmdHz = ( int )( m_pHMD->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float ) + 0.5f );
 
-	officialIPD = m_pHMD->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_UserIpdMeters_Float ) * 100;
-
 	// Leyland's code, used for Reduce FOV motion sickness fix
 	float				openVRfovEye[2][4];
 	m_pHMD->GetProjectionRaw( vr::Eye_Left,
@@ -595,7 +592,7 @@ bool iVr::OpenVRInit()
 	common->Printf( "Hmd Driver: %s .\n", m_strDriver.c_str() );
 	common->Printf( "Hmd Display: %s .\n", m_strDisplay.c_str() );
 	common->Printf( "Hmd HZ %d, width %d, height %d\n", hmdHz, hmdWidth, hmdHeight );
-	common->Printf( "Hmd reported IPD in centimeters = %f \n", officialIPD );
+	common->Printf( "Hmd reported IPD in centimeters = %f \n", GetIPD() );
 
 	common->Printf( "HMD Left Eye leftTan %f\n", openVRfovEye[1][0] );
 	common->Printf( "HMD Left Eye rightTan %f\n", openVRfovEye[1][1] );
@@ -707,6 +704,14 @@ float iVr::GetIPD() const
 	return 6.2f; // cm
 }
 
+float iVr::GetUserSeatedAmount() const
+{
+	float inNormalHeight = CentimetersToWorldUnits( vr_normalHeight.GetInteger() );
+	float inSeatedHeight = CentimetersToWorldUnits( vr_seatedHeight.GetInteger() );
+
+	return Max( inNormalHeight - inSeatedHeight, 0.0f );
+}
+
 /*
 ==============
 iVr::HMDInitializeDistortion
@@ -766,7 +771,7 @@ void iVr::HMDInitializeDistortion()
 		common->Printf( "Init Hmd FOV x,y = %f , %f. Aspect = %f\n", hmdFovX, hmdFovY, hmdAspect );
 	}
 
-#if 0
+#if 1
 	{
 		// override the default steam skybox, initially just set to black.  UpdateScreen can copy static images to skyBoxFront during level loads/saves
 		nvrhi::IDevice* device = deviceManager->GetDevice();
@@ -988,12 +993,15 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 		m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd] = ConvertSteamVRMatrixToidMat4( m_rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking );
 
 		// Koz convert position (in meters) to inch (1 id unit = 1 inch).
+
+		// cm
 		hmdPosition.x = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][2] * 100.0f;
 		hmdPosition.y = -m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][0] * 100.0f;
 		hmdPosition.z = m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd][3][1] * 100.0f;
 
 		//common->Printf( "HMD pos %.2f %.2f %.2f\n", hmdPosition.x, hmdPosition.y, hmdPosition.z );
 
+		// inch
 		hmdPosition.x *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
 		hmdPosition.y *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
 		hmdPosition.z *= ( 1.0f / 2.54f ) / vr_scale.GetFloat();
@@ -1086,9 +1094,6 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 
 	hmdBodyTranslation = absolutePosition;
 
-	idAngles hmd2 = hmdAngles;
-	hmd2.yaw -= bodyYawOffset;
-
 	hmdAxis = hmdAngles.ToMat3();
 
 	headPositionDelta = hmdPosition;
@@ -1099,7 +1104,7 @@ void iVr::HMDGetOrientation( idAngles& hmdAngles, idVec3& headPositionDelta, idV
 	{
 		lastNeckPosition = currentNeckPosition;
 		initialNeckPosition = currentNeckPosition;
-		if( vr_useFloorHeight.GetInteger() != 1 )
+		//if( vr_useFloorHeight.GetInteger() != 1 )
 		{
 			initialNeckPosition.z = vr_nodalZ.GetFloat() / vr_scale.GetFloat();
 		}

@@ -253,14 +253,9 @@ void idGuiModel::EmitFullScreen( Framebuffer* renderTarget )
 		// this will be negated on the alternate eyes, both rendered each frame
 		viewDef->renderView.stereoScreenSeparation = screenSeparation;
 
-		extern idCVar stereoRender_swapEyes;
 #if VR_EMITSTEREO
 		viewDef->renderView.viewEyeBuffer = 0;	// render to both buffers
 #endif
-		if( stereoRender_swapEyes.GetBool() )
-		{
-			viewDef->renderView.stereoScreenSeparation = -screenSeparation;
-		}
 	}
 
 	idVec2 screenSize( renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight() );

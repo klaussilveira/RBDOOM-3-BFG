@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -33,8 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 const static int NUM_SYSTEM_OPTIONS_OPTIONS = 4;
 
-// TRC requires a maximum interoccular distance of 6.5cm even though human adults can easily have an interoccular distance of over 7.5cm
-const static float MAX_INTEROCCULAR_DISTANCE = 6.5f;
+const static float MAX_PLAYER_HEIGHT_CM = 220.0f;
 
 // This should line up with stereo3DMode_t
 static const char* stereoRender_enable_text[] =
@@ -89,16 +89,16 @@ void idMenuScreen_Shell_Stereoscopics::Initialize( idMenuHandler* data )
 
 	control = new( TAG_SWF ) idMenuWidget_ControlButton();
 	control->SetOptionType( OPTION_SLIDER_BAR );
-	control->SetLabel( "#str_swf_stereo_seperation" );	// View Offset
-	control->SetDataSource( &stereoData, idMenuDataSource_StereoSettings::STEREO_FIELD_SEPERATION );
+	control->SetLabel( "User Height" );
+	control->SetDataSource( &stereoData, idMenuDataSource_StereoSettings::STEREO_FIELD_PLAYER_HEIGHT );
 	control->SetupEvents( 2, options->GetChildren().Num() );
 	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_PRESS_FOCUSED, options->GetChildren().Num() );
 	options->AddChild( control );
 
 	control = new( TAG_SWF ) idMenuWidget_ControlButton();
 	control->SetOptionType( OPTION_SLIDER_TOGGLE );
-	control->SetLabel( "#str_swf_stereo_eye_swap" );	// Swap Eyes
-	control->SetDataSource( &stereoData, idMenuDataSource_StereoSettings::STEREO_FIELD_SWAP_EYES );
+	control->SetLabel( "Seated Mode" );
+	control->SetDataSource( &stereoData, idMenuDataSource_StereoSettings::STEREO_FIELD_SEATED_MODE );
 	control->SetupEvents( DEFAULT_REPEAT_TIME, options->GetChildren().Num() );
 	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_PRESS_FOCUSED, options->GetChildren().Num() );
 	options->AddChild( control );
@@ -187,12 +187,14 @@ void idMenuScreen_Shell_Stereoscopics::ShowScreen( const mainMenuTransition_t tr
 
 		if( leftEye != NULL && leftEyeMat != NULL )
 		{
-			leftEye->SetMaterial( leftEyeMat );
+			//leftEye->SetMaterial( leftEyeMat );
+			leftEye->SetVisible( false );
 		}
 
 		if( rightEye != NULL && rightEyeMat != NULL )
 		{
-			rightEye->SetMaterial( rightEyeMat );
+			//rightEye->SetMaterial( rightEyeMat );
+			rightEye->SetVisible( false );
 		}
 	}
 }
@@ -326,8 +328,8 @@ bool idMenuScreen_Shell_Stereoscopics::HandleAction( idWidgetAction& action, con
 // SCREEN SETTINGS
 /////////////////////////////////
 
-extern idCVar stereoRender_interOccularCentimeters;
-extern idCVar stereoRender_swapEyes;
+extern idCVar vr_normalHeight;
+extern idCVar vr_seatedMode;
 
 /*
 ========================
@@ -347,12 +349,11 @@ idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::LoadData
 */
 void idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::LoadData()
 {
-
 	fields[ STEREO_FIELD_ENABLE ].SetInteger( renderSystem->GetStereoScopicRenderingMode() );
 
-	fields[ STEREO_FIELD_SEPERATION ].SetFloat( 100.0f * ( stereoRender_interOccularCentimeters.GetFloat() / MAX_INTEROCCULAR_DISTANCE ) );
+	fields[ STEREO_FIELD_PLAYER_HEIGHT ].SetFloat( 100.0f * ( vr_normalHeight.GetFloat() / MAX_PLAYER_HEIGHT_CM ) );
 
-	fields[ STEREO_FIELD_SWAP_EYES ].SetBool( stereoRender_swapEyes.GetBool() );
+	fields[ STEREO_FIELD_SEATED_MODE ].SetBool( vr_seatedMode.GetBool() );
 	originalFields = fields;
 }
 
@@ -363,7 +364,6 @@ idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::CommitData
 */
 void idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::CommitData()
 {
-
 	if( IsDataChanged() )
 	{
 		cvarSystem->SetModifiedFlags( CVAR_ARCHIVE );
@@ -398,21 +398,17 @@ void idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::AdjustFi
 		gameLocal.Shell_ClearRepeater();
 
 	}
-	else if( fieldIndex == STEREO_FIELD_SWAP_EYES )
+	else if( fieldIndex == STEREO_FIELD_SEATED_MODE )
 	{
-
 		fields[ fieldIndex ].SetBool( !fields[ fieldIndex ].ToBool() );
-		stereoRender_swapEyes.SetBool( fields[ fieldIndex ].ToBool() );
-
+		vr_seatedMode.SetBool( fields[ fieldIndex ].ToBool() );
 	}
-	else if( fieldIndex == STEREO_FIELD_SEPERATION )
+	else if( fieldIndex == STEREO_FIELD_PLAYER_HEIGHT )
 	{
-
 		float newValue = idMath::ClampFloat( 0.0f, 100.0f, fields[ fieldIndex ].ToFloat() + adjustAmount );
 		fields[ fieldIndex ].SetFloat( newValue );
 
-		stereoRender_interOccularCentimeters.SetFloat( ( fields[ STEREO_FIELD_SEPERATION ].ToFloat() / 100.0f ) * MAX_INTEROCCULAR_DISTANCE );
-
+		vr_normalHeight.SetFloat( ( fields[ STEREO_FIELD_PLAYER_HEIGHT ].ToFloat() / 100.0f ) * MAX_PLAYER_HEIGHT_CM );
 	}
 
 	// do this so we don't save every time we modify a setting.  Only save once when we leave the screen
@@ -441,7 +437,7 @@ idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::IsDataChanged
 */
 bool idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::IsDataChanged() const
 {
-	if( fields[ STEREO_FIELD_SWAP_EYES ].ToBool() != originalFields[ STEREO_FIELD_SWAP_EYES ].ToBool() )
+	if( fields[ STEREO_FIELD_SEATED_MODE ].ToBool() != originalFields[ STEREO_FIELD_SEATED_MODE ].ToBool() )
 	{
 		return true;
 	}
@@ -451,7 +447,7 @@ bool idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::IsDataCh
 		return true;
 	}
 
-	if( fields[ STEREO_FIELD_SEPERATION ].ToFloat() != originalFields[ STEREO_FIELD_SEPERATION ].ToFloat() )
+	if( fields[ STEREO_FIELD_PLAYER_HEIGHT ].ToFloat() != originalFields[ STEREO_FIELD_PLAYER_HEIGHT ].ToFloat() )
 	{
 		return true;
 	}

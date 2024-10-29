@@ -684,11 +684,9 @@ void idPlayerView::ScreenFade()
 	}
 }
 
-idCVar	stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "3.0", CVAR_ARCHIVE | CVAR_RENDERER, "unused see vr_manualIPD" );
 idCVar	stereoRender_convergence( "stereoRender_convergence", "6", CVAR_RENDERER, "0 = head mounted display, otherwise world units to convergence plane" );
 
 extern	idCVar stereoRender_screenSeparation;	// screen units from center to eyes
-extern	idCVar stereoRender_swapEyes;
 
 // In a head mounted display with separate displays for each eye,
 // screen separation will be zero and world separation will be the eye distance.
@@ -817,7 +815,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	}
 	eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
 
-	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
+	eyeView.viewEyeBuffer = -eye;
 #else
 
 	eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];

@@ -10724,7 +10724,19 @@ idVec3 idPlayer::GetEyePosition() const
 	// RB: align view height with the real world view height
 	if( vrSystem->IsActive() )
 	{
-		return org + idVec3( 0, 0, vrSystem->poseHmdAbsolutePosition.z );
+		float realViewHeight = vrSystem->poseHmdAbsolutePosition.z;
+
+		if( vr_seatedMode.GetBool() )
+		{
+			realViewHeight += vrSystem->GetUserSeatedAmount();
+		}
+
+		if( physicsObj.IsCrouching() )
+		{
+			realViewHeight -= eyeOffset.z;
+		}
+
+		return org + idVec3( 0, 0, realViewHeight );
 	}
 	else
 	{
@@ -10799,7 +10811,7 @@ void idPlayer::GetViewPosVR( idVec3& origin, idMat3& axis ) const
 		//const idVec3& gravityVector = physicsObj.GetGravityNormal();
 		//origin += gravityVector * g_viewNodalZ.GetFloat();
 
-		// adjust the origin based on the camera nodal distance (eye distance from neck)^^
+		// adjust the origin based on the camera nodal distance (eye distance from neck)
 		//origin += axis[0] * g_viewNodalX.GetFloat() + axis[2] * g_viewNodalZ.GetFloat();
 	}
 }

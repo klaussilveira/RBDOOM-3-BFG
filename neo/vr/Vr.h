@@ -129,6 +129,7 @@ public:
 
 	// returns IPD in centimeters
 	float				GetIPD() const;
+
 	void				CalcAimMove( float& yawDelta, float& pitchDelta );
 
 	int					GetCurrentFlashMode();
@@ -172,6 +173,8 @@ public:
 	{
 		return userDuckingAmount;
 	}
+
+	float				GetUserSeatedAmount() const;
 
 	// input
 	vr_motionControl_t	motionControlType;
@@ -294,12 +297,6 @@ private:
 
 	float				hmdForwardOffset;
 
-
-
-	float				officialIPD;
-	float				officialHeight;
-
-	float				manualIPD;
 	float				manualHeight;
 
 
@@ -397,7 +394,9 @@ private:
 extern idCVar vr_scale;
 extern idCVar vr_normalViewHeight;
 extern idCVar vr_useOculusProfile;
-extern idCVar vr_useFloorHeight;
+extern idCVar vr_normalHeight;
+extern idCVar vr_seatedHeight;
+extern idCVar vr_seatedMode;
 
 extern idCVar vr_wristStatMon;
 extern idCVar vr_disableWeaponAnimation;
@@ -504,7 +503,6 @@ extern idCVar vr_walkSpeedAdjust;
 
 extern idCVar vr_crouchTriggerDist;
 extern idCVar vr_crouchMode;
-extern idCVar vr_crouchHideBody;
 
 extern idCVar vr_wipPeriodMin;
 extern idCVar vr_wipPeriodMax;
