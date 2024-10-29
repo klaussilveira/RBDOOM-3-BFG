@@ -4028,7 +4028,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 			{
 				RB_SetMVPWithStereoOffset( space->mvp, currentGuiStereoOffset );
 			}
-			else if( space->isGuiSurface )
+			else if( vrSystem->IsActive() && space->isGuiSurface )
 			{
 				RB_SetMVP( space->unjitteredMVP );
 			}
