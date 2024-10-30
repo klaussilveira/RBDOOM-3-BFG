@@ -18,6 +18,25 @@ _______________________________________
 TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
+## .plan - October 30, 2024
+
+This VR test build allows to render at full HMD resolution without violating the desktop swapchain by making it smaller to a quarter.
+
+Changelog:
+
+* Aligned VR view with the floor and fixed looking around corners
+
+* Partially fixed rendering of mirrors in VR
+
+* Fixed crouching and added vr_seatedMode
+
+* Decoupled window swapchain from VR render size so it works with Vulkan at full res
+
+* Mouse is grabbed in the main menu in VR mode except the console is open
+
+* Updated NVRHI with Nvidia's latest patches
+
+
 ## .plan - October 26, 2024
 
 This is a VR test build without support for motion controllers. It's purpose is to test the rendering in VR with DX12 & Vulkan.
