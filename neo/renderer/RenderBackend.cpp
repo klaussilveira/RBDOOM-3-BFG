@@ -5883,7 +5883,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// blit envprobe over it for quick review where we are
@@ -5898,12 +5898,54 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		OPTICK_GPU_EVENT( "Blit_Rendered" );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
+#if 0
+		if( vrSystem->IsActive() )
+		{
+			uint32_t swapChainIndex = deviceManager->GetCurrentBackBufferIndex();
 
-		BlitParameters blitParms;
-		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+			globalFramebuffers.swapFramebuffers[ swapChainIndex ]->Bind();
+
+			int width = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetWidth();
+			int height = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetHeight();
+
+			// set the window clipping
+			GL_Viewport( 0, 0, width, width );
+			GL_Scissor( 0, 0, width, height );
+
+			//renderProgManager.BindShader_TextureVertexColor_sRGB();
+			renderProgManager.BindShader_Screen();
+
+			RB_SetMVP( renderMatrix_identity );
+
+			renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+
+			float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+			float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+			float texGenEnabled[4] = { 0, 0, 0, 0 };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+			RB_SetVertexColorParms( SVC_IGNORE );
+
+			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_DEPTHMASK | GLS_CULL_TWOSIDED );
+
+			GL_SelectTexture( 0 );
+			globalImages->ldrImage->Bind();
+
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			ResetViewportAndScissorToDefaultCamera( _viewDef );
+		}
+		else
+#endif
+		{
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
 	}
 
 	renderLog.CloseBlock();
@@ -6311,21 +6353,20 @@ void idRenderBackend::PostProcess( const void* data )
 
 	if( viewDef->renderView.rdflags & RDF_IRRADIANCE )
 	{
-#if defined( USE_NVRHI )
 		OPTICK_GPU_EVENT( "Blit_EnvProbePostFX" );
 
 		// we haven't changed ldrImage so it's basically the previewsRenderLDR
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->envprobeHDRImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
 		blitParms.targetViewport = nvrhi::Viewport( ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
-#endif
+
 		return;
 	}
 
@@ -6623,7 +6664,7 @@ void idRenderBackend::PostProcess( const void* data )
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// copy LDR result to postProcFBO which is HDR but also used by postFX
@@ -6651,6 +6692,12 @@ void idRenderBackend::CRTPostProcess()
 	}
 	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
 	OPTICK_GPU_EVENT( "CRTPostProcess" );
+
+	if( vrSystem->IsActive() )
+	{
+		// definitely not designed for VR
+		return;
+	}
 
 	renderLog.OpenMainBlock( MRB_CRT_POSTPROCESS );
 	renderLog.OpenBlock( "Render_CRTPostFX", colorBlue );
@@ -6789,7 +6836,7 @@ void idRenderBackend::CRTPostProcess()
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 	}
 

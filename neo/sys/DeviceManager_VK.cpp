@@ -1,7 +1,7 @@
 /*
 * Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
 * Copyright (C) 2022 Stephen Pridham (id Tech 4x integration)
-* Copyright (C) 2023 Stephen Saunders (id Tech 4x integration)
+* Copyright (C) 2023-2024 Stephen Saunders (id Tech 4x integration)
 * Copyright (C) 2023 Robert Beckebans (id Tech 4x integration)
 *
 * Permission is hereby granted, free of charge, to any person obtaining a

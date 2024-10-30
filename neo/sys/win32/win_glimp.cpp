@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2024 Robert Beckebans
+Copyright (C) 2013-2023 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -51,8 +51,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
-
-#include <vr/Vr.h>
 
 
 
@@ -750,8 +748,7 @@ bool DeviceManager::CreateWindowDeviceAndSwapChain( const glimpParms_t& parms, c
 	// SRS - if in windowed mode, start with centered on primary display, afterwards use r_windowX / r_windowY
 	if( parms.fullScreen == 0 )
 	{
-		// RB: don't crop the window when we need a resolution that is bigger than the screen
-		if( !vrSystem->IsActive() && !GetCenteredWindowDimensions( x, y, w, h ) )
+		if( !GetCenteredWindowDimensions( x, y, w, h ) )
 		{
 			return false;
 		}
@@ -813,16 +810,8 @@ bool DeviceManager::CreateWindowDeviceAndSwapChain( const glimpParms_t& parms, c
 		return false;
 	}
 
-	if( vrSystem->IsActive() )
-	{
-		m_DeviceParams.backBufferWidth = parms.width;
-		m_DeviceParams.backBufferHeight = parms.height;
-	}
-	else
-	{
-		m_DeviceParams.backBufferWidth = rect.right - rect.left;
-		m_DeviceParams.backBufferHeight = rect.bottom - rect.top;
-	}
+	m_DeviceParams.backBufferWidth = rect.right - rect.left;
+	m_DeviceParams.backBufferHeight = rect.bottom - rect.top;
 
 	// RB
 	m_DeviceParams.backBufferSampleCount = parms.multiSamples;

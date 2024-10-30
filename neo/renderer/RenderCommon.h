@@ -883,6 +883,8 @@ public:
 	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const;
 	virtual int				GetWidth() const;
 	virtual int				GetHeight() const;
+	virtual int				GetNativeWidth() const;
+	virtual int				GetNativeHeight() const;
 	virtual int				GetVirtualWidth() const;
 	virtual int				GetVirtualHeight() const;
 	virtual float			GetPixelAspect() const;

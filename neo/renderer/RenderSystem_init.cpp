@@ -421,11 +421,11 @@ void R_SetNewMode( const bool fullInit )
 			// RB: use full target resolution for the moment
 			// so window management, device manager and Steam VR talk the same resolution
 			idVec2i resolution = vrSystem->GetEyeResolution();
-			r_windowWidth.SetInteger( resolution.x );
-			r_windowHeight.SetInteger( resolution.y );
 
-			//r_windowWidth.SetInteger( vrSystem->hmdWidth / 2 );
-			//r_windowHeight.SetInteger( vrSystem->hmdHeight / 2 );
+			idVec2i windowRes = resolution >> 2;
+
+			r_windowWidth.SetInteger( windowRes.x );
+			r_windowHeight.SetInteger( windowRes.y );
 
 			// force Vsync off for hmd
 			r_swapInterval.SetInteger( 0 );
@@ -527,7 +527,7 @@ void R_SetNewMode( const bool fullInit )
 			if( GLimp_Init( parms ) )
 #endif
 			{
-				ImGuiHook::Init( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::Init( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -542,7 +542,7 @@ void R_SetNewMode( const bool fullInit )
 #endif
 			{
 				Framebuffer::ResizeFramebuffers();
-				ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::NotifyDisplaySizeChanged( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -2596,6 +2596,11 @@ idRenderSystemLocal::GetWidth
 */
 int idRenderSystemLocal::GetWidth() const
 {
+	if( vrSystem->HasHMD() )
+	{
+		return vrSystem->GetEyeResolution().x;
+	}
+
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE || glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE_COMPRESSED )
 	{
 		return glConfig.nativeScreenWidth >> 1;
@@ -2611,6 +2616,11 @@ idRenderSystemLocal::GetHeight
 */
 int idRenderSystemLocal::GetHeight() const
 {
+	if( vrSystem->HasHMD() )
+	{
+		return vrSystem->GetEyeResolution().y;
+	}
+
 	extern idCVar stereoRender_warp;
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE && stereoRender_warp.GetBool() )
 	{
@@ -2620,6 +2630,19 @@ int idRenderSystemLocal::GetHeight() const
 
 	return glConfig.nativeScreenHeight;
 }
+
+// RB: return swap chain width
+int idRenderSystemLocal::GetNativeWidth() const
+{
+	return glConfig.nativeScreenWidth;
+}
+
+// RB: return swap chain height
+int idRenderSystemLocal::GetNativeHeight() const
+{
+	return glConfig.nativeScreenHeight;
+}
+// RB end
 
 /*
 ========================
@@ -2635,7 +2658,7 @@ int idRenderSystemLocal::GetVirtualWidth() const
 	//}
 // jmarshall end
 
-	return glConfig.nativeScreenWidth / 2;
+	return GetWidth() / 2;
 }
 
 /*
@@ -2652,12 +2675,7 @@ int idRenderSystemLocal::GetVirtualHeight() const
 	//}
 // jmarshall end
 
-	//if( vrSystem->IsActive() )
-	//{
-	//	return ( glConfig.nativeScreenHeight / 2 ) * ( 9 / 16.0f );
-	//}
-
-	return glConfig.nativeScreenHeight / 2;
+	return GetHeight() / 2;
 }
 
 /*

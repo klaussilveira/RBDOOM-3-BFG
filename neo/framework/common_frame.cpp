@@ -605,9 +605,25 @@ void idCommonLocal::Frame()
 		{
 			// RB: don't release the mouse when opening a PDA or menu
 			// SRS - but always release at main menu after exiting game or demo
-			if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() )
+			if( vrSystem->IsActive() )
 			{
-				Sys_GrabMouseCursor( false );
+				// RB: translating absolute mouse coords is broken with the tiny window in VR mode
+				// only leave the window when the console is open
+				if( console->Active() )
+				{
+					Sys_GrabMouseCursor( false );
+				}
+				else
+				{
+					Sys_GrabMouseCursor( true );
+				}
+			}
+			else
+			{
+				if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() )
+				{
+					Sys_GrabMouseCursor( false );
+				}
 			}
 			usercmdGen->InhibitUsercmd( INHIBIT_SESSION, true );
 			chatting = true;

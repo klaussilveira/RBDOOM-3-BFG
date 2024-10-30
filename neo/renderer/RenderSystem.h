@@ -264,6 +264,8 @@ public:
 	virtual bool			IsFullScreen() const = 0;
 	virtual int				GetWidth() const = 0;
 	virtual int				GetHeight() const = 0;
+	virtual int				GetNativeWidth() const = 0;
+	virtual int				GetNativeHeight() const = 0;
 	virtual int				GetVirtualWidth() const = 0;
 	virtual int				GetVirtualHeight() const = 0;
 
