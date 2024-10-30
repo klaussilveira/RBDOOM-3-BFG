@@ -53,7 +53,7 @@ idCVar in_joystickRumble( "in_joystickRumble", "1", CVAR_SYSTEM | CVAR_ARCHIVE |
 idCVar in_invertLook( "in_invertLook", "0", CVAR_ARCHIVE | CVAR_BOOL, "inverts the look controls so the forward looks up (flight controls) - the proper way to play games!" );
 idCVar in_mouseInvertLook( "in_mouseInvertLook", "0", CVAR_ARCHIVE | CVAR_BOOL, "inverts the look controls so the forward looks up (flight controls) - the proper way to play games!" );
 
-idCVar vr_comfortRepeat( "vr_comfortRepeat", "100", CVAR_ARCHIVE | CVAR_INTEGER, "Delay in MS between repeating comfort snap turns." );
+idCVar vr_comfortRepeat( "vr_comfortRepeat", "100", CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "Delay in MS between repeating comfort snap turns." );
 /*
 ================
 usercmd_t::ByteSwap
@@ -1470,12 +1470,6 @@ void idUsercmdGenLocal::CmdButtons()
 		cmd.buttons |= BUTTON_JUMP;
 	}
 	if( toggled_crouch.on )
-	{
-		cmd.buttons |= BUTTON_CROUCH;
-	}
-
-	// Koz: crouch trigger
-	if( vrSystem->IsActive() && ( vrSystem->GetUserDuckingAmount() > ( vr_crouchTriggerDist.GetFloat() / vr_scale.GetFloat() ) ) && vr_crouchMode.GetInteger() == 1 )
 	{
 		cmd.buttons |= BUTTON_CROUCH;
 	}

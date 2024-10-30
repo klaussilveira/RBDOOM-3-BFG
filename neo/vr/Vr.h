@@ -391,18 +391,39 @@ private:
 	float				userDuckingAmount;		// how many game units the user has physically ducked in real life from their calibrated position
 };
 
+extern idCVar vr_enable;
 extern idCVar vr_scale;
 extern idCVar vr_normalViewHeight;
-extern idCVar vr_useOculusProfile;
 extern idCVar vr_normalHeight;
 extern idCVar vr_seatedHeight;
 extern idCVar vr_seatedMode;
 
+extern idCVar vr_weaponHand;
+extern idCVar vr_headKick;
+extern idCVar vr_shakeAmplitude;
+
+// input
+extern idCVar vr_controllerGamepad;
+extern idCVar vr_movePoint;
+extern idCVar vr_moveClick;
+
+extern idCVar vr_deadzonePitch;
+extern idCVar vr_deadzoneYaw;
+extern idCVar vr_comfortDelta;
+extern idCVar vr_comfortJetStrafeDelta;
+
+extern idCVar vr_padDeadzone;
+extern idCVar vr_jsDeadzone;
+extern idCVar vr_padToButtonThreshold;
+extern idCVar vr_knockBack;
+extern idCVar vr_jumpBounce;
+extern idCVar vr_stepSmooth;
+
+extern idCVar vr_teleportMode;
+
+/*
 extern idCVar vr_wristStatMon;
 extern idCVar vr_disableWeaponAnimation;
-extern idCVar vr_headKick;
-
-extern idCVar vr_weaponHand;
 
 extern idCVar vr_flashlightMode;
 
@@ -422,7 +443,6 @@ extern idCVar vr_weaponPivotOffsetForward;
 extern idCVar vr_weaponPivotOffsetHorizontal;
 extern idCVar vr_weaponPivotOffsetVertical;
 extern idCVar vr_weaponPivotForearmLength;
-
 
 extern idCVar vr_guiScale;
 extern idCVar vr_guiSeparation;
@@ -463,17 +483,13 @@ extern idCVar vr_voicePushToTalk;
 extern idCVar vr_voiceRepeat;
 extern idCVar vr_voiceMinVolume;
 
-extern idCVar vr_enable;
 extern idCVar vr_joystickMenuMapping;
 
 extern idCVar vr_trackingPredictionUserDefined;
 
 extern idCVar vr_minLoadScreenTime;
 
-extern idCVar vr_deadzonePitch;
-extern idCVar vr_deadzoneYaw;
-extern idCVar vr_comfortDelta;
-extern idCVar vr_comfortJetStrafeDelta;
+
 
 extern idCVar vr_headingBeamMode;
 
@@ -484,25 +500,15 @@ extern idCVar vr_motionFlashPitchAdj;
 extern idCVar vr_motionWeaponPitchAdj;
 
 extern idCVar vr_3dgui;
-extern idCVar vr_shakeAmplitude;
-extern idCVar vr_controllerGamepad;
 
 extern idCVar vr_offHandPosX;
 extern idCVar vr_offHandPosY;
 extern idCVar vr_offHandPosZ;
 
-extern idCVar vr_padDeadzone;
-extern idCVar vr_jsDeadzone;
-extern idCVar vr_padToButtonThreshold;
-extern idCVar vr_knockBack;
-extern idCVar vr_jumpBounce;
-extern idCVar vr_stepSmooth;
-
 extern idCVar vr_mountedWeaponController;
 extern idCVar vr_walkSpeedAdjust;
 
 extern idCVar vr_crouchTriggerDist;
-extern idCVar vr_crouchMode;
 
 extern idCVar vr_wipPeriodMin;
 extern idCVar vr_wipPeriodMax;
@@ -518,8 +524,6 @@ extern idCVar vr_pdaPosZ;
 
 extern idCVar vr_pdaPitch;
 
-extern idCVar vr_movePoint;
-extern idCVar vr_moveClick;
 extern idCVar vr_playerBodyMode;
 
 extern idCVar vr_stereoMirror;
@@ -552,6 +556,7 @@ extern idCVar vr_instantAccel;
 extern idCVar vr_shotgunChoke;
 
 extern idCVar vr_headshotMultiplier;
+*/
 
 extern iVr* vrSystem;
 extern iVoice* vrVoice;
