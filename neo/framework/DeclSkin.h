@@ -51,13 +51,13 @@ public:
 	virtual const char* 	DefaultDefinition() const;
 	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion );
 	virtual void			FreeData();
-	
+
 	virtual const idMaterial* 		RemapShaderBySkin( const idMaterial* shader ) const;
-	
+
 	// model associations are just for the preview dialog in the editor
 	const int				GetNumModelAssociations() const;
 	const char* 			GetAssociatedModel( int index ) const;
-	
+
 protected:
 	idList<skinMapping_t, TAG_IDLIB_LIST_DECL>	mappings;
 	idStrList				associatedModels;
@@ -66,29 +66,80 @@ protected:
 class idDeclNullSkinBase : public idDeclBase
 {
 public:
-	virtual const char* 	GetName() const { return ""; }
-	virtual declType_t		GetType() const { return DECL_SKIN; }
-	virtual declState_t		GetState() const { return DS_PARSED; }
-	virtual bool			IsImplicit() const { return false; }
-	virtual bool			IsValid() const { return true; }
+	virtual const char* 	GetName() const
+	{
+		return "";
+	}
+	virtual declType_t		GetType() const
+	{
+		return DECL_SKIN;
+	}
+	virtual declState_t		GetState() const
+	{
+		return DS_PARSED;
+	}
+	virtual bool			IsImplicit() const
+	{
+		return false;
+	}
+	virtual bool			IsValid() const
+	{
+		return true;
+	}
 	virtual void			Invalidate() {}
 	virtual void			Reload() {}
 	virtual void			EnsureNotPurged() {}
-	virtual int				Index() const { return -1; }
-	virtual int				GetLineNum() const { return 0; }
-	virtual const char* 	GetFileName() const { return ""; }
-	virtual void			GetText( char* text ) const { text[0] = '\0'; }
-	virtual int				GetTextLength() const { return 1; }
+	virtual int				Index() const
+	{
+		return -1;
+	}
+	virtual int				GetLineNum() const
+	{
+		return 0;
+	}
+	virtual const char* 	GetFileName() const
+	{
+		return "";
+	}
+	virtual void			GetText( char* text ) const
+	{
+		text[0] = '\0';
+	}
+	virtual int				GetTextLength() const
+	{
+		return 1;
+	}
 	virtual void			SetText( const char* text ) {}
-	virtual bool			ReplaceSourceFileText() { return false; }
-	virtual bool			SourceFileChanged() const { return false; }
+	virtual bool			ReplaceSourceFileText()
+	{
+		return false;
+	}
+	virtual bool			SourceFileChanged() const
+	{
+		return false;
+	}
 	virtual void			MakeDefault() {}
-	virtual bool			EverReferenced() const { return false; }
-	virtual bool			SetDefaultText() { return false; }
-	virtual const char* 	DefaultDefinition() const { return ""; }
-	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion ) { return false; }
+	virtual bool			EverReferenced() const
+	{
+		return false;
+	}
+	virtual bool			SetDefaultText()
+	{
+		return false;
+	}
+	virtual const char* 	DefaultDefinition() const
+	{
+		return "";
+	}
+	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion )
+	{
+		return false;
+	}
 	virtual void			FreeData() {}
-	virtual size_t			Size() const { return 0; }
+	virtual size_t			Size() const
+	{
+		return 0;
+	}
 	virtual void			List() const {}
 	virtual void			Print() const {}
 
@@ -101,22 +152,22 @@ public:
 	idDeclSkinWrapper();
 
 	virtual const idMaterial* RemapShaderBySkin( const idMaterial* shader ) const;
-	void SetWrapper(const idDeclSkin * skin);
-	void SetWrapped(const idDeclSkin * skin);
+	void SetWrapper( const idDeclSkin* skin );
+	void SetWrapped( const idDeclSkin* skin );
 
-	const idDeclSkin * GetWrapper()
+	const idDeclSkin* GetWrapper()
 	{
 		return wrapper;
 	}
 
-	const idDeclSkin * GetWrapped()
+	const idDeclSkin* GetWrapped()
 	{
 		return wrapped;
 	}
 
 protected:
-	const idDeclSkin * wrapper;
-	const idDeclSkin * wrapped;
+	const idDeclSkin* wrapper;
+	const idDeclSkin* wrapped;
 };
 
 #endif /* !__DECLSKIN_H__ */

@@ -60,20 +60,20 @@ bool idDeclSkin::Parse( const char* text, const int textLength, bool allowBinary
 {
 	idLexer src;
 	idToken	token, token2;
-	
+
 	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
 	src.SetFlags( DECL_LEXER_FLAGS );
 	src.SkipUntilString( "{" );
-	
+
 	associatedModels.Clear();
-	
+
 	while( 1 )
 	{
 		if( !src.ReadToken( &token ) )
 		{
 			break;
 		}
-		
+
 		if( !token.Icmp( "}" ) )
 		{
 			break;
@@ -84,15 +84,15 @@ bool idDeclSkin::Parse( const char* text, const int textLength, bool allowBinary
 			MakeDefault();
 			return false;
 		}
-		
+
 		if( !token.Icmp( "model" ) )
 		{
 			associatedModels.Append( token2 );
 			continue;
 		}
-		
+
 		skinMapping_t	map;
-		
+
 		if( !token.Icmp( "*" ) )
 		{
 			// wildcard
@@ -102,12 +102,12 @@ bool idDeclSkin::Parse( const char* text, const int textLength, bool allowBinary
 		{
 			map.from = declManager->FindMaterial( token );
 		}
-		
+
 		map.to = declManager->FindMaterial( token2 );
-		
+
 		mappings.Append( map );
 	}
-	
+
 	return false;
 }
 
@@ -122,7 +122,7 @@ bool idDeclSkin::SetDefaultText()
 	if( declManager->FindType( DECL_MATERIAL, GetName(), false ) )
 	{
 		char generated[2048];
-		
+
 		idStr::snPrintf( generated, sizeof( generated ),
 						 "skin %s // IMPLICITLY GENERATED\n"
 						 "{\n"
@@ -182,29 +182,29 @@ RemapShaderBySkin
 const idMaterial* idDeclSkin::RemapShaderBySkin( const idMaterial* shader ) const
 {
 	int		i;
-	
+
 	if( !shader )
 	{
 		return NULL;
 	}
-	
+
 	// never remap surfaces that were originally nodraw, like collision hulls
 	if( !shader->IsDrawn() )
 	{
 		return shader;
 	}
-	
+
 	for( i = 0; i < mappings.Num() ; i++ )
 	{
 		const skinMapping_t*	map = &mappings[i];
-		
+
 		// NULL = wildcard match
 		if( !map->from || map->from == shader )
 		{
 			return map->to;
 		}
 	}
-	
+
 	// didn't find a match or wildcard, so stay the same
 	return shader;
 }
@@ -229,16 +229,16 @@ idDeclSkinWrapper::RemapShaderBySkin
 */
 const idMaterial* idDeclSkinWrapper::RemapShaderBySkin( const idMaterial* shader ) const
 {
-	if (wrapper)
+	if( wrapper )
 	{
-		const idMaterial *result = wrapper->RemapShaderBySkin( shader );
-		if (result != shader)
+		const idMaterial* result = wrapper->RemapShaderBySkin( shader );
+		if( result != shader )
 		{
 			return result;
 		}
 	}
 
-	if (wrapped)
+	if( wrapped )
 	{
 		return wrapped->RemapShaderBySkin( shader );
 	}
@@ -252,7 +252,7 @@ const idMaterial* idDeclSkinWrapper::RemapShaderBySkin( const idMaterial* shader
 idDeclSkinWrapper::SetWrapper
 ===============
 */
-void idDeclSkinWrapper::SetWrapper(const idDeclSkin * skin)
+void idDeclSkinWrapper::SetWrapper( const idDeclSkin* skin )
 {
 	wrapper = skin;
 }
@@ -262,10 +262,10 @@ void idDeclSkinWrapper::SetWrapper(const idDeclSkin * skin)
 idDeclSkinWrapper::SetWrapped
 ===============
 */
-void idDeclSkinWrapper::SetWrapped(const idDeclSkin * skin)
+void idDeclSkinWrapper::SetWrapped( const idDeclSkin* skin )
 {
 	wrapped = skin;
-	if (wrapped)
+	if( wrapped )
 	{
 		base = skin->base;
 	}

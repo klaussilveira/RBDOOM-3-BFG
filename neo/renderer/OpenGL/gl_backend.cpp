@@ -45,8 +45,8 @@ idCVar stereoRender_warpParmZ( "stereoRender_warpParmZ", "0", CVAR_RENDERER | CV
 idCVar stereoRender_warpParmW( "stereoRender_warpParmW", "0", CVAR_RENDERER | CVAR_FLOAT | CVAR_ARCHIVE, "development parm" );
 idCVar stereoRender_warpTargetFraction( "stereoRender_warpTargetFraction", "1.0", CVAR_RENDERER | CVAR_FLOAT | CVAR_ARCHIVE, "fraction of half-width the through-lens view covers" );
 
-idCVar vr_outputMode("vr_outputMode", "3", CVAR_INTEGER | CVAR_ARCHIVE, "0 - cover, 1 - left, 2 - right, 3 - side by side");
-idCVar vr_outputScale("vr_outputScale", "1", CVAR_FLOAT | CVAR_ARCHIVE, "scales output for modes 0-2");
+idCVar vr_outputMode( "vr_outputMode", "3", CVAR_INTEGER | CVAR_ARCHIVE, "0 - cover, 1 - left, 2 - right, 3 - side by side" );
+idCVar vr_outputScale( "vr_outputScale", "1", CVAR_FLOAT | CVAR_ARCHIVE, "scales output for modes 0-2" );
 int vr_outputUpdates;
 
 idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
@@ -97,13 +97,13 @@ RB_SetBuffer
 static void	RB_SetBuffer( const void* data )
 {
 	// see which draw buffer we want to render the frame to
-	
+
 	const setBufferCommand_t* cmd = ( const setBufferCommand_t* )data;
-	
+
 	RENDERLOG_PRINTF( "---------- RB_SetBuffer ---------- to buffer # %d\n", cmd->buffer );
-	
+
 	GL_Scissor( 0, 0, tr.GetWidth(), tr.GetHeight() );
-	
+
 	// clear screen for debugging
 	// automatically enable this with several other debug tools
 	// that might leave unrendered portions of the screen
@@ -139,20 +139,20 @@ We want to exit this with the GPU idle, right at vsync
 const void GL_BlockingSwapBuffers()
 {
 	RENDERLOG_PRINTF( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
-	
+
 	const int beforeFinish = Sys_Milliseconds();
-	
+
 	if( !glConfig.syncAvailable )
 	{
 		glFinish();
 	}
-	
+
 	const int beforeSwap = Sys_Milliseconds();
 	if( r_showSwapBuffers.GetBool() && beforeSwap - beforeFinish > 1 )
 	{
 		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
 	}
-	
+
 	if( glConfig.openVREnabled )
 	{
 		if( vr_outputMode.GetBool() || vr_outputUpdates < 4 )
@@ -174,11 +174,11 @@ const void GL_BlockingSwapBuffers()
 	{
 		common->Printf( "%i msec to swapBuffers\n", beforeFence - beforeSwap );
 	}
-	
+
 	if( glConfig.syncAvailable )
 	{
 		swapIndex ^= 1;
-		
+
 		if( glIsSync( renderSync[swapIndex] ) )
 		{
 			glDeleteSync( renderSync[swapIndex] );
@@ -194,7 +194,7 @@ const void GL_BlockingSwapBuffers()
 		{
 			common->Printf( "%i msec to start fence\n", end - start );
 		}
-		
+
 		GLsync	syncToWaitOn;
 		if( r_syncEveryFrame.GetBool() )
 		{
@@ -204,7 +204,7 @@ const void GL_BlockingSwapBuffers()
 		{
 			syncToWaitOn = renderSync[!swapIndex];
 		}
-		
+
 		if( glIsSync( syncToWaitOn ) )
 		{
 			for( GLenum r = GL_TIMEOUT_EXPIRED; r == GL_TIMEOUT_EXPIRED; )
@@ -213,15 +213,15 @@ const void GL_BlockingSwapBuffers()
 			}
 		}
 	}
-	
+
 	const int afterFence = Sys_Milliseconds();
 	if( r_showSwapBuffers.GetBool() && afterFence - beforeFence > 1 )
 	{
 		common->Printf( "%i msec to wait on fence\n", afterFence - beforeFence );
 	}
-	
+
 	const int64 exitBlockTime = Sys_Microseconds();
-	
+
 	static int64 prevBlockTime;
 	if( r_showSwapBuffers.GetBool() && prevBlockTime )
 	{
@@ -272,7 +272,7 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
 	uint64 backEndStartTime = Sys_Microseconds();
-	
+
 	// If we are in a monoscopic context, this draws to the only buffer, and is
 	// the same as GL_BACK.  In a quad-buffer stereo context, this is necessary
 	// to prevent GL from forcing the rendering to go to both BACK_LEFT and
@@ -294,13 +294,13 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	}
 	// resize stereoDepthImage if the main window has changed size
 	if( stereoDepthImage->GetUploadWidth() != renderSystemWidth ||
-		stereoDepthImage->GetUploadHeight() != renderSystemHeight )
+			stereoDepthImage->GetUploadHeight() != renderSystemHeight )
 	{
 		stereoDepthImage->Resize( renderSystemWidth, renderSystemHeight );
 	}
 	// create the stereoMSAARenderImage if we haven't already
 	static idImage* stereoMSAARenderImage;
-	static Framebuffer * stereoMSAARenderFBO;
+	static Framebuffer* stereoMSAARenderFBO;
 	if( stereoMultisample && !stereoMSAARenderImage )
 	{
 		if( !stereoMSAARenderImage )
@@ -312,7 +312,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 
 			stereoMSAARenderFBO->AddColorBuffer( GL_RGBA, 0, glConfig.multisamples );
 			stereoMSAARenderFBO->AddDepthBuffer( GL_DEPTH24_STENCIL8, glConfig.multisamples );
-	
+
 			stereoMSAARenderFBO->AttachImage2D( stereoMSAARenderImage, 0 );
 			stereoMSAARenderFBO->AttachImageDepth( stereoDepthImage );
 
@@ -320,7 +320,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		}
 		// resize stereoDepthImage if the main window has changed size
 		if( stereoMSAARenderImage->GetUploadWidth() != renderSystemWidth ||
-			stereoMSAARenderImage->GetUploadHeight() != renderSystemHeight )
+				stereoMSAARenderImage->GetUploadHeight() != renderSystemHeight )
 		{
 			stereoMSAARenderImage->Resize( renderSystemWidth, renderSystemHeight );
 			stereoMSAARenderFBO->Bind();
@@ -331,7 +331,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		}
 	}
 	static idImage* stereoRenderImages[2];
-	static Framebuffer * stereoRenderFBO[2];
+	static Framebuffer* stereoRenderFBO[2];
 	for( int i = 0; i < 2; i++ )
 	{
 		if( stereoRenderImages[i] == NULL )
@@ -352,7 +352,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 
 			stereoRenderFBO[i]->Check();
 		}
-		
+
 		// resize the stereo render image if the main window has changed size
 		if( stereoRenderImages[i]->GetUploadWidth() != renderSystemWidth ||
 				stereoRenderImages[i]->GetUploadHeight() != renderSystemHeight )
@@ -369,22 +369,22 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			stereoRenderFBO[i]->Resize( renderSystemWidth, renderSystemHeight );
 		}
 	}
-	
+
 	// In stereoRender mode, the front end has generated two RC_DRAW_VIEW commands
 	// with slightly different origins for each eye.
-	
+
 	// TODO: only do the copy after the final view has been rendered, not mirror subviews?
-	
+
 	// Render the 3D draw views from the screen origin so all the screen relative
 	// texture mapping works properly, then copy the portion we are going to use
 	// off to a texture.
 	bool foundEye[2] = { false, false };
-	
+
 	for( int stereoEye = 1; stereoEye >= -1; stereoEye -= 2 )
 	{
 		// set up the target texture we will draw to
 		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
-		
+
 		// Set the back end into a known default state to fix any stale render state issues
 		if( stereoMultisample )
 		{
@@ -398,7 +398,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		GL_SetDefaultState();
 		renderProgManager.Unbind();
 		renderProgManager.ZeroUniforms();
-		
+
 		for( const emptyCommand_t* cmds = allCmds; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 		{
 			switch( cmds->commandId )
@@ -410,13 +410,13 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				{
 					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
 					const viewDef_t&			eyeViewDef = *dsc->viewDef;
-					
+
 					if( eyeViewDef.renderView.viewEyeBuffer && eyeViewDef.renderView.viewEyeBuffer != stereoEye )
 					{
 						// this is the render view for the other eye
 						continue;
 					}
-					
+
 					foundEye[ targetEye ] = true;
 					RB_DrawView( dsc, stereoEye );
 					if( cmds->commandId == RC_DRAW_VIEW_GUI )
@@ -466,15 +466,15 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			glEnable( GL_SCISSOR_TEST );
 		}
 	}
-	
+
 	// perform the final compositing / warping / deghosting to the actual framebuffer(s)
 	assert( foundEye[0] && foundEye[1] );
-	
+
 	globalFramebuffers.currentStereoRenderFBO = NULL;
 	GL_SetDefaultState();
-	
+
 	RB_SetMVP( renderMatrix_identity );
-	
+
 	// If we are in quad-buffer pixel format but testing another 3D mode,
 	// make sure we draw to both eyes.  This is likely to be sub-optimal
 	// performance on most cards and drivers, but it is better than getting
@@ -483,10 +483,10 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	{
 		glDrawBuffer( GL_BACK );
 	}
-	
+
 	GL_State( GLS_DEPTHFUNC_ALWAYS );
 	GL_Cull( CT_TWO_SIDED );
-	
+
 	// We just want to do a quad pass - so make sure we disable any texgen and
 	// set the texture matrix to the identity so we don't get anomalies from
 	// any stale uniform data being present from a previous draw call
@@ -494,14 +494,14 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 	const float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
-	
+
 	// disable any texgen
 	const float texGenEnabled[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
-	
+
 	renderProgManager.BindShader_Texture();
 	GL_Color( 1, 1, 1, 1 );
-	
+
 	switch( renderSystem->GetStereo3DMode() )
 	{
 		case STEREO3D_QUAD_BUFFER:
@@ -511,14 +511,14 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			GL_SelectTexture( 1 );
 			stereoRenderImages[0]->Bind();
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			glDrawBuffer( GL_BACK_LEFT );
 			GL_SelectTexture( 1 );
 			stereoRenderImages[1]->Bind();
 			GL_SelectTexture( 0 );
 			stereoRenderImages[0]->Bind();
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			break;
 		case STEREO3D_HDMI_720:
 			// HDMI 720P 3D
@@ -528,14 +528,14 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			stereoRenderImages[0]->Bind();
 			GL_ViewportAndScissor( 0, 0, 1280, 720 );
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			GL_SelectTexture( 0 );
 			stereoRenderImages[0]->Bind();
 			GL_SelectTexture( 1 );
 			stereoRenderImages[1]->Bind();
 			GL_ViewportAndScissor( 0, 750, 1280, 720 );
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			// force the HDMI 720P 3D guard band to a constant color
 			glScissor( 0, 720, 1280, 30 );
 			glClear( GL_COLOR_BUFFER_BIT );
@@ -547,20 +547,20 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				// this is the Rift warp
 				// renderSystemWidth / GetHeight() have returned equal values (640 for initial Rift)
 				// and we are going to warp them onto a symetric square region of each half of the screen
-				
+
 				renderProgManager.BindShader_StereoWarp();
-				
+
 				// clear the entire screen to black
 				// we could be smart and only clear the areas we aren't going to draw on, but
 				// clears are fast...
 				glScissor( 0, 0, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 				glClearColor( 0, 0, 0, 0 );
 				glClear( GL_COLOR_BUFFER_BIT );
-				
+
 				// the size of the box that will get the warped pixels
 				// With the 7" displays, this will be less than half the screen width
 				const int pixelDimensions = ( glConfig.nativeScreenWidth >> 1 ) * stereoRender_warpTargetFraction.GetFloat();
-				
+
 				// Always scissor to the half-screen boundary, but the viewports
 				// might cross that boundary if the lenses can be adjusted closer
 				// together.
@@ -568,26 +568,26 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 							( glConfig.nativeScreenHeight >> 1 ) - ( pixelDimensions >> 1 ),
 							pixelDimensions, pixelDimensions );
 				glScissor( 0, 0, glConfig.nativeScreenWidth >> 1, glConfig.nativeScreenHeight );
-				
+
 				idVec4	color( stereoRender_warpCenterX.GetFloat(), stereoRender_warpCenterY.GetFloat(), stereoRender_warpParmZ.GetFloat(), stereoRender_warpParmW.GetFloat() );
 				// don't use GL_Color(), because we don't want to clamp
 				renderProgManager.SetRenderParm( RENDERPARM_COLOR, color.ToFloatPtr() );
-				
+
 				GL_SelectTexture( 0 );
 				stereoRenderImages[0]->Bind();
 				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
 				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
 				RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-				
+
 				idVec4	color2( stereoRender_warpCenterX.GetFloat(), stereoRender_warpCenterY.GetFloat(), stereoRender_warpParmZ.GetFloat(), stereoRender_warpParmW.GetFloat() );
 				// don't use GL_Color(), because we don't want to clamp
 				renderProgManager.SetRenderParm( RENDERPARM_COLOR, color2.ToFloatPtr() );
-				
+
 				glViewport( ( glConfig.nativeScreenWidth >> 1 ),
 							( glConfig.nativeScreenHeight >> 1 ) - ( pixelDimensions >> 1 ),
 							pixelDimensions, pixelDimensions );
 				glScissor( glConfig.nativeScreenWidth >> 1, 0, glConfig.nativeScreenWidth >> 1, glConfig.nativeScreenHeight );
-				
+
 				GL_SelectTexture( 0 );
 				stereoRenderImages[1]->Bind();
 				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
@@ -604,7 +604,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			stereoRenderImages[1]->Bind();
 			GL_ViewportAndScissor( 0, 0, renderSystemWidth, renderSystemHeight );
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			GL_SelectTexture( 0 );
 			stereoRenderImages[1]->Bind();
 			GL_SelectTexture( 1 );
@@ -614,9 +614,9 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			break;
 
 		case STEREO3D_OPENVR:
-			if (glConfig.openVREnabled)
+			if( glConfig.openVREnabled )
 			{
-				VR_PreSwap(stereoRenderImages[0]->GetTexNum(), stereoRenderImages[1]->GetTexNum());
+				VR_PreSwap( stereoRenderImages[0]->GetTexNum(), stereoRenderImages[1]->GetTexNum() );
 			}
 
 			if( vr_outputMode.IsModified() || vr_outputScale.IsModified() )
@@ -634,77 +634,77 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 
 			switch( vr_outputMode.GetInteger() )
 			{
-			case 1: // left image
+				case 1: // left image
 				{
 					GL_SelectTexture( 0 );
 					stereoRenderImages[0]->Bind();
 					float scale = vr_outputScale.GetFloat();
-					int x = -(renderSystemWidth*scale - glConfig.nativeScreenWidth) / 2;
-					int y = -(renderSystemHeight*scale - glConfig.nativeScreenHeight) / 2;
-					GL_ViewportAndScissor( x, y, renderSystemWidth*scale, renderSystemHeight*scale );
+					int x = -( renderSystemWidth * scale - glConfig.nativeScreenWidth ) / 2;
+					int y = -( renderSystemHeight * scale - glConfig.nativeScreenHeight ) / 2;
+					GL_ViewportAndScissor( x, y, renderSystemWidth * scale, renderSystemHeight * scale );
 					RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 				}
 				break;
-			case 2: // right image
+				case 2: // right image
 				{
 					GL_SelectTexture( 0 );
 					stereoRenderImages[1]->Bind();
 					float scale = vr_outputScale.GetFloat();
-					int x = -(renderSystemWidth*scale - glConfig.nativeScreenWidth) / 2;
-					int y = -(renderSystemHeight*scale - glConfig.nativeScreenHeight) / 2;
-					GL_ViewportAndScissor( x, y, renderSystemWidth*scale, renderSystemHeight*scale );
+					int x = -( renderSystemWidth * scale - glConfig.nativeScreenWidth ) / 2;
+					int y = -( renderSystemHeight * scale - glConfig.nativeScreenHeight ) / 2;
+					GL_ViewportAndScissor( x, y, renderSystemWidth * scale, renderSystemHeight * scale );
 					RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 				}
 				break;
-			case 0: // cover
-				if( vr_outputUpdates < 4 )
-				{
-					static idImage *vrOutputCover;
-					if( !vrOutputCover )
+				case 0: // cover
+					if( vr_outputUpdates < 4 )
 					{
-						vrOutputCover = globalImages->ImageFromFile( "guis/assets/mainmenu/doom3_cover", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
+						static idImage* vrOutputCover;
+						if( !vrOutputCover )
+						{
+							vrOutputCover = globalImages->ImageFromFile( "guis/assets/mainmenu/doom3_cover", TF_DEFAULT, TR_CLAMP, TD_DEFAULT, CF_2D );
+						}
+
+						if( vrOutputCover )
+						{
+							GL_SelectTexture( 0 );
+							vrOutputCover->Bind();
+
+							static float crop = 0.792f;
+							const float texS[4] = { crop, 0.0f, 0.0f, 0.5f - 0.5f * crop };
+							const float texT[4] = { 0.0f, crop, 0.0f, 0.5f - 0.5f * crop };
+							renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+							renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+							float screenAspect = glConfig.nativeScreenHeight / ( float )glConfig.nativeScreenWidth;
+							float width = vr_outputScale.GetFloat() * screenAspect
+										  * vrOutputCover->GetOpts().width / ( float )vrOutputCover->GetOpts().height;
+							float height = vr_outputScale.GetFloat();
+							const float mvpx[4] = { width, 0.0f, 0.0f, 0.0f };
+							const float mvpy[4] = { 0.0f, -height, 0.0f, -height + 1.0f };
+							const float mvpz[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
+							const float mvpw[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+							renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_X, mvpx );
+							renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_Y, mvpy );
+							renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_Z, mvpz );
+							renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_W, mvpw );
+
+							RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+						}
 					}
+					break;
+				case 3: // side by side
+				default:
+					GL_SelectTexture( 0 );
+					stereoRenderImages[0]->Bind();
+					GL_ViewportAndScissor( 0, 0, glConfig.nativeScreenWidth / 2, glConfig.nativeScreenHeight );
+					RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 
-					if( vrOutputCover )
-					{
-						GL_SelectTexture( 0 );
-						vrOutputCover->Bind();
-
-						static float crop = 0.792f;
-						const float texS[4] = { crop, 0.0f, 0.0f, 0.5f - 0.5f*crop };
-						const float texT[4] = { 0.0f, crop, 0.0f, 0.5f - 0.5f*crop };
-						renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
-						renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
-
-						float screenAspect = glConfig.nativeScreenHeight / (float)glConfig.nativeScreenWidth;
-						float width = vr_outputScale.GetFloat() * screenAspect
-							* vrOutputCover->GetOpts().width / (float)vrOutputCover->GetOpts().height;
-						float height = vr_outputScale.GetFloat();
-						const float mvpx[4] = { width, 0.0f, 0.0f, 0.0f };
-						const float mvpy[4] = { 0.0f, -height, 0.0f, -height + 1.0f };
-						const float mvpz[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
-						const float mvpw[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-						renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_X, mvpx );
-						renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_Y, mvpy );
-						renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_Z, mvpz );
-						renderProgManager.SetRenderParm( RENDERPARM_MVPMATRIX_W, mvpw );
-
-						RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-					}
-				}
-				break;
-			case 3: // side by side
-			default:
-				GL_SelectTexture( 0 );
-				stereoRenderImages[0]->Bind();
-				GL_ViewportAndScissor( 0, 0, glConfig.nativeScreenWidth/2, glConfig.nativeScreenHeight );
-				RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
-				GL_SelectTexture( 0 );
-				stereoRenderImages[1]->Bind();
-				GL_ViewportAndScissor( glConfig.nativeScreenWidth/2, 0, glConfig.nativeScreenWidth/2, glConfig.nativeScreenHeight );
-				RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-				break;
+					GL_SelectTexture( 0 );
+					stereoRenderImages[1]->Bind();
+					GL_ViewportAndScissor( glConfig.nativeScreenWidth / 2, 0, glConfig.nativeScreenWidth / 2, glConfig.nativeScreenHeight );
+					RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
+					break;
 			}
 			break;
 
@@ -715,7 +715,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			stereoRenderImages[1]->Bind();
 			GL_ViewportAndScissor( 0, 0, renderSystemWidth, renderSystemHeight );
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			GL_SelectTexture( 1 );
 			stereoRenderImages[1]->Bind();
 			GL_SelectTexture( 0 );
@@ -723,42 +723,42 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			GL_ViewportAndScissor( 0, renderSystemHeight, renderSystemWidth, renderSystemHeight );
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 			break;
-			
+
 		case STEREO3D_INTERLACED:
 			// every other scanline
 			GL_SelectTexture( 0 );
 			stereoRenderImages[0]->Bind();
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-			
+
 			GL_SelectTexture( 1 );
 			stereoRenderImages[1]->Bind();
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-			
+
 			GL_ViewportAndScissor( 0, 0, renderSystemWidth, renderSystemHeight * 2 );
 			renderProgManager.BindShader_StereoInterlace();
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
-			
+
 			GL_SelectTexture( 0 );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			
+
 			GL_SelectTexture( 1 );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			
+
 			break;
 	}
-	
+
 	// debug tool
 	RB_DrawFlickerBox();
-	
+
 	// make sure the drawing is actually started
 	glFlush();
-	
+
 	// we may choose to sync to the swapbuffers before the next frame
-	
+
 	// stop rendering on this thread
 	uint64 backEndFinishTime = Sys_Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
@@ -779,33 +779,33 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	int c_draw2d = 0;
 	int c_setBuffers = 0;
 	int c_copyRenders = 0;
-	
+
 	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
-	
+
 	renderLog.StartFrame();
-	
+
 	if( cmds->commandId == RC_NOP && !cmds->next )
 	{
 		return;
 	}
-	
+
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		RB_StereoRenderExecuteBackEndCommands( cmds );
 		renderLog.EndFrame();
 		return;
 	}
-	
+
 	uint64 backEndStartTime = Sys_Microseconds();
-	
+
 	// needed for editor rendering
 	GL_SetDefaultState();
-	
+
 	// If we have a stereo pixel format, this will draw to both
 	// the back left and back right buffers, which will have a
 	// performance penalty.
 	glDrawBuffer( GL_BACK );
-	
+
 	for( ; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 	{
 		switch( cmds->commandId )
@@ -840,18 +840,18 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 		}
 	}
-	
+
 	RB_DrawFlickerBox();
-	
+
 	// Fix for the steam overlay not showing up while in game without Shell/Debug/Console/Menu also rendering
 	glColorMask( 1, 1, 1, 1 );
-	
+
 	glFlush();
-	
+
 	// stop rendering on this thread
 	uint64 backEndFinishTime = Sys_Microseconds();
 	backEnd.pc.totalMicroSec = backEndFinishTime - backEndStartTime;
-	
+
 	if( r_debugRenderToTexture.GetInteger() == 1 )
 	{
 		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, backEnd.pc.c_copyFrameBuffer );
@@ -860,7 +860,7 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	renderLog.EndFrame();
 }
 
-extern vr::IVRSystem * hmd;
+extern vr::IVRSystem* hmd;
 extern float g_vrScaleX;
 extern float g_vrScaleY;
 extern float g_vrScaleZ;
@@ -904,12 +904,12 @@ void VR_LogDevices()
 {
 	char modelNumberString[ vr::k_unTrackingStringSize ];
 	int axisType;
-	const char * axisTypeString;
+	const char* axisTypeString;
 
 	hmd->GetStringTrackedDeviceProperty(
 		vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_ModelNumber_String,
 		modelNumberString, vr::k_unTrackingStringSize );
-	common->Printf("\nhead  model \"%s\"\n", modelNumberString );
+	common->Printf( "\nhead  model \"%s\"\n", modelNumberString );
 
 	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
@@ -917,12 +917,12 @@ void VR_LogDevices()
 			g_openVRLeftController, vr::Prop_ModelNumber_String,
 			modelNumberString, vr::k_unTrackingStringSize );
 		axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRLeftController, vr::Prop_Axis0Type_Int32 );
-		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( (vr::EVRControllerAxisType)axisType );
-		common->Printf("left  model \"%s\" axis %s\n", modelNumberString, axisTypeString );
+		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
+		common->Printf( "left  model \"%s\" axis %s\n", modelNumberString, axisTypeString );
 	}
 	else
 	{
-		common->Printf("left  not detected\n" );
+		common->Printf( "left  not detected\n" );
 	}
 
 	if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
@@ -931,12 +931,12 @@ void VR_LogDevices()
 			g_openVRRightController, vr::Prop_ModelNumber_String,
 			modelNumberString, vr::k_unTrackingStringSize );
 		axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRRightController, vr::Prop_Axis0Type_Int32 );
-		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( (vr::EVRControllerAxisType)axisType );
-		common->Printf("right model \"%s\" axis %s\n", modelNumberString, axisTypeString );
+		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
+		common->Printf( "right model \"%s\" axis %s\n", modelNumberString, axisTypeString );
 	}
 	else
 	{
-		common->Printf("right not detected\n" );
+		common->Printf( "right not detected\n" );
 	}
 }
 
@@ -947,7 +947,8 @@ int g_vrUIEventCount;
 sysEvent_t g_vrUIEvents[MAX_VREVENTS];
 
 int g_vrGameEventCount;
-struct {
+struct
+{
 	int action;
 	int value;
 } g_vrGameEvents[MAX_VREVENTS];
@@ -961,10 +962,10 @@ void VR_ClearEvents()
 	g_vrRightControllerWasPressed = false;
 }
 
-void VR_UIEventQue(sysEventType_t type, int value, int value2)
+void VR_UIEventQue( sysEventType_t type, int value, int value2 )
 {
-	assert(g_vrUIEventCount < MAX_VREVENTS);
-	sysEvent_t * ev = &g_vrUIEvents[g_vrUIEventCount++];
+	assert( g_vrUIEventCount < MAX_VREVENTS );
+	sysEvent_t* ev = &g_vrUIEvents[g_vrUIEventCount++];
 
 	ev->evType = type;
 	ev->evValue = value;
@@ -974,12 +975,12 @@ void VR_UIEventQue(sysEventType_t type, int value, int value2)
 	ev->inputDevice = 0;
 }
 
-const sysEvent_t &VR_UIEventNext()
+const sysEvent_t& VR_UIEventNext()
 {
-	assert(g_vrUIEventIndex < MAX_VREVENTS);
-	if (g_vrUIEventIndex >= g_vrUIEventCount)
+	assert( g_vrUIEventIndex < MAX_VREVENTS );
+	if( g_vrUIEventIndex >= g_vrUIEventCount )
 	{
-		sysEvent_t &ev = g_vrUIEvents[g_vrUIEventIndex];
+		sysEvent_t& ev = g_vrUIEvents[g_vrUIEventIndex];
 		ev.evType = SE_NONE;
 		return ev;
 	}
@@ -993,7 +994,7 @@ int VR_PollGameInputEvents()
 
 void VR_GameEventQue( int action, int value )
 {
-	assert(g_vrGameEventCount < MAX_VREVENTS);
+	assert( g_vrGameEventCount < MAX_VREVENTS );
 	g_vrGameEvents[g_vrGameEventCount].action = action;
 	g_vrGameEvents[g_vrGameEventCount].value = value;
 	g_vrGameEventCount++;
@@ -1001,7 +1002,7 @@ void VR_GameEventQue( int action, int value )
 
 int VR_ReturnGameInputEvent( const int n, int& action, int& value )
 {
-	if (n < 0 || n > g_vrGameEventCount)
+	if( n < 0 || n > g_vrGameEventCount )
 	{
 		return 0;
 	}
@@ -1010,225 +1011,225 @@ int VR_ReturnGameInputEvent( const int n, int& action, int& value )
 	return 1;
 }
 
-idCVar vr_leftAxis("vr_leftAxis", "0", CVAR_INTEGER | CVAR_ARCHIVE, "left axis mode");
-idCVar vr_rightAxis("vr_rightAxis", "4", CVAR_INTEGER | CVAR_ARCHIVE, "right axis mode");
+idCVar vr_leftAxis( "vr_leftAxis", "0", CVAR_INTEGER | CVAR_ARCHIVE, "left axis mode" );
+idCVar vr_rightAxis( "vr_rightAxis", "4", CVAR_INTEGER | CVAR_ARCHIVE, "right axis mode" );
 
-static int VR_AxisToDPad(int mode, float x, float y)
+static int VR_AxisToDPad( int mode, float x, float y )
 {
 	int dir;
 	switch( mode )
 	{
-	case 3:
-		if( y >= 0 )
-		{
-			dir = 1; // up
-		}
-		else
-		{
-			dir = 3; // down
-		}
-		break;
-	case 4:
-		if( x <= 0 )
-		{
-			dir = 0; // left
-		}
-		else
-		{
-			dir = 2; // right
-		}
-		break;
-	case 5:
-		if( x < y )
-		{
-			if( x > -y )
+		case 3:
+			if( y >= 0 )
 			{
 				dir = 1; // up
 			}
 			else
 			{
-				dir = 0; // left
+				dir = 3; // down
 			}
-		}
-		else
-		{
-			if( x > -y )
+			break;
+		case 4:
+			if( x <= 0 )
 			{
-				dir = 2; // right
+				dir = 0; // left
 			}
 			else
 			{
-				dir = 3; // down
+				dir = 2; // right
 			}
-		}
-		break;
-	default:
-		dir = -1;
+			break;
+		case 5:
+			if( x < y )
+			{
+				if( x > -y )
+				{
+					dir = 1; // up
+				}
+				else
+				{
+					dir = 0; // left
+				}
+			}
+			else
+			{
+				if( x > -y )
+				{
+					dir = 2; // right
+				}
+				else
+				{
+					dir = 3; // down
+				}
+			}
+			break;
+		default:
+			dir = -1;
 	}
 	return dir;
 }
 
-static void VR_GenButtonEvent(uint32_t button, bool left, bool pressed)
+static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 {
-	switch(button)
+	switch( button )
 	{
-	case vr::k_EButton_ApplicationMenu:
-		if (left)
-		{
-			VR_GameEventQue( K_VR_LEFT_MENU, pressed );
-			VR_UIEventQue( SE_KEY, K_JOY10, pressed ); // pda
-		}
-		else
-		{
-			VR_GameEventQue( K_VR_RIGHT_MENU, pressed );
-			VR_UIEventQue( SE_KEY, K_JOY9, pressed ); // pause menu
-		}
-		break;
-	case vr::k_EButton_Grip:
-		if (left)
-		{
-			VR_GameEventQue( K_VR_LEFT_GRIP, pressed );
-			VR_UIEventQue( SE_KEY, K_JOY5, pressed ); // prev pda menu
-		}
-		else
-		{
-			VR_GameEventQue( K_VR_RIGHT_GRIP, pressed );
-			VR_UIEventQue( SE_KEY, K_JOY6, pressed ); // next pda menu
-		}
-		break;
-	case vr::k_EButton_SteamVR_Trigger:
-		if (left)
-		{
-			VR_GameEventQue( K_VR_LEFT_TRIGGER, pressed );
-			VR_UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
-		}
-		else
-		{
-			VR_GameEventQue( K_VR_RIGHT_TRIGGER, pressed );
-			VR_UIEventQue( SE_KEY, K_MOUSE1, pressed ); // cursor click
-		}
-		break;
-	case vr::k_EButton_SteamVR_Touchpad:
-		if (left)
-		{
-			//VR_UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
-			static keyNum_t uiLastKey;
-			if (pressed)
+		case vr::k_EButton_ApplicationMenu:
+			if( left )
 			{
-				if( g_vrLeftControllerState.rAxis[0].x < g_vrLeftControllerState.rAxis[0].y )
-				{
-					if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
-					{
-						uiLastKey = K_JOY_STICK1_UP;
-					}
-					else
-					{
-						uiLastKey = K_JOY_STICK1_LEFT;
-					}
-				}
-				else
-				{
-					if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
-					{
-						uiLastKey = K_JOY_STICK1_RIGHT;
-					}
-					else
-					{
-						uiLastKey = K_JOY_STICK1_DOWN;
-					}
-				}
-				VR_UIEventQue( SE_KEY, uiLastKey, 1 );
+				VR_GameEventQue( K_VR_LEFT_MENU, pressed );
+				VR_UIEventQue( SE_KEY, K_JOY10, pressed ); // pda
 			}
 			else
 			{
-				VR_UIEventQue( SE_KEY, uiLastKey, 0 );
+				VR_GameEventQue( K_VR_RIGHT_MENU, pressed );
+				VR_UIEventQue( SE_KEY, K_JOY9, pressed ); // pause menu
 			}
-
-			VR_GameEventQue( K_VR_LEFT_AXIS, pressed );
-			if (pressed)
+			break;
+		case vr::k_EButton_Grip:
+			if( left )
 			{
-				g_vrLeftControllerWasPressed = true;
+				VR_GameEventQue( K_VR_LEFT_GRIP, pressed );
+				VR_UIEventQue( SE_KEY, K_JOY5, pressed ); // prev pda menu
 			}
-			if( !glConfig.openVRLeftTouchpad )
+			else
 			{
-				break;
+				VR_GameEventQue( K_VR_RIGHT_GRIP, pressed );
+				VR_UIEventQue( SE_KEY, K_JOY6, pressed ); // next pda menu
 			}
-			// dpad modes
-			static int gameLeftLastKey;
-			if (pressed)
+			break;
+		case vr::k_EButton_SteamVR_Trigger:
+			if( left )
 			{
-				int dir = VR_AxisToDPad(vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y);
-				if( dir != -1 )
+				VR_GameEventQue( K_VR_LEFT_TRIGGER, pressed );
+				VR_UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
+			}
+			else
+			{
+				VR_GameEventQue( K_VR_RIGHT_TRIGGER, pressed );
+				VR_UIEventQue( SE_KEY, K_MOUSE1, pressed ); // cursor click
+			}
+			break;
+		case vr::k_EButton_SteamVR_Touchpad:
+			if( left )
+			{
+				//VR_UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
+				static keyNum_t uiLastKey;
+				if( pressed )
 				{
-					gameLeftLastKey = K_VR_LEFT_DPAD_LEFT + dir;
-					VR_GameEventQue( gameLeftLastKey, 1 );
+					if( g_vrLeftControllerState.rAxis[0].x < g_vrLeftControllerState.rAxis[0].y )
+					{
+						if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
+						{
+							uiLastKey = K_JOY_STICK1_UP;
+						}
+						else
+						{
+							uiLastKey = K_JOY_STICK1_LEFT;
+						}
+					}
+					else
+					{
+						if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
+						{
+							uiLastKey = K_JOY_STICK1_RIGHT;
+						}
+						else
+						{
+							uiLastKey = K_JOY_STICK1_DOWN;
+						}
+					}
+					VR_UIEventQue( SE_KEY, uiLastKey, 1 );
 				}
 				else
 				{
+					VR_UIEventQue( SE_KEY, uiLastKey, 0 );
+				}
+
+				VR_GameEventQue( K_VR_LEFT_AXIS, pressed );
+				if( pressed )
+				{
+					g_vrLeftControllerWasPressed = true;
+				}
+				if( !glConfig.openVRLeftTouchpad )
+				{
+					break;
+				}
+				// dpad modes
+				static int gameLeftLastKey;
+				if( pressed )
+				{
+					int dir = VR_AxisToDPad( vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y );
+					if( dir != -1 )
+					{
+						gameLeftLastKey = K_VR_LEFT_DPAD_LEFT + dir;
+						VR_GameEventQue( gameLeftLastKey, 1 );
+					}
+					else
+					{
+						gameLeftLastKey = K_NONE;
+					}
+				}
+				else if( gameLeftLastKey != K_NONE )
+				{
+					VR_GameEventQue( gameLeftLastKey, 0 );
 					gameLeftLastKey = K_NONE;
 				}
 			}
-			else if( gameLeftLastKey != K_NONE )
+			else
 			{
-				VR_GameEventQue( gameLeftLastKey, 0 );
-				gameLeftLastKey = K_NONE;
-			}
-		}
-		else
-		{
-			VR_UIEventQue( SE_KEY, K_JOY1, pressed ); // menu select
-			VR_GameEventQue( K_VR_RIGHT_AXIS, pressed );
-			if (pressed)
-			{
-				g_vrRightControllerWasPressed = true;
-			}
-			if( !glConfig.openVRRightTouchpad )
-			{
-				break;
-			}
-			// dpad modes
-			static int gameRightLastKey;
-			if (pressed)
-			{
-				int dir = VR_AxisToDPad(vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y);
-				if( dir != -1 )
+				VR_UIEventQue( SE_KEY, K_JOY1, pressed ); // menu select
+				VR_GameEventQue( K_VR_RIGHT_AXIS, pressed );
+				if( pressed )
 				{
-					gameRightLastKey = K_VR_RIGHT_DPAD_LEFT + dir;
-					VR_GameEventQue( gameRightLastKey, 1 );
+					g_vrRightControllerWasPressed = true;
 				}
-				else
+				if( !glConfig.openVRRightTouchpad )
 				{
+					break;
+				}
+				// dpad modes
+				static int gameRightLastKey;
+				if( pressed )
+				{
+					int dir = VR_AxisToDPad( vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y );
+					if( dir != -1 )
+					{
+						gameRightLastKey = K_VR_RIGHT_DPAD_LEFT + dir;
+						VR_GameEventQue( gameRightLastKey, 1 );
+					}
+					else
+					{
+						gameRightLastKey = K_NONE;
+					}
+				}
+				else if( gameRightLastKey != K_NONE )
+				{
+					VR_GameEventQue( gameRightLastKey, 0 );
 					gameRightLastKey = K_NONE;
 				}
 			}
-			else if( gameRightLastKey != K_NONE )
+			break;
+		case vr::k_EButton_A:
+			if( left )
 			{
-				VR_GameEventQue( gameRightLastKey, 0 );
-				gameRightLastKey = K_NONE;
+				VR_GameEventQue( K_VR_LEFT_A, pressed );
 			}
-		}
-		break;
-	case vr::k_EButton_A:
-		if( left )
-		{
-			VR_GameEventQue( K_VR_LEFT_A, pressed );
-		}
-		else
-		{
-			VR_GameEventQue( K_VR_RIGHT_A, pressed );
-		}
-		break;
-	default:
-		break;
+			else
+			{
+				VR_GameEventQue( K_VR_RIGHT_A, pressed );
+			}
+			break;
+		default:
+			break;
 	}
 }
 
 static void VR_GenJoyAxisEvents()
 {
-	if (g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid)
+	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		vr::VRControllerState_t &state = g_vrLeftControllerState;
-		hmd->GetControllerState(g_openVRLeftController, &state);
+		vr::VRControllerState_t& state = g_vrLeftControllerState;
+		hmd->GetControllerState( g_openVRLeftController, &state );
 
 		// dpad modes
 		if( !glConfig.openVRLeftTouchpad )
@@ -1236,7 +1237,7 @@ static void VR_GenJoyAxisEvents()
 			static int gameLeftLastKey;
 			if( state.rAxis[0].x * state.rAxis[0].x + state.rAxis[0].y * state.rAxis[0].y > 0.25f )
 			{
-				int dir = VR_AxisToDPad(vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y);
+				int dir = VR_AxisToDPad( vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y );
 				if( dir != -1 )
 				{
 					gameLeftLastKey = K_VR_LEFT_DPAD_LEFT + dir;
@@ -1254,10 +1255,10 @@ static void VR_GenJoyAxisEvents()
 			}
 		}
 	}
-	if (g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid)
+	if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		vr::VRControllerState_t &state = g_vrRightControllerState;
-		hmd->GetControllerState(g_openVRRightController, &state);
+		vr::VRControllerState_t& state = g_vrRightControllerState;
+		hmd->GetControllerState( g_openVRRightController, &state );
 
 		// dpad modes
 		if( !glConfig.openVRRightTouchpad )
@@ -1265,7 +1266,7 @@ static void VR_GenJoyAxisEvents()
 			static int gameRightLastKey;
 			if( state.rAxis[0].x * state.rAxis[0].x + state.rAxis[0].y * state.rAxis[0].y > 0.25f )
 			{
-				int dir = VR_AxisToDPad(vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y);
+				int dir = VR_AxisToDPad( vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y );
 				if( dir != -1 )
 				{
 					gameRightLastKey = K_VR_RIGHT_DPAD_LEFT + dir;
@@ -1290,31 +1291,31 @@ static void VR_GenMouseEvents()
 	// virtual head tracking mouse for shell UI
 	idVec3 shellOrigin;
 	idMat3 shellAxis;
-	if (g_vrHadHead && tr.guiModel->GetVRShell(shellOrigin, shellAxis))
+	if( g_vrHadHead && tr.guiModel->GetVRShell( shellOrigin, shellAxis ) )
 	{
 		const float virtualWidth = renderSystem->GetVirtualWidth();
 		const float virtualHeight = renderSystem->GetVirtualHeight();
-		float guiHeight = 12*5.3f;
+		float guiHeight = 12 * 5.3f;
 		float guiScale = guiHeight / virtualHeight;
 		float guiWidth = virtualWidth * guiScale;
 		float guiForward = guiHeight + 12.f;
 		idVec3 upperLeft = shellOrigin
-			+ shellAxis[0] * guiForward
-			+ shellAxis[1] * 0.5f * guiWidth
-			+ shellAxis[2] * 0.5f * guiHeight;
+						   + shellAxis[0] * guiForward
+						   + shellAxis[1] * 0.5f * guiWidth
+						   + shellAxis[2] * 0.5f * guiHeight;
 		idMat3 invShellAxis = shellAxis.Inverse();
-		idVec3 rayStart = (g_vrHeadOrigin - upperLeft) * invShellAxis;
+		idVec3 rayStart = ( g_vrHeadOrigin - upperLeft ) * invShellAxis;
 		idVec3 rayDir = g_vrHeadAxis[0] * invShellAxis;
-		if (rayDir.x != 0)
+		if( rayDir.x != 0 )
 		{
 			static int oldX, oldY;
 			float wx = rayStart.y - rayStart.x * rayDir.y / rayDir.x;
 			float wy = rayStart.z - rayStart.x * rayDir.z / rayDir.x;
 			int x = -wx * glConfig.nativeScreenWidth / guiWidth;
 			int y = -wy * glConfig.nativeScreenHeight / guiHeight;
-			if (x >= 0 && x < glConfig.nativeScreenWidth &&
-				y >= 0 && y < glConfig.nativeScreenHeight &&
-				(x!= oldX || y != oldY))
+			if( x >= 0 && x < glConfig.nativeScreenWidth &&
+					y >= 0 && y < glConfig.nativeScreenHeight &&
+					( x != oldX || y != oldY ) )
 			{
 				oldX = x;
 				oldY = y;
@@ -1324,25 +1325,25 @@ static void VR_GenMouseEvents()
 	}
 }
 
-void VR_ConvertMatrix(const vr::HmdMatrix34_t &poseMat, idVec3 &origin, idMat3 &axis)
+void VR_ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis )
 {
 	origin.Set(
 		g_vrScaleX * poseMat.m[2][3],
 		g_vrScaleY * poseMat.m[0][3],
 		g_vrScaleZ * poseMat.m[1][3] );
-	axis[0].Set(poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2]);
-	axis[1].Set(poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0]);
-	axis[2].Set(-poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1]);
+	axis[0].Set( poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2] );
+	axis[1].Set( poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0] );
+	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
 }
 
-bool VR_ConvertPose(const vr::TrackedDevicePose_t &pose, idVec3 &origin, idMat3 &axis)
+bool VR_ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3& axis )
 {
-	if (!pose.bPoseIsValid)
+	if( !pose.bPoseIsValid )
 	{
 		return false;
 	}
 
-	VR_ConvertMatrix(pose.mDeviceToAbsoluteTracking, origin, axis);
+	VR_ConvertMatrix( pose.mDeviceToAbsoluteTracking, origin, axis );
 
 	return true;
 }
@@ -1355,10 +1356,22 @@ void VR_UpdateResolution()
 	hmd->GetRecommendedRenderTargetSize( &width, &height );
 	width = width * scale;
 	height = height * scale;
-	if (width < 540) width = 640;
-	else if (width > 8000) width = 8000;
-	if (height < 540) height = 480;
-	else if (height > 8000) height = 8000;
+	if( width < 540 )
+	{
+		width = 640;
+	}
+	else if( width > 8000 )
+	{
+		width = 8000;
+	}
+	if( height < 540 )
+	{
+		height = 480;
+	}
+	else if( height > 8000 )
+	{
+		height = 8000;
+	}
 	glConfig.openVRWidth = width;
 	glConfig.openVRHeight = height;
 }
@@ -1367,7 +1380,7 @@ void VR_UpdateScaling()
 {
 	const float m2i = 1 / 0.0254f; // meters to inches
 	const float cm2i = 1 / 2.54f; // centimeters to inches
-	float ratio = 76.5f / (vr_playerHeightCM.GetFloat() * cm2i); // converts player height to character height
+	float ratio = 76.5f / ( vr_playerHeightCM.GetFloat() * cm2i ); // converts player height to character height
 	glConfig.openVRScale = m2i * ratio;
 	glConfig.openVRHalfIPD = glConfig.openVRUnscaledHalfIPD * glConfig.openVRScale;
 	glConfig.openVREyeForward = glConfig.openVRUnscaledEyeForward * glConfig.openVRScale;
@@ -1388,22 +1401,22 @@ void VR_UpdateControllers()
 	bool hadLeft = g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid;
 	bool hadRight = g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid;
 
-	g_openVRLeftController = hmd->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
-	g_openVRRightController = hmd->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
+	g_openVRLeftController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_LeftHand );
+	g_openVRRightController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_RightHand );
 
 	if( hadLeft && g_openVRLeftController == vr::k_unTrackedDeviceIndexInvalid )
 	{
-		common->Printf("left controller lost\n");
+		common->Printf( "left controller lost\n" );
 	}
 	if( hadRight && g_openVRRightController == vr::k_unTrackedDeviceIndexInvalid )
 	{
-		common->Printf("right controller lost\n");
+		common->Printf( "right controller lost\n" );
 	}
 
-	if (g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid
-		|| g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid)
+	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid
+			|| g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		if (glConfig.openVRSeated)
+		if( glConfig.openVRSeated )
 		{
 			glConfig.openVRSeated = false;
 
@@ -1413,46 +1426,46 @@ void VR_UpdateControllers()
 			hmd->GetStringTrackedDeviceProperty(
 				g_openVRLeftController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
-			if( strcmp(modelNumberString, "Hydra") == 0 )
+			if( strcmp( modelNumberString, "Hydra" ) == 0 )
 			{
 				glConfig.openVRLeftTouchpad = 0;
 			}
 			else
 			{
 				axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRLeftController, vr::Prop_Axis0Type_Int32 );
-				glConfig.openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad )? 1 : 0;
+				glConfig.openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 
 			hmd->GetStringTrackedDeviceProperty(
 				g_openVRRightController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
-			if( strcmp(modelNumberString, "Hydra") == 0 )
+			if( strcmp( modelNumberString, "Hydra" ) == 0 )
 			{
 				glConfig.openVRRightTouchpad = 0;
 			}
 			else
 			{
 				axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRRightController, vr::Prop_Axis0Type_Int32 );
-				glConfig.openVRRightTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad )? 1 : 0;
+				glConfig.openVRRightTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 		}
 	}
 	else
 	{
-		if (!glConfig.openVRSeated)
+		if( !glConfig.openVRSeated )
 		{
 			glConfig.openVRSeated = true;
 		}
 	}
 }
 
-void VR_PreSwap(GLuint left, GLuint right)
+void VR_PreSwap( GLuint left, GLuint right )
 {
-	GL_ViewportAndScissor(0, 0, glConfig.openVRWidth, glConfig.openVRHeight);
-	vr::Texture_t leftEyeTexture = {(void*)left, vr::API_OpenGL, vr::ColorSpace_Gamma };
-	vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture );
-	vr::Texture_t rightEyeTexture = {(void*)right, vr::API_OpenGL, vr::ColorSpace_Gamma };
-	vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture );
+	GL_ViewportAndScissor( 0, 0, glConfig.openVRWidth, glConfig.openVRHeight );
+	vr::Texture_t leftEyeTexture = {( void* )left, vr::API_OpenGL, vr::ColorSpace_Gamma };
+	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+	vr::Texture_t rightEyeTexture = {( void* )right, vr::API_OpenGL, vr::ColorSpace_Gamma };
+	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
 }
 
 void VR_PostSwap()
@@ -1460,11 +1473,11 @@ void VR_PostSwap()
 	//vr::VRCompositor()->PostPresentHandoff();
 
 	vr::TrackedDevicePose_t rTrackedDevicePose[ vr::k_unMaxTrackedDeviceCount ];
-	vr::VRCompositor()->WaitGetPoses(rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+	vr::VRCompositor()->WaitGetPoses( rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
 
 	VR_UpdateControllers();
 
-	if (vr_playerHeightCM.IsModified())
+	if( vr_playerHeightCM.IsModified() )
 	{
 		vr_playerHeightCM.ClearModified();
 		VR_UpdateScaling();
@@ -1476,14 +1489,14 @@ void VR_PostSwap()
 		tr.guiModel->UpdateVRShell();
 	}
 
-	vr::TrackedDevicePose_t &hmdPose = rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd];
+	vr::TrackedDevicePose_t& hmdPose = rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd];
 	g_vrHasHeadPose = hmdPose.bPoseIsValid;
-	if (hmdPose.bPoseIsValid)
+	if( hmdPose.bPoseIsValid )
 	{
 		VR_ConvertPose( hmdPose, g_vrHeadOrigin, g_vrHeadAxis );
 		g_vrHeadOrigin += glConfig.openVREyeForward * g_vrHeadAxis[0];
 
-		if (g_vrHadHead)
+		if( g_vrHadHead )
 		{
 			g_vrHeadMoveDelta = g_vrHeadOrigin - g_vrHeadLastOrigin;
 			g_vrHeadLastOrigin = g_vrHeadOrigin;
@@ -1508,47 +1521,47 @@ void VR_PostSwap()
 	{
 		if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
 		{
-			if(g_openVRLeftControllerPulseDur > 500)
+			if( g_openVRLeftControllerPulseDur > 500 )
 			{
-				hmd->TriggerHapticPulse(g_openVRLeftController, 0, g_openVRLeftControllerPulseDur);
+				hmd->TriggerHapticPulse( g_openVRLeftController, 0, g_openVRLeftControllerPulseDur );
 			}
 			g_openVRLeftControllerPulseDur = 0;
 
 			static bool hadLeftPose;
-			vr::TrackedDevicePose_t &handPose = rTrackedDevicePose[g_openVRLeftController];
+			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[g_openVRLeftController];
 			if( handPose.bPoseIsValid )
 			{
 				g_vrHasLeftControllerPose = true;
 				VR_ConvertPose( handPose, g_vrLeftControllerOrigin, g_vrLeftControllerAxis );
 				hadLeftPose = true;
 			}
-			else if (hadLeftPose)
+			else if( hadLeftPose )
 			{
 				hadLeftPose = false;
-				common->Printf("left controller had no pose\n");
+				common->Printf( "left controller had no pose\n" );
 			}
 		}
 
 		if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
 		{
-			if(g_openVRRightControllerPulseDur > 500)
+			if( g_openVRRightControllerPulseDur > 500 )
 			{
-				hmd->TriggerHapticPulse(g_openVRRightController, 0, g_openVRRightControllerPulseDur);
+				hmd->TriggerHapticPulse( g_openVRRightController, 0, g_openVRRightControllerPulseDur );
 			}
 			g_openVRRightControllerPulseDur = 0;
 
 			static bool hadRightPose;
-			vr::TrackedDevicePose_t &handPose = rTrackedDevicePose[g_openVRRightController];
+			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[g_openVRRightController];
 			if( handPose.bPoseIsValid )
 			{
 				g_vrHasRightControllerPose = true;
 				VR_ConvertPose( handPose, g_vrRightControllerOrigin, g_vrRightControllerAxis );
 				hadRightPose = true;
 			}
-			else if (hadRightPose)
+			else if( hadRightPose )
 			{
 				hadRightPose = false;
-				common->Printf("right controller had no pose\n");
+				common->Printf( "right controller had no pose\n" );
 			}
 		}
 	}
@@ -1562,42 +1575,42 @@ void VR_PostSwap()
 	{
 		//vr::ETrackedControllerRole role;
 
-		switch (e.eventType)
+		switch( e.eventType )
 		{
-		/*case vr::VREvent_TrackedDeviceActivated:
-			role = hmd->GetControllerRoleForTrackedDeviceIndex(e.trackedDeviceIndex);
-			switch(role)
-			{
-			case vr::TrackedControllerRole_LeftHand:
-				g_openVRLeftController = e.trackedDeviceIndex;
+			/*case vr::VREvent_TrackedDeviceActivated:
+				role = hmd->GetControllerRoleForTrackedDeviceIndex(e.trackedDeviceIndex);
+				switch(role)
+				{
+				case vr::TrackedControllerRole_LeftHand:
+					g_openVRLeftController = e.trackedDeviceIndex;
+					break;
+				case vr::TrackedControllerRole_RightHand:
+					g_openVRRightController = e.trackedDeviceIndex;
+					break;
+				}
 				break;
-			case vr::TrackedControllerRole_RightHand:
-				g_openVRRightController = e.trackedDeviceIndex;
+			case vr::VREvent_TrackedDeviceDeactivated:
+				if (e.trackedDeviceIndex == g_openVRLeftController)
+				{
+					g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
+				}
+				else if (e.trackedDeviceIndex == g_openVRRightController)
+				{
+					g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+				}
+				break;*/
+			case vr::VREvent_ButtonPress:
+				if( e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController )
+				{
+					VR_GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, true );
+				}
 				break;
-			}
-			break;
-		case vr::VREvent_TrackedDeviceDeactivated:
-			if (e.trackedDeviceIndex == g_openVRLeftController)
-			{
-				g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-			}
-			else if (e.trackedDeviceIndex == g_openVRRightController)
-			{
-				g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
-			}
-			break;*/
-		case vr::VREvent_ButtonPress:
-			if (e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController)
-			{
-				VR_GenButtonEvent(e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, true);
-			}
-			break;
-		case vr::VREvent_ButtonUnpress:
-			if (e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController)
-			{
-				VR_GenButtonEvent(e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, false);
-			}
-			break;
+			case vr::VREvent_ButtonUnpress:
+				if( e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController )
+				{
+					VR_GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, false );
+				}
+				break;
 		}
 	}
 
@@ -1606,30 +1619,30 @@ void VR_PostSwap()
 		VR_GenMouseEvents();
 	}
 
-	if (g_poseReset)
+	if( g_poseReset )
 	{
 		g_poseReset = false;
-		VR_ConvertMatrix(hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis);
+		VR_ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis );
 		g_SeatedAxisInverse = g_SeatedAxis.Inverse();
 		tr.guiModel->UpdateVRShell();
 	}
 }
 
-bool VR_CalculateView(idVec3 &origin, idMat3 &axis, const idVec3 &eyeOffset, bool overridePitch)
+bool VR_CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch )
 {
-	if (!g_vrHasHeadPose)
+	if( !g_vrHasHeadPose )
 	{
 		return false;
 	}
 
-	if (overridePitch)
+	if( overridePitch )
 	{
-		float pitch = idMath::M_RAD2DEG * asin(axis[0][2]);
-		idAngles angles(pitch, 0, 0);
+		float pitch = idMath::M_RAD2DEG * asin( axis[0][2] );
+		idAngles angles( pitch, 0, 0 );
 		axis = angles.ToMat3() * axis;
 	}
 
-	if (!vr_seated.GetBool())
+	if( !vr_seated.GetBool() )
 	{
 		origin.z -= eyeOffset.z;
 		// ignore x and y
@@ -1645,9 +1658,9 @@ bool VR_CalculateView(idVec3 &origin, idMat3 &axis, const idVec3 &eyeOffset, boo
 	return true;
 }
 
-bool VR_GetHead(idVec3 &origin, idMat3 &axis)
+bool VR_GetHead( idVec3& origin, idMat3& axis )
 {
-	if (!g_vrHasHeadPose)
+	if( !g_vrHasHeadPose )
 	{
 		return false;
 	}
@@ -1659,9 +1672,9 @@ bool VR_GetHead(idVec3 &origin, idMat3 &axis)
 }
 
 // returns left controller position relative to the head
-bool VR_GetLeftController(idVec3 &origin, idMat3 &axis)
+bool VR_GetLeftController( idVec3& origin, idMat3& axis )
 {
-	if (!g_vrHasLeftControllerPose || !g_vrHasHeadPose)
+	if( !g_vrHasLeftControllerPose || !g_vrHasHeadPose )
 	{
 		return false;
 	}
@@ -1673,9 +1686,9 @@ bool VR_GetLeftController(idVec3 &origin, idMat3 &axis)
 }
 
 // returns right controller position relative to the head
-bool VR_GetRightController(idVec3 &origin, idMat3 &axis)
+bool VR_GetRightController( idVec3& origin, idMat3& axis )
 {
-	if (!g_vrHasRightControllerPose || !g_vrHasHeadPose)
+	if( !g_vrHasRightControllerPose || !g_vrHasHeadPose )
 	{
 		return false;
 	}
@@ -1686,12 +1699,12 @@ bool VR_GetRightController(idVec3 &origin, idMat3 &axis)
 	return true;
 }
 
-void VR_MoveDelta(idVec3 &delta, float &height)
+void VR_MoveDelta( idVec3& delta, float& height )
 {
-	if (!g_vrHasHeadPose)
+	if( !g_vrHasHeadPose )
 	{
 		height = 0.f;
-		delta.Set(0,0,0);
+		delta.Set( 0, 0, 0 );
 		return;
 	}
 
@@ -1704,7 +1717,7 @@ void VR_MoveDelta(idVec3 &delta, float &height)
 	g_vrHeadMoveDelta.Zero();
 }
 
-void VR_HapticPulse(int leftDuration, int rightDuration)
+void VR_HapticPulse( int leftDuration, int rightDuration )
 {
 	if( leftDuration > g_openVRLeftControllerPulseDur )
 	{
@@ -1718,13 +1731,13 @@ void VR_HapticPulse(int leftDuration, int rightDuration)
 
 extern idCVar joy_deadZone;
 
-bool VR_GetLeftControllerAxis(idVec2 &axis)
+bool VR_GetLeftControllerAxis( idVec2& axis )
 {
 	if( g_openVRLeftController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		return false;
 	}
-	uint64_t mask = vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Touchpad);
+	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	if( glConfig.openVRLeftTouchpad )
 	{
 		if( !( g_vrLeftControllerState.ulButtonTouched & mask ) )
@@ -1735,8 +1748,8 @@ bool VR_GetLeftControllerAxis(idVec2 &axis)
 	else
 	{
 		const float threshold =			joy_deadZone.GetFloat();
-		if( fabs(g_vrLeftControllerState.rAxis[0].x) < threshold &&
-			fabs(g_vrLeftControllerState.rAxis[0].y) < threshold )
+		if( fabs( g_vrLeftControllerState.rAxis[0].x ) < threshold &&
+				fabs( g_vrLeftControllerState.rAxis[0].y ) < threshold )
 		{
 			return false;
 		}
@@ -1746,13 +1759,13 @@ bool VR_GetLeftControllerAxis(idVec2 &axis)
 	return true;
 }
 
-bool VR_GetRightControllerAxis(idVec2 &axis)
+bool VR_GetRightControllerAxis( idVec2& axis )
 {
 	if( g_openVRRightController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		return false;
 	}
-	uint64_t mask = vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Touchpad);
+	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	if( glConfig.openVRRightTouchpad )
 	{
 		if( !( g_vrRightControllerState.ulButtonTouched & mask ) )
@@ -1763,8 +1776,8 @@ bool VR_GetRightControllerAxis(idVec2 &axis)
 	else
 	{
 		const float threshold =			joy_deadZone.GetFloat();
-		if( fabs(g_vrRightControllerState.rAxis[0].x) < threshold &&
-			fabs(g_vrRightControllerState.rAxis[0].y) < threshold )
+		if( fabs( g_vrRightControllerState.rAxis[0].x ) < threshold &&
+				fabs( g_vrRightControllerState.rAxis[0].y ) < threshold )
 		{
 			return false;
 		}
@@ -1781,7 +1794,7 @@ bool VR_LeftControllerWasPressed()
 
 bool VR_LeftControllerIsPressed()
 {
-	static uint64_t mask = vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Touchpad);
+	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	return ( g_vrLeftControllerState.ulButtonPressed & mask ) != 0;
 }
 
@@ -1792,21 +1805,21 @@ bool VR_RightControllerWasPressed()
 
 bool VR_RightControllerIsPressed()
 {
-	static uint64_t mask = vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Touchpad);
+	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	return ( g_vrRightControllerState.ulButtonPressed & mask ) != 0;
 }
 
-const idVec3 &VR_GetSeatedOrigin()
+const idVec3& VR_GetSeatedOrigin()
 {
 	return g_SeatedOrigin;
 }
 
-const idMat3 &VR_GetSeatedAxis()
+const idMat3& VR_GetSeatedAxis()
 {
 	return g_SeatedAxis;
 }
 
-const idMat3 &VR_GetSeatedAxisInverse()
+const idMat3& VR_GetSeatedAxisInverse()
 {
 	return g_SeatedAxisInverse;
 }

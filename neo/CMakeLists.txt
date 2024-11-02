@@ -19,7 +19,7 @@ option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
 
 option(FFMPEG
-		"Use FMPEG to render Bink videos" ON)
+		"Use FMPEG to render Bink videos" OFF)
 
 option(ONATIVE
 		"Optimize for the host CPU" OFF)
@@ -1348,11 +1348,11 @@ if(MSVC)
 	
 	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 		
-	#add_custom_command(TARGET RBDoom3BFG
-    #               PRE_BUILD
-	#			   COMMAND nmake ARGS /f Makefile.vc6 CFG=release
-	#			   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/libs/curl/lib
-    #               COMMENT "Compiling libcURL")
+	# copy OpenVR dlls
+	add_custom_command(TARGET RBDoom3BFG
+				POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy
+				${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/bin/win64/openvr_api.dll ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 		
 	add_dependencies(RBDoom3BFG idlib)
 	target_link_libraries(RBDoom3BFG

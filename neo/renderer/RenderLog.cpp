@@ -125,7 +125,7 @@ void PC_BeginNamedEvent( const char* szName, ... )
 	{
 		return;
 	}
-	
+
 	GL_CheckErrors();
 	if( timeQueryIds[0] == 0 )
 	{
@@ -134,7 +134,7 @@ void PC_BeginNamedEvent( const char* szName, ... )
 	glFinish();
 	glBeginQuery( GL_TIME_ELAPSED_EXT, timeQueryIds[numPixEvents] );
 	GL_CheckErrors();
-	
+
 	pixEvent_t* ev = &pixEvents[numPixEvents++];
 	strncpy( ev->name, szName, sizeof( ev->name ) - 1 );
 	ev->cpuTime = Sys_Microseconds();
@@ -166,10 +166,10 @@ void PC_EndNamedEvent()
 	{
 		return;
 	}
-	
+
 	pixEvent_t* ev = &pixEvents[numPixEvents - 1];
 	ev->cpuTime = Sys_Microseconds() - ev->cpuTime;
-	
+
 	GL_CheckErrors();
 	glEndQuery( GL_TIME_ELAPSED_EXT );
 	GL_CheckErrors();
@@ -188,26 +188,26 @@ void PC_EndFrame()
 	{
 		return;
 	}
-	
+
 	int64 totalGPU = 0;
 	int64 totalCPU = 0;
-	
+
 	idLib::Printf( "----- GPU Events -----\n" );
 	for( int i = 0 ; i < numPixEvents ; i++ )
 	{
 		pixEvent_t* ev = &pixEvents[i];
-		
+
 		int64 gpuTime = 0;
 		glGetQueryObjectui64vEXT( timeQueryIds[i], GL_QUERY_RESULT, ( GLuint64EXT* )&gpuTime );
 		ev->gpuTime = gpuTime;
-		
+
 		idLib::Printf( "%2d: %1.2f (GPU) %1.3f (CPU) = %s\n", i, ev->gpuTime / 1000000.0f, ev->cpuTime / 1000.0f, ev->name );
 		totalGPU += ev->gpuTime;
 		totalCPU += ev->cpuTime;
 	}
 	idLib::Printf( "%2d: %1.2f (GPU) %1.3f (CPU) = total\n", numPixEvents, totalGPU / 1000000.0f, totalCPU / 1000.0f );
 	memset( pixEvents, 0, numPixLevels * sizeof( pixEvents[0] ) );
-	
+
 	numPixEvents = 0;
 	numPixLevels = 0;
 #endif
@@ -254,18 +254,18 @@ void idRenderLog::StartFrame()
 	{
 		return;
 	}
-	
+
 	// open a new logfile
 	indentLevel = 0;
 	indentString[0] = '\0';
 	activeLevel = r_logLevel.GetInteger();
-	
+
 	/*
 	struct tm*		newtime;
 	time_t			aclock;
-	
+
 	char ospath[ MAX_OSPATH ];
-	
+
 	char qpath[128];
 	sprintf( qpath, "renderlogPC_%04i.txt", r_logFile.GetInteger() );
 	//idStr finalPath = fileSystem->RelativePathToOSPath( qpath );
@@ -282,16 +282,16 @@ void idRenderLog::StartFrame()
 		}
 	}
 	*/
-	
+
 	common->SetRefreshOnPrint( false );	// problems are caused if this print causes a refresh...
-	
+
 	/*
 	if( logFile != NULL )
 	{
 		fileSystem->CloseFile( logFile );
 		logFile = NULL;
 	}
-	
+
 	logFile = fileSystem->OpenFileWrite( ospath );
 	if( logFile == NULL )
 	{
@@ -299,7 +299,7 @@ void idRenderLog::StartFrame()
 		return;
 	}
 	idLib::Printf( "Opened logfile %s\n", ospath );
-	
+
 	// write the time out to the top of the file
 	time( &aclock );
 	newtime = localtime( &aclock );
@@ -307,7 +307,7 @@ void idRenderLog::StartFrame()
 	logFile->Printf( "// %s", str );
 	logFile->Printf( "// %s\n\n", com_version.GetString() );
 	*/
-	
+
 	frameStartTime = Sys_Microseconds();
 	closeBlockTime = frameStartTime;
 	OpenBlock( "Frame" );
@@ -321,7 +321,7 @@ idRenderLog::EndFrame
 void idRenderLog::EndFrame()
 {
 	PC_EndFrame();
-	
+
 	//if( logFile != NULL )
 	if( r_logFile.GetInteger() != 0 )
 	{
@@ -381,7 +381,7 @@ void idRenderLog::OpenBlock( const char* label )
 {
 	// Allow the PIX functionality even when logFile is not running.
 	PC_BeginNamedEvent( label );
-	
+
 	//if( logFile != NULL )
 	if( r_logFile.GetInteger() != 0 )
 	{
@@ -397,7 +397,7 @@ idRenderLog::CloseBlock
 void idRenderLog::CloseBlock()
 {
 	PC_EndNamedEvent();
-	
+
 	//if( logFile != NULL )
 	if( r_logFile.GetInteger() != 0 )
 	{
@@ -417,34 +417,34 @@ void idRenderLog::Printf( const char* fmt, ... )
 	{
 		return;
 	}
-	
+
 	//if( logFile == NULL )
 	if( r_logFile.GetInteger() == 0 || !glConfig.gremedyStringMarkerAvailable )
 	{
 		return;
 	}
-	
+
 	va_list		marker;
 	char		msg[4096];
-	
+
 	idStr		out = indentString;
-	
+
 	va_start( marker, fmt );
 	idStr::vsnPrintf( msg, sizeof( msg ), fmt, marker );
 	va_end( marker );
-	
+
 	msg[sizeof( msg ) - 1] = '\0';
-	
+
 	out.Append( msg );
-	
+
 	glStringMarkerGREMEDY( out.Length(), out.c_str() );
-	
+
 	//logFile->Printf( "%s", indentString );
 	//va_start( marker, fmt );
 	//logFile->VPrintf( fmt, marker );
 	//va_end( marker );
-	
-	
+
+
 //	logFile->Flush();		this makes it take waaaay too long
 #endif
 }
@@ -457,7 +457,7 @@ idRenderLog::LogOpenBlock
 void idRenderLog::LogOpenBlock( renderLogIndentLabel_t label, const char* fmt, ... )
 {
 	uint64 now = Sys_Microseconds();
-	
+
 	//if( logFile != NULL )
 	if( r_logFile.GetInteger() != 0 )
 	{
@@ -465,44 +465,44 @@ void idRenderLog::LogOpenBlock( renderLogIndentLabel_t label, const char* fmt, .
 		//{
 		//logFile->Printf( "%s%1.1f msec gap from last closeblock\n", indentString, ( now - closeBlockTime ) * ( 1.0f / 1000.0f ) );
 		//}
-		
+
 #if !defined(USE_GLES2) && !defined(USE_GLES3)
 		if( glConfig.gremedyStringMarkerAvailable )
 		{
 			//Printf( fmt, args );
 			//Printf( " {\n" );
-			
+
 			//logFile->Printf( "%s", indentString );
 			//logFile->VPrintf( fmt, args );
 			//logFile->Printf( " {\n" );
-			
+
 			va_list		marker;
 			char		msg[4096];
-			
+
 			idStr		out = indentString;
-			
+
 			va_start( marker, fmt );
 			idStr::vsnPrintf( msg, sizeof( msg ), fmt, marker );
 			va_end( marker );
-			
+
 			msg[sizeof( msg ) - 1] = '\0';
-			
+
 			out.Append( msg );
 			out += " {";
-			
+
 			glStringMarkerGREMEDY( out.Length(), out.c_str() );
 		}
 #endif
 	}
-	
+
 	Indent( label );
-	
+
 	if( logLevel >= MAX_LOG_LEVELS )
 	{
 		idLib::Warning( "logLevel %d >= MAX_LOG_LEVELS", logLevel );
 	}
-	
-	
+
+
 	logLevel++;
 }
 
@@ -514,12 +514,12 @@ idRenderLog::LogCloseBlock
 void idRenderLog::LogCloseBlock( renderLogIndentLabel_t label )
 {
 	closeBlockTime = Sys_Microseconds();
-	
+
 	//assert( logLevel > 0 );
 	logLevel--;
-	
+
 	Outdent( label );
-	
+
 	//if( logFile != NULL )
 	//{
 	//}

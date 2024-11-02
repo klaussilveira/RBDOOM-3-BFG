@@ -41,40 +41,46 @@ class idGuiModel
 {
 public:
 	idGuiModel();
-	
+
 	void	Clear();
-	
+
 	void	WriteToDemo( idDemoFile* demo );
 	void	ReadFromDemo( idDemoFile* demo );
-	
-	void	SetViewEyeBuffer( int veb );
-	int		GetViewEyeBuffer() { return viewEyeBuffer; }
 
-	void	SetMode(guiMode_t a_mode);
-	guiMode_t	GetMode() { return mode; }
+	void	SetViewEyeBuffer( int veb );
+	int		GetViewEyeBuffer()
+	{
+		return viewEyeBuffer;
+	}
+
+	void	SetMode( guiMode_t a_mode );
+	guiMode_t	GetMode()
+	{
+		return mode;
+	}
 
 	bool	UpdateVRShell();
 	void	ActivateVRShell( bool b );
-	bool	GetVRShell( idVec3 &origin, idMat3 &axis );
-	void	SetVRShell( const idVec3 &origin, const idMat3 &axis );
-	
+	bool	GetVRShell( idVec3& origin, idMat3& axis );
+	void	SetVRShell( const idVec3& origin, const idMat3& axis );
+
 	// allocates memory for verts and indexes in frame-temporary buffer memory
 	void	BeginFrame();
-	
+
 	void	EmitToCurrentView( float modelMatrix[16], bool depthHack );
 	void	EmitFullScreen();
-	
+
 	// the returned pointer will be in write-combined memory, so only make contiguous
 	// 32 bit writes and never read from it.
 	idDrawVert* AllocTris( int numVerts, const triIndex_t* indexes, int numIndexes, const idMaterial* material,
 						   const uint64 glState, const stereoDepthType_t stereoType );
-						   
+
 	//---------------------------
 private:
 	void	AdvanceSurf();
 	void	EmitSurfaces( float modelMatrix[16], float modelViewMatrix[16],
 						  bool depthHack, bool allowFullScreenStereoDepth, bool linkAsEntity );
-						  
+
 	int							viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
 
 	guiMode_t					mode;
@@ -83,28 +89,28 @@ private:
 	bool						vrShellNeedsUpdate;
 	idVec3						vrShellOrigin;
 	idMat3						vrShellAxis;
-	
+
 	guiModelSurface_t* 			surf;
-	
+
 	float						shaderParms[ MAX_ENTITY_SHADER_PARMS ];
-	
+
 	static const float STEREO_DEPTH_DISABLE;
 	static const float STEREO_DEPTH_NEAR;
 	static const float STEREO_DEPTH_MID;
 	static const float STEREO_DEPTH_FAR;
-	
+
 	// if we exceed these limits we stop rendering GUI surfaces
 	static const int MAX_INDEXES = ( 20000 * 6 );
 	static const int MAX_VERTS	 = ( 20000 * 4 );
-	
+
 	vertCacheHandle_t			vertexBlock;
 	vertCacheHandle_t			indexBlock;
 	idDrawVert* 				vertexPointer;
 	triIndex_t* 				indexPointer;
-	
+
 	int		numVerts;
 	int		numIndexes;
-	
+
 	idList<guiModelSurface_t, TAG_MODEL>	surfaces;
 };
 
