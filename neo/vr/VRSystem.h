@@ -63,7 +63,7 @@ public:
 	virtual bool			GetHead( idVec3& origin, idMat3& axis ) = 0;
 	virtual bool			GetLeftController( idVec3& origin, idMat3& axis ) = 0;
 	virtual bool			GetRightController( idVec3& origin, idMat3& axis ) = 0;
-	virtual void			MoveDelta( idVec3& delta, float& height ) = 0;
+	//virtual void			MoveDelta( idVec3& delta, float& height ) = 0;
 	virtual void			HapticPulse( int leftDuration, int rightDuration ) = 0;
 
 	virtual bool			GetLeftControllerAxis( idVec2& axis ) = 0;

@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../renderer/tr_local.h" // TODO remove
 #include "VRSystem.h"
 
+#define MAX_VREVENTS 256
+
 class VRSystem_Valve : public VRSystem
 {
 	virtual	bool			InitHMD();
@@ -45,8 +47,6 @@ class VRSystem_Valve : public VRSystem
 	virtual	void			LogDevices();
 
 	virtual void			UpdateResolution();
-	virtual void			UpdateScaling();
-	virtual void			UpdateControllers();
 
 	virtual int				PollGameInputEvents();
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value );
@@ -57,7 +57,6 @@ class VRSystem_Valve : public VRSystem
 	virtual bool			GetHead( idVec3& origin, idMat3& axis );
 	virtual bool			GetLeftController( idVec3& origin, idMat3& axis );
 	virtual bool			GetRightController( idVec3& origin, idMat3& axis );
-	virtual void			MoveDelta( idVec3& delta, float& height );
 	virtual void			HapticPulse( int leftDuration, int rightDuration );
 
 	virtual bool			GetLeftControllerAxis( idVec2& axis );
@@ -75,6 +74,70 @@ class VRSystem_Valve : public VRSystem
 
 	const sysEvent_t&		UIEventNext();
 
+private:
+	void					ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis );
+
+	void					UpdateScaling();
+	void					UpdateControllers();
+	void					MoveDelta( idVec3& delta, float& height );
+
+	// input
+	void					ClearEvents();
+	void					UIEventQue( sysEventType_t type, int value, int value2 );
+	void					GameEventQue( int action, int value );
+	int						AxisToDPad( int mode, float x, float y );
+	void					GenButtonEvent( uint32_t button, bool left, bool pressed );
+	void					GenJoyAxisEvents();
+	void					GenMouseEvents();
+	bool					ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3& axis );
+
+	// unused
+	bool					CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch );
+
+	vr::IVRSystem* hmd = NULL;
+	float m_ScaleX = 1.0f;
+	float m_ScaleY = 1.0f;
+	float m_ScaleZ = 1.0f;
+	vr::TrackedDeviceIndex_t m_leftController = vr::k_unTrackedDeviceIndexInvalid;
+	vr::TrackedDeviceIndex_t m_rightController = vr::k_unTrackedDeviceIndexInvalid;
+	idVec3 m_seatedOrigin;
+	idMat3 m_seatedAxis;
+	idMat3 m_seatedAxisInverse;
+
+	bool m_LeftControllerWasPressed;
+	bool m_RightControllerWasPressed;
+	vr::VRControllerState_t m_LeftControllerState;
+	vr::VRControllerState_t m_RightControllerState;
+	int m_leftControllerPulseDur;
+	int m_rightControllerPulseDur;
+
+	bool m_HasHeadPose;
+	idVec3 m_HeadOrigin;
+	idMat3 m_HeadAxis;
+	bool m_HadHead;
+	idVec3 m_HeadLastOrigin;
+	idVec3 m_HeadMoveDelta;
+
+	bool m_HasLeftControllerPose;
+	idVec3 m_LeftControllerOrigin;
+	idMat3 m_LeftControllerAxis;
+
+	bool m_HasRightControllerPose;
+	idVec3 m_RightControllerOrigin;
+	idMat3 m_RightControllerAxis;
+
+	bool g_poseReset;
+
+	int m_UIEventIndex;
+	int m_UIEventCount;
+	sysEvent_t m_UIEvents[MAX_VREVENTS];
+
+	int m_GameEventCount;
+	struct
+	{
+		int action;
+		int value;
+	} m_GameEvents[MAX_VREVENTS];
 };
 
 void VRSystem::Init()
@@ -85,46 +148,12 @@ void VRSystem::Init()
 	vrSystem->InitHMD();
 }
 
-vr::IVRSystem* hmd;
-float g_vrScaleX = 1.f;
-float g_vrScaleY = 1.f;
-float g_vrScaleZ = 1.f;
-vr::TrackedDeviceIndex_t g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-vr::TrackedDeviceIndex_t g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
-idVec3 g_SeatedOrigin;
-idMat3 g_SeatedAxis;
-idMat3 g_SeatedAxisInverse;
-
-bool g_vrLeftControllerWasPressed;
-bool g_vrRightControllerWasPressed;
-vr::VRControllerState_t g_vrLeftControllerState;
-vr::VRControllerState_t g_vrRightControllerState;
-int g_openVRLeftControllerPulseDur;
-int g_openVRRightControllerPulseDur;
-
-bool g_vrHasHeadPose;
-idVec3 g_vrHeadOrigin;
-idMat3 g_vrHeadAxis;
-bool g_vrHadHead;
-idVec3 g_vrHeadLastOrigin;
-idVec3 g_vrHeadMoveDelta;
-
-bool g_vrHasLeftControllerPose;
-idVec3 g_vrLeftControllerOrigin;
-idMat3 g_vrLeftControllerAxis;
-
-bool g_vrHasRightControllerPose;
-idVec3 g_vrRightControllerOrigin;
-idMat3 g_vrRightControllerAxis;
-
-bool g_poseReset;
-
-void VR_ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis )
+void VRSystem_Valve::ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis )
 {
 	origin.Set(
-		g_vrScaleX * poseMat.m[2][3],
-		g_vrScaleY * poseMat.m[0][3],
-		g_vrScaleZ * poseMat.m[1][3] );
+		m_ScaleX * poseMat.m[2][3],
+		m_ScaleY * poseMat.m[0][3],
+		m_ScaleZ * poseMat.m[1][3] );
 	axis[0].Set( poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2] );
 	axis[1].Set( poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0] );
 	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
@@ -187,13 +216,13 @@ bool VRSystem_Valve::InitHMD()
 	UpdateScaling();
 
 	glConfig.openVRSeated = true;
-	g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-	g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+	m_leftController = vr::k_unTrackedDeviceIndexInvalid;
+	m_rightController = vr::k_unTrackedDeviceIndexInvalid;
 	UpdateControllers();
 
 	vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
-	VR_ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis );
-	g_SeatedAxisInverse = g_SeatedAxis.Inverse();
+	ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), m_seatedOrigin, m_seatedAxis );
+	m_seatedAxisInverse = m_seatedAxis.Inverse();
 
 	return true;
 }
@@ -215,12 +244,12 @@ void VRSystem_Valve::LogDevices()
 		modelNumberString, vr::k_unTrackingStringSize );
 	common->Printf( "\nhead  model \"%s\"\n", modelNumberString );
 
-	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
+	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		hmd->GetStringTrackedDeviceProperty(
-			g_openVRLeftController, vr::Prop_ModelNumber_String,
+			m_leftController, vr::Prop_ModelNumber_String,
 			modelNumberString, vr::k_unTrackingStringSize );
-		axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRLeftController, vr::Prop_Axis0Type_Int32 );
+		axisType = hmd->GetInt32TrackedDeviceProperty( m_leftController, vr::Prop_Axis0Type_Int32 );
 		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
 		common->Printf( "left  model \"%s\" axis %s\n", modelNumberString, axisTypeString );
 	}
@@ -229,12 +258,12 @@ void VRSystem_Valve::LogDevices()
 		common->Printf( "left  not detected\n" );
 	}
 
-	if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
+	if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		hmd->GetStringTrackedDeviceProperty(
-			g_openVRRightController, vr::Prop_ModelNumber_String,
+			m_rightController, vr::Prop_ModelNumber_String,
 			modelNumberString, vr::k_unTrackingStringSize );
-		axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRRightController, vr::Prop_Axis0Type_Int32 );
+		axisType = hmd->GetInt32TrackedDeviceProperty( m_rightController, vr::Prop_Axis0Type_Int32 );
 		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
 		common->Printf( "right model \"%s\" axis %s\n", modelNumberString, axisTypeString );
 	}
@@ -244,32 +273,21 @@ void VRSystem_Valve::LogDevices()
 	}
 }
 
-#define MAX_VREVENTS 256
 
-int g_vrUIEventIndex;
-int g_vrUIEventCount;
-sysEvent_t g_vrUIEvents[MAX_VREVENTS];
 
-int g_vrGameEventCount;
-struct
+void VRSystem_Valve::ClearEvents()
 {
-	int action;
-	int value;
-} g_vrGameEvents[MAX_VREVENTS];
-
-static void VR_ClearEvents()
-{
-	g_vrUIEventIndex = 0;
-	g_vrUIEventCount = 0;
-	g_vrGameEventCount = 0;
-	g_vrLeftControllerWasPressed = false;
-	g_vrRightControllerWasPressed = false;
+	m_UIEventIndex = 0;
+	m_UIEventCount = 0;
+	m_GameEventCount = 0;
+	m_LeftControllerWasPressed = false;
+	m_RightControllerWasPressed = false;
 }
 
-static void VR_UIEventQue( sysEventType_t type, int value, int value2 )
+void VRSystem_Valve::UIEventQue( sysEventType_t type, int value, int value2 )
 {
-	assert( g_vrUIEventCount < MAX_VREVENTS );
-	sysEvent_t* ev = &g_vrUIEvents[g_vrUIEventCount++];
+	assert( m_UIEventCount < MAX_VREVENTS );
+	sysEvent_t* ev = &m_UIEvents[m_UIEventCount++];
 
 	ev->evType = type;
 	ev->evValue = value;
@@ -281,44 +299,44 @@ static void VR_UIEventQue( sysEventType_t type, int value, int value2 )
 
 const sysEvent_t& VRSystem_Valve::UIEventNext()
 {
-	assert( g_vrUIEventIndex < MAX_VREVENTS );
-	if( g_vrUIEventIndex >= g_vrUIEventCount )
+	assert( m_UIEventIndex < MAX_VREVENTS );
+	if( m_UIEventIndex >= m_UIEventCount )
 	{
-		sysEvent_t& ev = g_vrUIEvents[g_vrUIEventIndex];
+		sysEvent_t& ev = m_UIEvents[m_UIEventIndex];
 		ev.evType = SE_NONE;
 		return ev;
 	}
-	return g_vrUIEvents[g_vrUIEventIndex++];
+	return m_UIEvents[m_UIEventIndex++];
 }
 
 int VRSystem_Valve::PollGameInputEvents()
 {
-	return g_vrGameEventCount;
+	return m_GameEventCount;
 }
 
-static void VR_GameEventQue( int action, int value )
+void VRSystem_Valve::GameEventQue( int action, int value )
 {
-	assert( g_vrGameEventCount < MAX_VREVENTS );
-	g_vrGameEvents[g_vrGameEventCount].action = action;
-	g_vrGameEvents[g_vrGameEventCount].value = value;
-	g_vrGameEventCount++;
+	assert( m_GameEventCount < MAX_VREVENTS );
+	m_GameEvents[m_GameEventCount].action = action;
+	m_GameEvents[m_GameEventCount].value = value;
+	m_GameEventCount++;
 }
 
 int VRSystem_Valve::ReturnGameInputEvent( const int n, int& action, int& value )
 {
-	if( n < 0 || n > g_vrGameEventCount )
+	if( n < 0 || n > m_GameEventCount )
 	{
 		return 0;
 	}
-	action = g_vrGameEvents[n].action;
-	value = g_vrGameEvents[n].value;
+	action = m_GameEvents[n].action;
+	value = m_GameEvents[n].value;
 	return 1;
 }
 
 idCVar vr_leftAxis( "vr_leftAxis", "0", CVAR_INTEGER | CVAR_ARCHIVE, "left axis mode" );
 idCVar vr_rightAxis( "vr_rightAxis", "4", CVAR_INTEGER | CVAR_ARCHIVE, "right axis mode" );
 
-static int VR_AxisToDPad( int mode, float x, float y )
+int VRSystem_Valve::AxisToDPad( int mode, float x, float y )
 {
 	int dir;
 	switch( mode )
@@ -373,46 +391,49 @@ static int VR_AxisToDPad( int mode, float x, float y )
 	return dir;
 }
 
-static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
+void VRSystem_Valve::GenButtonEvent( uint32_t button, bool left, bool pressed )
 {
 	switch( button )
 	{
 		case vr::k_EButton_ApplicationMenu:
 			if( left )
 			{
-				VR_GameEventQue( K_VR_LEFT_MENU, pressed );
-				VR_UIEventQue( SE_KEY, K_JOY10, pressed ); // pda
+				GameEventQue( K_VR_LEFT_MENU, pressed );
+				UIEventQue( SE_KEY, K_JOY10, pressed ); // pda
 			}
 			else
 			{
-				VR_GameEventQue( K_VR_RIGHT_MENU, pressed );
-				VR_UIEventQue( SE_KEY, K_JOY9, pressed ); // pause menu
+				GameEventQue( K_VR_RIGHT_MENU, pressed );
+				UIEventQue( SE_KEY, K_JOY9, pressed ); // pause menu
 			}
 			break;
+
 		case vr::k_EButton_Grip:
 			if( left )
 			{
-				VR_GameEventQue( K_VR_LEFT_GRIP, pressed );
-				VR_UIEventQue( SE_KEY, K_JOY5, pressed ); // prev pda menu
+				GameEventQue( K_VR_LEFT_GRIP, pressed );
+				UIEventQue( SE_KEY, K_JOY5, pressed ); // prev pda menu
 			}
 			else
 			{
-				VR_GameEventQue( K_VR_RIGHT_GRIP, pressed );
-				VR_UIEventQue( SE_KEY, K_JOY6, pressed ); // next pda menu
+				GameEventQue( K_VR_RIGHT_GRIP, pressed );
+				UIEventQue( SE_KEY, K_JOY6, pressed ); // next pda menu
 			}
 			break;
+
 		case vr::k_EButton_SteamVR_Trigger:
 			if( left )
 			{
-				VR_GameEventQue( K_VR_LEFT_TRIGGER, pressed );
-				VR_UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
+				GameEventQue( K_VR_LEFT_TRIGGER, pressed );
+				UIEventQue( SE_KEY, K_JOY2, pressed ); // menu back
 			}
 			else
 			{
-				VR_GameEventQue( K_VR_RIGHT_TRIGGER, pressed );
-				VR_UIEventQue( SE_KEY, K_MOUSE1, pressed ); // cursor click
+				GameEventQue( K_VR_RIGHT_TRIGGER, pressed );
+				UIEventQue( SE_KEY, K_MOUSE1, pressed ); // cursor click
 			}
 			break;
+
 		case vr::k_EButton_SteamVR_Touchpad:
 			if( left )
 			{
@@ -420,9 +441,9 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 				static keyNum_t uiLastKey;
 				if( pressed )
 				{
-					if( g_vrLeftControllerState.rAxis[0].x < g_vrLeftControllerState.rAxis[0].y )
+					if( m_LeftControllerState.rAxis[0].x < m_LeftControllerState.rAxis[0].y )
 					{
-						if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
+						if( m_LeftControllerState.rAxis[0].x > -m_LeftControllerState.rAxis[0].y )
 						{
 							uiLastKey = K_JOY_STICK1_UP;
 						}
@@ -433,7 +454,7 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 					}
 					else
 					{
-						if( g_vrLeftControllerState.rAxis[0].x > -g_vrLeftControllerState.rAxis[0].y )
+						if( m_LeftControllerState.rAxis[0].x > -m_LeftControllerState.rAxis[0].y )
 						{
 							uiLastKey = K_JOY_STICK1_RIGHT;
 						}
@@ -442,17 +463,18 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 							uiLastKey = K_JOY_STICK1_DOWN;
 						}
 					}
-					VR_UIEventQue( SE_KEY, uiLastKey, 1 );
+
+					UIEventQue( SE_KEY, uiLastKey, 1 );
 				}
 				else
 				{
-					VR_UIEventQue( SE_KEY, uiLastKey, 0 );
+					UIEventQue( SE_KEY, uiLastKey, 0 );
 				}
 
-				VR_GameEventQue( K_VR_LEFT_AXIS, pressed );
+				GameEventQue( K_VR_LEFT_AXIS, pressed );
 				if( pressed )
 				{
-					g_vrLeftControllerWasPressed = true;
+					m_LeftControllerWasPressed = true;
 				}
 				if( !glConfig.openVRLeftTouchpad )
 				{
@@ -462,11 +484,11 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 				static int gameLeftLastKey;
 				if( pressed )
 				{
-					int dir = VR_AxisToDPad( vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y );
+					int dir = AxisToDPad( vr_leftAxis.GetInteger(), m_LeftControllerState.rAxis[0].x, m_LeftControllerState.rAxis[0].y );
 					if( dir != -1 )
 					{
 						gameLeftLastKey = K_VR_LEFT_DPAD_LEFT + dir;
-						VR_GameEventQue( gameLeftLastKey, 1 );
+						GameEventQue( gameLeftLastKey, 1 );
 					}
 					else
 					{
@@ -475,31 +497,33 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 				}
 				else if( gameLeftLastKey != K_NONE )
 				{
-					VR_GameEventQue( gameLeftLastKey, 0 );
+					GameEventQue( gameLeftLastKey, 0 );
 					gameLeftLastKey = K_NONE;
 				}
 			}
 			else
 			{
-				VR_UIEventQue( SE_KEY, K_JOY1, pressed ); // menu select
-				VR_GameEventQue( K_VR_RIGHT_AXIS, pressed );
+				UIEventQue( SE_KEY, K_JOY1, pressed ); // menu select
+				GameEventQue( K_VR_RIGHT_AXIS, pressed );
+
 				if( pressed )
 				{
-					g_vrRightControllerWasPressed = true;
+					m_RightControllerWasPressed = true;
 				}
 				if( !glConfig.openVRRightTouchpad )
 				{
 					break;
 				}
+
 				// dpad modes
 				static int gameRightLastKey;
 				if( pressed )
 				{
-					int dir = VR_AxisToDPad( vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y );
+					int dir = AxisToDPad( vr_rightAxis.GetInteger(), m_RightControllerState.rAxis[0].x, m_RightControllerState.rAxis[0].y );
 					if( dir != -1 )
 					{
 						gameRightLastKey = K_VR_RIGHT_DPAD_LEFT + dir;
-						VR_GameEventQue( gameRightLastKey, 1 );
+						GameEventQue( gameRightLastKey, 1 );
 					}
 					else
 					{
@@ -508,19 +532,20 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 				}
 				else if( gameRightLastKey != K_NONE )
 				{
-					VR_GameEventQue( gameRightLastKey, 0 );
+					GameEventQue( gameRightLastKey, 0 );
 					gameRightLastKey = K_NONE;
 				}
 			}
 			break;
+
 		case vr::k_EButton_A:
 			if( left )
 			{
-				VR_GameEventQue( K_VR_LEFT_A, pressed );
+				GameEventQue( K_VR_LEFT_A, pressed );
 			}
 			else
 			{
-				VR_GameEventQue( K_VR_RIGHT_A, pressed );
+				GameEventQue( K_VR_RIGHT_A, pressed );
 			}
 			break;
 		default:
@@ -528,24 +553,25 @@ static void VR_GenButtonEvent( uint32_t button, bool left, bool pressed )
 	}
 }
 
-static void VR_GenJoyAxisEvents()
+void VRSystem_Valve::GenJoyAxisEvents()
 {
-	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
+	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		vr::VRControllerState_t& state = g_vrLeftControllerState;
-		hmd->GetControllerState( g_openVRLeftController, &state );
+		vr::VRControllerState_t& state = m_LeftControllerState;
+		hmd->GetControllerState( m_leftController, &state );
 
 		// dpad modes
 		if( !glConfig.openVRLeftTouchpad )
 		{
 			static int gameLeftLastKey;
+
 			if( state.rAxis[0].x * state.rAxis[0].x + state.rAxis[0].y * state.rAxis[0].y > 0.25f )
 			{
-				int dir = VR_AxisToDPad( vr_leftAxis.GetInteger(), g_vrLeftControllerState.rAxis[0].x, g_vrLeftControllerState.rAxis[0].y );
+				int dir = AxisToDPad( vr_leftAxis.GetInteger(), m_LeftControllerState.rAxis[0].x, m_LeftControllerState.rAxis[0].y );
 				if( dir != -1 )
 				{
 					gameLeftLastKey = K_VR_LEFT_DPAD_LEFT + dir;
-					VR_GameEventQue( gameLeftLastKey, 1 );
+					GameEventQue( gameLeftLastKey, 1 );
 				}
 				else
 				{
@@ -554,27 +580,28 @@ static void VR_GenJoyAxisEvents()
 			}
 			else if( gameLeftLastKey != K_NONE )
 			{
-				VR_GameEventQue( gameLeftLastKey, 0 );
+				GameEventQue( gameLeftLastKey, 0 );
 				gameLeftLastKey = K_NONE;
 			}
 		}
 	}
-	if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
+	if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		vr::VRControllerState_t& state = g_vrRightControllerState;
-		hmd->GetControllerState( g_openVRRightController, &state );
+		vr::VRControllerState_t& state = m_RightControllerState;
+		hmd->GetControllerState( m_rightController, &state );
 
 		// dpad modes
 		if( !glConfig.openVRRightTouchpad )
 		{
 			static int gameRightLastKey;
+
 			if( state.rAxis[0].x * state.rAxis[0].x + state.rAxis[0].y * state.rAxis[0].y > 0.25f )
 			{
-				int dir = VR_AxisToDPad( vr_rightAxis.GetInteger(), g_vrRightControllerState.rAxis[0].x, g_vrRightControllerState.rAxis[0].y );
+				int dir = AxisToDPad( vr_rightAxis.GetInteger(), m_RightControllerState.rAxis[0].x, m_RightControllerState.rAxis[0].y );
 				if( dir != -1 )
 				{
 					gameRightLastKey = K_VR_RIGHT_DPAD_LEFT + dir;
-					VR_GameEventQue( gameRightLastKey, 1 );
+					GameEventQue( gameRightLastKey, 1 );
 				}
 				else
 				{
@@ -583,19 +610,19 @@ static void VR_GenJoyAxisEvents()
 			}
 			else if( gameRightLastKey != K_NONE )
 			{
-				VR_GameEventQue( gameRightLastKey, 0 );
+				GameEventQue( gameRightLastKey, 0 );
 				gameRightLastKey = K_NONE;
 			}
 		}
 	}
 }
 
-static void VR_GenMouseEvents()
+void VRSystem_Valve::GenMouseEvents()
 {
 	// virtual head tracking mouse for shell UI
 	idVec3 shellOrigin;
 	idMat3 shellAxis;
-	if( g_vrHadHead && tr.guiModel->GetVRShell( shellOrigin, shellAxis ) )
+	if( m_HadHead && tr.guiModel->GetVRShell( shellOrigin, shellAxis ) )
 	{
 		const float virtualWidth = renderSystem->GetVirtualWidth();
 		const float virtualHeight = renderSystem->GetVirtualHeight();
@@ -608,8 +635,9 @@ static void VR_GenMouseEvents()
 						   + shellAxis[1] * 0.5f * guiWidth
 						   + shellAxis[2] * 0.5f * guiHeight;
 		idMat3 invShellAxis = shellAxis.Inverse();
-		idVec3 rayStart = ( g_vrHeadOrigin - upperLeft ) * invShellAxis;
-		idVec3 rayDir = g_vrHeadAxis[0] * invShellAxis;
+		idVec3 rayStart = ( m_HeadOrigin - upperLeft ) * invShellAxis;
+		idVec3 rayDir = m_HeadAxis[0] * invShellAxis;
+
 		if( rayDir.x != 0 )
 		{
 			static int oldX, oldY;
@@ -623,7 +651,8 @@ static void VR_GenMouseEvents()
 			{
 				oldX = x;
 				oldY = y;
-				VR_UIEventQue( SE_MOUSE_ABSOLUTE, x, y );
+
+				UIEventQue( SE_MOUSE_ABSOLUTE, x, y );
 			}
 		}
 	}
@@ -631,14 +660,14 @@ static void VR_GenMouseEvents()
 
 
 
-bool VR_ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3& axis )
+bool VRSystem_Valve::ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3& axis )
 {
 	if( !pose.bPoseIsValid )
 	{
 		return false;
 	}
 
-	VR_ConvertMatrix( pose.mDeviceToAbsoluteTracking, origin, axis );
+	ConvertMatrix( pose.mDeviceToAbsoluteTracking, origin, axis );
 
 	return true;
 }
@@ -646,11 +675,13 @@ bool VR_ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3
 void VRSystem_Valve::UpdateResolution()
 {
 	vr_resolutionScale.ClearModified();
+
 	float scale = vr_resolutionScale.GetFloat();
 	uint32_t width, height;
 	hmd->GetRecommendedRenderTargetSize( &width, &height );
 	width = width * scale;
 	height = height * scale;
+
 	if( width < 540 )
 	{
 		width = 640;
@@ -659,6 +690,7 @@ void VRSystem_Valve::UpdateResolution()
 	{
 		width = 8000;
 	}
+
 	if( height < 540 )
 	{
 		height = 480;
@@ -667,6 +699,7 @@ void VRSystem_Valve::UpdateResolution()
 	{
 		height = 8000;
 	}
+
 	glConfig.openVRWidth = width;
 	glConfig.openVRHeight = height;
 }
@@ -679,37 +712,37 @@ void VRSystem_Valve::UpdateScaling()
 	glConfig.openVRScale = m2i * ratio;
 	glConfig.openVRHalfIPD = glConfig.openVRUnscaledHalfIPD * glConfig.openVRScale;
 	glConfig.openVREyeForward = glConfig.openVRUnscaledEyeForward * glConfig.openVRScale;
-	g_vrScaleX = -glConfig.openVRScale;
-	g_vrScaleY = -glConfig.openVRScale;
-	g_vrScaleZ = glConfig.openVRScale;
+	m_ScaleX = -glConfig.openVRScale;
+	m_ScaleY = -glConfig.openVRScale;
+	m_ScaleZ = glConfig.openVRScale;
 }
 
 void VRSystem_Valve::UpdateControllers()
 {
 	if( vr_forceGamepad.GetBool() )
 	{
-		g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-		g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+		m_leftController = vr::k_unTrackedDeviceIndexInvalid;
+		m_rightController = vr::k_unTrackedDeviceIndexInvalid;
 		return;
 	}
 
-	bool hadLeft = g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid;
-	bool hadRight = g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid;
+	bool hadLeft = m_leftController != vr::k_unTrackedDeviceIndexInvalid;
+	bool hadRight = m_rightController != vr::k_unTrackedDeviceIndexInvalid;
 
-	g_openVRLeftController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_LeftHand );
-	g_openVRRightController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_RightHand );
+	m_leftController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_LeftHand );
+	m_rightController = hmd->GetTrackedDeviceIndexForControllerRole( vr::TrackedControllerRole_RightHand );
 
-	if( hadLeft && g_openVRLeftController == vr::k_unTrackedDeviceIndexInvalid )
+	if( hadLeft && m_leftController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		common->Printf( "left controller lost\n" );
 	}
-	if( hadRight && g_openVRRightController == vr::k_unTrackedDeviceIndexInvalid )
+	if( hadRight && m_rightController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		common->Printf( "right controller lost\n" );
 	}
 
-	if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid
-			|| g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
+	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid
+			|| m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		if( glConfig.openVRSeated )
 		{
@@ -719,7 +752,7 @@ void VRSystem_Valve::UpdateControllers()
 			int axisType;
 
 			hmd->GetStringTrackedDeviceProperty(
-				g_openVRLeftController, vr::Prop_ModelNumber_String,
+				m_leftController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
 			if( strcmp( modelNumberString, "Hydra" ) == 0 )
 			{
@@ -727,12 +760,12 @@ void VRSystem_Valve::UpdateControllers()
 			}
 			else
 			{
-				axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRLeftController, vr::Prop_Axis0Type_Int32 );
+				axisType = hmd->GetInt32TrackedDeviceProperty( m_leftController, vr::Prop_Axis0Type_Int32 );
 				glConfig.openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 
 			hmd->GetStringTrackedDeviceProperty(
-				g_openVRRightController, vr::Prop_ModelNumber_String,
+				m_rightController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
 			if( strcmp( modelNumberString, "Hydra" ) == 0 )
 			{
@@ -740,7 +773,7 @@ void VRSystem_Valve::UpdateControllers()
 			}
 			else
 			{
-				axisType = hmd->GetInt32TrackedDeviceProperty( g_openVRRightController, vr::Prop_Axis0Type_Int32 );
+				axisType = hmd->GetInt32TrackedDeviceProperty( m_rightController, vr::Prop_Axis0Type_Int32 );
 				glConfig.openVRRightTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 		}
@@ -786,49 +819,50 @@ void VRSystem_Valve::PostSwap()
 	}
 
 	vr::TrackedDevicePose_t& hmdPose = rTrackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd];
-	g_vrHasHeadPose = hmdPose.bPoseIsValid;
+	m_HasHeadPose = hmdPose.bPoseIsValid;
+
 	if( hmdPose.bPoseIsValid )
 	{
-		VR_ConvertPose( hmdPose, g_vrHeadOrigin, g_vrHeadAxis );
-		g_vrHeadOrigin += glConfig.openVREyeForward * g_vrHeadAxis[0];
+		ConvertPose( hmdPose, m_HeadOrigin, m_HeadAxis );
+		m_HeadOrigin += glConfig.openVREyeForward * m_HeadAxis[0];
 
-		if( g_vrHadHead )
+		if( m_HadHead )
 		{
-			g_vrHeadMoveDelta = g_vrHeadOrigin - g_vrHeadLastOrigin;
-			g_vrHeadLastOrigin = g_vrHeadOrigin;
+			m_HeadMoveDelta = m_HeadOrigin - m_HeadLastOrigin;
+			m_HeadLastOrigin = m_HeadOrigin;
 		}
 		else
 		{
-			g_vrHadHead = true;
-			g_vrHeadMoveDelta.Zero();
+			m_HadHead = true;
+			m_HeadMoveDelta.Zero();
 		}
 	}
 	else
 	{
-		g_vrHadHead = false;
+		m_HadHead = false;
 	}
 
 	if( vr_forceGamepad.GetBool() )
 	{
-		g_vrHasLeftControllerPose = false;
-		g_vrHasRightControllerPose = false;
+		m_HasLeftControllerPose = false;
+		m_HasRightControllerPose = false;
 	}
 	else
 	{
-		if( g_openVRLeftController != vr::k_unTrackedDeviceIndexInvalid )
+		if( m_leftController != vr::k_unTrackedDeviceIndexInvalid )
 		{
-			if( g_openVRLeftControllerPulseDur > 500 )
+			if( m_leftControllerPulseDur > 500 )
 			{
-				hmd->TriggerHapticPulse( g_openVRLeftController, 0, g_openVRLeftControllerPulseDur );
+				hmd->TriggerHapticPulse( m_leftController, 0, m_leftControllerPulseDur );
 			}
-			g_openVRLeftControllerPulseDur = 0;
+			m_leftControllerPulseDur = 0;
 
 			static bool hadLeftPose;
-			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[g_openVRLeftController];
+			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[m_leftController];
 			if( handPose.bPoseIsValid )
 			{
-				g_vrHasLeftControllerPose = true;
-				VR_ConvertPose( handPose, g_vrLeftControllerOrigin, g_vrLeftControllerAxis );
+				m_HasLeftControllerPose = true;
+				ConvertPose( handPose, m_LeftControllerOrigin, m_LeftControllerAxis );
 				hadLeftPose = true;
 			}
 			else if( hadLeftPose )
@@ -838,20 +872,21 @@ void VRSystem_Valve::PostSwap()
 			}
 		}
 
-		if( g_openVRRightController != vr::k_unTrackedDeviceIndexInvalid )
+		if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 		{
-			if( g_openVRRightControllerPulseDur > 500 )
+			if( m_rightControllerPulseDur > 500 )
 			{
-				hmd->TriggerHapticPulse( g_openVRRightController, 0, g_openVRRightControllerPulseDur );
+				hmd->TriggerHapticPulse( m_rightController, 0, m_rightControllerPulseDur );
 			}
-			g_openVRRightControllerPulseDur = 0;
+			m_rightControllerPulseDur = 0;
 
 			static bool hadRightPose;
-			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[g_openVRRightController];
+			vr::TrackedDevicePose_t& handPose = rTrackedDevicePose[m_rightController];
+
 			if( handPose.bPoseIsValid )
 			{
-				g_vrHasRightControllerPose = true;
-				VR_ConvertPose( handPose, g_vrRightControllerOrigin, g_vrRightControllerAxis );
+				m_HasRightControllerPose = true;
+				ConvertPose( handPose, m_RightControllerOrigin, m_RightControllerAxis );
 				hadRightPose = true;
 			}
 			else if( hadRightPose )
@@ -862,9 +897,9 @@ void VRSystem_Valve::PostSwap()
 		}
 	}
 
-	VR_ClearEvents();
+	ClearEvents();
 
-	VR_GenJoyAxisEvents();
+	GenJoyAxisEvents();
 
 	vr::VREvent_t e;
 	while( hmd->PollNextEvent( &e, sizeof( e ) ) )
@@ -878,33 +913,33 @@ void VRSystem_Valve::PostSwap()
 				switch(role)
 				{
 				case vr::TrackedControllerRole_LeftHand:
-					g_openVRLeftController = e.trackedDeviceIndex;
+					m_leftController = e.trackedDeviceIndex;
 					break;
 				case vr::TrackedControllerRole_RightHand:
-					g_openVRRightController = e.trackedDeviceIndex;
+					m_rightController = e.trackedDeviceIndex;
 					break;
 				}
 				break;
 			case vr::VREvent_TrackedDeviceDeactivated:
-				if (e.trackedDeviceIndex == g_openVRLeftController)
+				if (e.trackedDeviceIndex == m_leftController)
 				{
-					g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
+					m_leftController = vr::k_unTrackedDeviceIndexInvalid;
 				}
-				else if (e.trackedDeviceIndex == g_openVRRightController)
+				else if (e.trackedDeviceIndex == m_rightController)
 				{
-					g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+					m_rightController = vr::k_unTrackedDeviceIndexInvalid;
 				}
 				break;*/
 			case vr::VREvent_ButtonPress:
-				if( e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController )
+				if( e.trackedDeviceIndex == m_leftController || e.trackedDeviceIndex == m_rightController )
 				{
-					VR_GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, true );
+					GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == m_leftController, true );
 				}
 				break;
 			case vr::VREvent_ButtonUnpress:
-				if( e.trackedDeviceIndex == g_openVRLeftController || e.trackedDeviceIndex == g_openVRRightController )
+				if( e.trackedDeviceIndex == m_leftController || e.trackedDeviceIndex == m_rightController )
 				{
-					VR_GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == g_openVRLeftController, false );
+					GenButtonEvent( e.data.controller.button, e.trackedDeviceIndex == m_leftController, false );
 				}
 				break;
 		}
@@ -912,21 +947,21 @@ void VRSystem_Valve::PostSwap()
 
 	if( !glConfig.openVRSeated )
 	{
-		VR_GenMouseEvents();
+		GenMouseEvents();
 	}
 
 	if( g_poseReset )
 	{
 		g_poseReset = false;
-		VR_ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis );
-		g_SeatedAxisInverse = g_SeatedAxis.Inverse();
+		ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), m_seatedOrigin, m_seatedAxis );
+		m_seatedAxisInverse = m_seatedAxis.Inverse();
 		tr.guiModel->UpdateVRShell();
 	}
 }
 
-bool VR_CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch )
+bool VRSystem_Valve::CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch )
 {
-	if( !g_vrHasHeadPose )
+	if( !m_HasHeadPose )
 	{
 		return false;
 	}
@@ -942,27 +977,27 @@ bool VR_CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bo
 	{
 		origin.z -= eyeOffset.z;
 		// ignore x and y
-		origin += axis[2] * g_vrHeadOrigin.z;
+		origin += axis[2] * m_HeadOrigin.z;
 	}
 	else
 	{
-		origin += axis * g_vrHeadOrigin;
+		origin += axis * m_HeadOrigin;
 	}
 
-	axis = g_vrHeadAxis * axis;
+	axis = m_HeadAxis * axis;
 
 	return true;
 }
 
 bool VRSystem_Valve::GetHead( idVec3& origin, idMat3& axis )
 {
-	if( !g_vrHasHeadPose )
+	if( !m_HasHeadPose )
 	{
 		return false;
 	}
 
-	origin = g_vrHeadOrigin;
-	axis = g_vrHeadAxis;
+	origin = m_HeadOrigin;
+	axis = m_HeadAxis;
 
 	return true;
 }
@@ -970,13 +1005,13 @@ bool VRSystem_Valve::GetHead( idVec3& origin, idMat3& axis )
 // returns left controller position relative to the head
 bool VRSystem_Valve::GetLeftController( idVec3& origin, idMat3& axis )
 {
-	if( !g_vrHasLeftControllerPose || !g_vrHasHeadPose )
+	if( !m_HasLeftControllerPose || !m_HasHeadPose )
 	{
 		return false;
 	}
 
-	origin = g_vrLeftControllerOrigin;
-	axis = g_vrLeftControllerAxis;
+	origin = m_LeftControllerOrigin;
+	axis = m_LeftControllerAxis;
 
 	return true;
 }
@@ -984,44 +1019,44 @@ bool VRSystem_Valve::GetLeftController( idVec3& origin, idMat3& axis )
 // returns right controller position relative to the head
 bool VRSystem_Valve::GetRightController( idVec3& origin, idMat3& axis )
 {
-	if( !g_vrHasRightControllerPose || !g_vrHasHeadPose )
+	if( !m_HasRightControllerPose || !m_HasHeadPose )
 	{
 		return false;
 	}
 
-	origin = g_vrRightControllerOrigin;
-	axis = g_vrRightControllerAxis;
+	origin = m_RightControllerOrigin;
+	axis = m_RightControllerAxis;
 
 	return true;
 }
 
 void VRSystem_Valve::MoveDelta( idVec3& delta, float& height )
 {
-	if( !g_vrHasHeadPose )
+	if( !m_HasHeadPose )
 	{
 		height = 0.f;
 		delta.Set( 0, 0, 0 );
 		return;
 	}
 
-	height = g_vrHeadOrigin.z;
+	height = m_HeadOrigin.z;
 
-	delta.x = g_vrHeadMoveDelta.x;
-	delta.y = g_vrHeadMoveDelta.y;
+	delta.x = m_HeadMoveDelta.x;
+	delta.y = m_HeadMoveDelta.y;
 	delta.z = 0.f;
 
-	g_vrHeadMoveDelta.Zero();
+	m_HeadMoveDelta.Zero();
 }
 
 void VRSystem_Valve::HapticPulse( int leftDuration, int rightDuration )
 {
-	if( leftDuration > g_openVRLeftControllerPulseDur )
+	if( leftDuration > m_leftControllerPulseDur )
 	{
-		g_openVRLeftControllerPulseDur = leftDuration;
+		m_leftControllerPulseDur = leftDuration;
 	}
-	if( rightDuration > g_openVRRightControllerPulseDur )
+	if( rightDuration > m_rightControllerPulseDur )
 	{
-		g_openVRRightControllerPulseDur = rightDuration;
+		m_rightControllerPulseDur = rightDuration;
 	}
 }
 
@@ -1029,14 +1064,14 @@ extern idCVar joy_deadZone;
 
 bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 {
-	if( g_openVRLeftController == vr::k_unTrackedDeviceIndexInvalid )
+	if( m_leftController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		return false;
 	}
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	if( glConfig.openVRLeftTouchpad )
 	{
-		if( !( g_vrLeftControllerState.ulButtonTouched & mask ) )
+		if( !( m_LeftControllerState.ulButtonTouched & mask ) )
 		{
 			return false;
 		}
@@ -1044,27 +1079,27 @@ bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 	else
 	{
 		const float threshold =			joy_deadZone.GetFloat();
-		if( fabs( g_vrLeftControllerState.rAxis[0].x ) < threshold &&
-				fabs( g_vrLeftControllerState.rAxis[0].y ) < threshold )
+		if( fabs( m_LeftControllerState.rAxis[0].x ) < threshold &&
+				fabs( m_LeftControllerState.rAxis[0].y ) < threshold )
 		{
 			return false;
 		}
 	}
-	axis.x = g_vrLeftControllerState.rAxis[0].x;
-	axis.y = g_vrLeftControllerState.rAxis[0].y;
+	axis.x = m_LeftControllerState.rAxis[0].x;
+	axis.y = m_LeftControllerState.rAxis[0].y;
 	return true;
 }
 
 bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 {
-	if( g_openVRRightController == vr::k_unTrackedDeviceIndexInvalid )
+	if( m_rightController == vr::k_unTrackedDeviceIndexInvalid )
 	{
 		return false;
 	}
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	if( glConfig.openVRRightTouchpad )
 	{
-		if( !( g_vrRightControllerState.ulButtonTouched & mask ) )
+		if( !( m_RightControllerState.ulButtonTouched & mask ) )
 		{
 			return false;
 		}
@@ -1072,50 +1107,50 @@ bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 	else
 	{
 		const float threshold =			joy_deadZone.GetFloat();
-		if( fabs( g_vrRightControllerState.rAxis[0].x ) < threshold &&
-				fabs( g_vrRightControllerState.rAxis[0].y ) < threshold )
+		if( fabs( m_RightControllerState.rAxis[0].x ) < threshold &&
+				fabs( m_RightControllerState.rAxis[0].y ) < threshold )
 		{
 			return false;
 		}
 	}
-	axis.x = g_vrRightControllerState.rAxis[0].x;
-	axis.y = g_vrRightControllerState.rAxis[0].y;
+	axis.x = m_RightControllerState.rAxis[0].x;
+	axis.y = m_RightControllerState.rAxis[0].y;
 	return true;
 }
 
 bool VRSystem_Valve::LeftControllerWasPressed()
 {
-	return g_vrLeftControllerWasPressed;
+	return m_LeftControllerWasPressed;
 }
 
 bool VRSystem_Valve::LeftControllerIsPressed()
 {
 	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
-	return ( g_vrLeftControllerState.ulButtonPressed & mask ) != 0;
+	return ( m_LeftControllerState.ulButtonPressed & mask ) != 0;
 }
 
 bool VRSystem_Valve::RightControllerWasPressed()
 {
-	return g_vrRightControllerWasPressed;
+	return m_RightControllerWasPressed;
 }
 
 bool VRSystem_Valve::RightControllerIsPressed()
 {
 	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
-	return ( g_vrRightControllerState.ulButtonPressed & mask ) != 0;
+	return ( m_RightControllerState.ulButtonPressed & mask ) != 0;
 }
 
 const idVec3& VRSystem_Valve::GetSeatedOrigin()
 {
-	return g_SeatedOrigin;
+	return m_seatedOrigin;
 }
 
 const idMat3& VRSystem_Valve::GetSeatedAxis()
 {
-	return g_SeatedAxis;
+	return m_seatedAxis;
 }
 
 const idMat3& VRSystem_Valve::GetSeatedAxisInverse()
 {
-	return g_SeatedAxisInverse;
+	return m_seatedAxisInverse;
 }
