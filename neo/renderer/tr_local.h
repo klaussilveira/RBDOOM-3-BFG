@@ -1549,36 +1549,7 @@ VR
 =============================================================
 */
 
-const sysEvent_t& VR_UIEventNext();
-
-void VR_ResetPose();
-void VR_LogDevices();
-
-void VR_UpdateResolution();
-void VR_UpdateScaling();
-void VR_UpdateControllers();
-
-int VR_PollGameInputEvents();
-int VR_ReturnGameInputEvent( const int n, int& action, int& value );
-
-void VR_PreSwap( GLuint left, GLuint right );
-void VR_PostSwap();
-
-bool VR_GetHead( idVec3& origin, idMat3& axis );
-bool VR_GetLeftController( idVec3& origin, idMat3& axis );
-bool VR_GetRightController( idVec3& origin, idMat3& axis );
-void VR_MoveDelta( idVec3& delta, float& height );
-void VR_HapticPulse( int leftDuration, int rightDuration );
-bool VR_GetLeftControllerAxis( idVec2& axis );
-bool VR_GetRightControllerAxis( idVec2& axis );
-bool VR_LeftControllerWasPressed();
-bool VR_LeftControllerIsPressed();
-bool VR_RightControllerWasPressed();
-bool VR_RightControllerIsPressed();
-
-const idVec3& VR_GetSeatedOrigin();
-const idMat3& VR_GetSeatedAxis();
-const idMat3& VR_GetSeatedAxisInverse();
+#include "../vr/VRSystem.h"
 
 class idDeclSkinVR : public idDeclSkin
 {

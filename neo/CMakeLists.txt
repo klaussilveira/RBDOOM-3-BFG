@@ -554,6 +554,8 @@ file(GLOB UI_SOURCES ui/*.cpp)
 file(GLOB SWF_INCLUDES swf/*.h)
 file(GLOB SWF_SOURCES swf/*.cpp)
 
+file(GLOB VR_INCLUDES vr/*.h)
+file(GLOB VR_SOURCES vr/*.cpp)
 
 set(GAMED3XP_INCLUDES
 	d3xp/Achievements.h
@@ -965,6 +967,9 @@ source_group("swf" FILES ${SWF_SOURCES})
 source_group("sys" FILES ${SYS_INCLUDES})
 source_group("sys" FILES ${SYS_SOURCES})
 
+source_group("vr" FILES ${VR_INCLUDES})
+source_group("vr" FILES ${VR_SOURCES})
+
 source_group("doomclassic" FILES ${DOOMCLASSIC_INCLUDES})
 source_group("doomclassic" FILES ${DOOMCLASSIC_SOURCES})
 
@@ -1096,6 +1101,7 @@ set(RBDOOM3_INCLUDES
 			#${OGGVORBIS_INCLUDES}
 			${UI_INCLUDES}
 			${SWF_INCLUDES}
+			${VR_INCLUDES}
 			${COMMON_INCLUDES}
 			${DOOMCLASSIC_INCLUDES}
 			${TIMIDITY_INCLUDES}
@@ -1131,6 +1137,7 @@ set(RBDOOM3_SOURCES
 			#${OGGVORBIS_INCLUDES} ${OGGVORBIS_SOURCES}
 			${UI_SOURCES}
 			${SWF_SOURCES}
+			${VR_SOURCES}
 			${COMMON_SOURCES}
 			${DOOMCLASSIC_SOURCES}
 			${TIMIDITY_SOURCES}
