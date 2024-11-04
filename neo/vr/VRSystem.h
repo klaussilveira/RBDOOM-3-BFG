@@ -36,36 +36,52 @@ VR
 =============================================================
 */
 
-const sysEvent_t& VR_UIEventNext();
+class VRSystem
+{
+public:
+	static void				Init();
 
-void VR_ResetPose();
-void VR_LogDevices();
+	virtual					~VRSystem() {}
 
-void VR_UpdateResolution();
-void VR_UpdateScaling();
-void VR_UpdateControllers();
+	virtual bool			InitHMD() = 0;
+	virtual void			ShutdownHMD() = 0;
+	virtual void			UpdateHMD() = 0;
 
-int VR_PollGameInputEvents();
-int VR_ReturnGameInputEvent( const int n, int& action, int& value );
+	virtual void			ResetPose() = 0;
+	virtual void			LogDevices() = 0;
 
-void VR_PreSwap( GLuint left, GLuint right );
-void VR_PostSwap();
+	virtual void			UpdateResolution() = 0;
+	//virtual void			UpdateScaling() = 0;
+	//virtual void			UpdateControllers() = 0;
 
-bool VR_GetHead( idVec3& origin, idMat3& axis );
-bool VR_GetLeftController( idVec3& origin, idMat3& axis );
-bool VR_GetRightController( idVec3& origin, idMat3& axis );
-void VR_MoveDelta( idVec3& delta, float& height );
-void VR_HapticPulse( int leftDuration, int rightDuration );
-bool VR_GetLeftControllerAxis( idVec2& axis );
-bool VR_GetRightControllerAxis( idVec2& axis );
-bool VR_LeftControllerWasPressed();
-bool VR_LeftControllerIsPressed();
-bool VR_RightControllerWasPressed();
-bool VR_RightControllerIsPressed();
+	virtual int				PollGameInputEvents() = 0;
+	virtual int				ReturnGameInputEvent( const int n, int& action, int& value ) = 0;
 
-const idVec3& VR_GetSeatedOrigin();
-const idMat3& VR_GetSeatedAxis();
-const idMat3& VR_GetSeatedAxisInverse();
+	virtual void			PreSwap( GLuint left, GLuint right ) = 0;
+	virtual void			PostSwap() = 0;
 
+	virtual bool			GetHead( idVec3& origin, idMat3& axis ) = 0;
+	virtual bool			GetLeftController( idVec3& origin, idMat3& axis ) = 0;
+	virtual bool			GetRightController( idVec3& origin, idMat3& axis ) = 0;
+	virtual void			MoveDelta( idVec3& delta, float& height ) = 0;
+	virtual void			HapticPulse( int leftDuration, int rightDuration ) = 0;
+
+	virtual bool			GetLeftControllerAxis( idVec2& axis ) = 0;
+	virtual bool			GetRightControllerAxis( idVec2& axis ) = 0;
+
+	virtual bool			LeftControllerWasPressed() = 0;
+	virtual bool			LeftControllerIsPressed() = 0;
+
+	virtual bool			RightControllerWasPressed() = 0;
+	virtual bool			RightControllerIsPressed() = 0;
+
+	virtual const idVec3&	GetSeatedOrigin() = 0;
+	virtual const idMat3&	GetSeatedAxis() = 0;
+	virtual const idMat3&	GetSeatedAxisInverse() = 0;
+
+	virtual const sysEvent_t&		UIEventNext() = 0;
+};
+
+extern VRSystem* vrSystem;
 
 #endif // __VR_SYSTEM_H

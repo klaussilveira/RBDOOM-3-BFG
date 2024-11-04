@@ -5647,7 +5647,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 	if( glConfig.openVREnabled
 			&& cmd->viewDef->guiMode == GUIMODE_NONE
 			&& cmd->viewDef->renderView.vrHadHead
-			&& VR_GetHead( vrHeadOrigin, vrHeadAxis ) )
+			&& vrSystem->GetHead( vrHeadOrigin, vrHeadAxis ) )
 	{
 		// last moment update of view to reduce lag
 		idVec3 vrDeltaOrigin = ( vrHeadOrigin - cmd->viewDef->renderView.vrHeadOrigin ) * cmd->viewDef->renderView.vrMoveAxis;
@@ -5720,8 +5720,8 @@ void RB_DrawView( const void* data, const int stereoEye )
 				idMat3 vrShellAxis;
 				if( !tr.guiModel->GetVRShell( vrShellOrigin, vrShellAxis ) )
 				{
-					vrShellOrigin = VR_GetSeatedOrigin();
-					vrShellAxis = VR_GetSeatedAxis();
+					vrShellOrigin = vrSystem->GetSeatedOrigin();
+					vrShellAxis = vrSystem->GetSeatedAxis();
 				}
 
 				float guiHeight = 12 * 5.3f;
@@ -5745,15 +5745,15 @@ void RB_DrawView( const void* data, const int stereoEye )
 
 				idVec3 vrHeadOrigin;
 				idMat3 vrHeadAxis;
-				if( VR_GetHead( vrHeadOrigin, vrHeadAxis ) )
+				if( vrSystem->GetHead( vrHeadOrigin, vrHeadAxis ) )
 				{
 					vrHeadAxis.InverseSelf();
 					vrHeadOrigin = vrHeadAxis * -vrHeadOrigin;
 				}
 				else
 				{
-					vrHeadAxis = VR_GetSeatedAxisInverse();
-					vrHeadOrigin = vrHeadAxis * -VR_GetSeatedOrigin();
+					vrHeadAxis = vrSystem->GetSeatedAxisInverse();
+					vrHeadOrigin = vrHeadAxis * -vrSystem->GetSeatedOrigin();
 				}
 				vrHeadOrigin.y += glConfig.openVRHalfIPD * stereoEye;
 
@@ -5926,7 +5926,7 @@ void RB_PostProcess( const void* data )
 		/*
 		 * The shader has three passes, chained together as follows:
 		 *
-		 *                           |input|------------------·
+		 *                           |input|------------------ï¿½
 		 *                              v                     |
 		 *                    [ SMAA*EdgeDetection ]          |
 		 *                              v                     |
@@ -5936,7 +5936,7 @@ void RB_PostProcess( const void* data )
 		 *                              v                     |
 		 *                          |blendTex|                |
 		 *                              v                     |
-		 *                [ SMAANeighborhoodBlending ] <------·
+		 *                [ SMAANeighborhoodBlending ] <------ï¿½
 		 *                              v
 		 *                           |output|
 		*/

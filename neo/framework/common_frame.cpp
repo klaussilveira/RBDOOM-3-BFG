@@ -413,7 +413,7 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 			rightDur = vr_hapticMax.GetInteger();
 		}
 
-		VR_HapticPulse( leftDur, rightDur );
+		vrSystem->HapticPulse( leftDur, rightDur );
 	}
 	else if( in_useJoystick.GetBool() && in_joystickRumble.GetBool() && !game->Shell_IsActive() && session->GetSignInManager().GetMasterInputDevice() >= 0 )
 	{

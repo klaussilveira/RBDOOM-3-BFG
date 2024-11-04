@@ -835,84 +835,6 @@ safeMode:
 	}
 }
 
-vr::IVRSystem* hmd;
-float g_vrScaleX = 1.f;
-float g_vrScaleY = 1.f;
-float g_vrScaleZ = 1.f;
-vr::TrackedDeviceIndex_t g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-vr::TrackedDeviceIndex_t g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
-idVec3 g_SeatedOrigin;
-idMat3 g_SeatedAxis;
-idMat3 g_SeatedAxisInverse;
-
-void VR_ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis );
-
-static void VR_Init()
-{
-	vr::EVRInitError error = vr::VRInitError_None;
-	hmd = vr::VR_Init( &error, vr::VRApplication_Scene );
-	if( error != vr::VRInitError_None )
-	{
-		common->Printf( "VR initialization failed: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription( error ) );
-		glConfig.openVREnabled = false;
-		return;
-	}
-
-	if( !vr::VRCompositor() )
-	{
-		common->Printf( "VR compositor not present.\n" );
-		glConfig.openVREnabled = false;
-		return;
-	}
-
-	//vr::VRCompositor()->ForceInterleavedReprojectionOn( true );
-
-	glConfig.openVREnabled = true;
-
-	VR_UpdateResolution();
-
-	hmd->GetProjectionRaw( vr::Eye_Left,
-						   &glConfig.openVRfovEye[1][0], &glConfig.openVRfovEye[1][1],
-						   &glConfig.openVRfovEye[1][2], &glConfig.openVRfovEye[1][3] );
-
-	hmd->GetProjectionRaw( vr::Eye_Right,
-						   &glConfig.openVRfovEye[0][0], &glConfig.openVRfovEye[0][1],
-						   &glConfig.openVRfovEye[0][2], &glConfig.openVRfovEye[0][3] );
-
-	glConfig.openVRScreenSeparation =
-		0.5f * ( glConfig.openVRfovEye[1][1] + glConfig.openVRfovEye[1][0] )
-		/ ( glConfig.openVRfovEye[1][1] - glConfig.openVRfovEye[1][0] )
-		- 0.5f * ( glConfig.openVRfovEye[0][1] + glConfig.openVRfovEye[0][0] )
-		/ ( glConfig.openVRfovEye[0][1] - glConfig.openVRfovEye[0][0] );
-
-	vr::HmdMatrix34_t mat;
-
-#if 0
-	mat = hmd->GetEyeToHeadTransform( vr::Eye_Left );
-	Convert4x3Matrix( &mat, hmdEyeLeft );
-	MatrixRTInverse( hmdEyeLeft );
-#endif
-
-	mat = hmd->GetEyeToHeadTransform( vr::Eye_Right );
-#if 0
-	Convert4x3Matrix( &mat, hmdEyeRight );
-	MatrixRTInverse( hmdEyeRight );
-#endif
-
-	glConfig.openVRUnscaledHalfIPD = mat.m[0][3];
-	glConfig.openVRUnscaledEyeForward = -mat.m[2][3];
-	VR_UpdateScaling();
-
-	glConfig.openVRSeated = true;
-	g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
-	g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
-	VR_UpdateControllers();
-
-	vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
-	VR_ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis );
-	g_SeatedAxisInverse = g_SeatedAxis.Inverse();
-}
-
 idStr extensions_string;
 
 /*
@@ -947,7 +869,7 @@ void R_InitOpenGL()
 
 	R_SetNewMode( true );
 
-	VR_Init();
+	VRSystem::Init();
 
 	// input and sound systems need to be tied to the new window
 	Sys_InitInput();
@@ -2597,7 +2519,7 @@ void VR_ResetPose_f( const idCmdArgs& args )
 {
 	if( glConfig.openVREnabled )
 	{
-		VR_ResetPose();
+		vrSystem->ResetPose();
 	}
 }
 
@@ -2611,7 +2533,7 @@ void VR_LogDevices_f( const idCmdArgs& args )
 {
 	if( glConfig.openVREnabled )
 	{
-		VR_LogDevices();
+		vrSystem->LogDevices();
 	}
 }
 

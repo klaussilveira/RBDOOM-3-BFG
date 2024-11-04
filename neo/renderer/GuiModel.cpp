@@ -127,15 +127,17 @@ bool idGuiModel::UpdateVRShell()
 {
 	if( vr_seated.GetBool() )
 	{
-		vrShellOrigin = VR_GetSeatedOrigin();
-		vrShellAxis = VR_GetSeatedAxis();
+		vrShellOrigin = vrSystem->GetSeatedOrigin();
+		vrShellAxis = vrSystem->GetSeatedAxis();
 		return true;
 	}
-	vrShellNeedsUpdate = !VR_GetHead( vrShellOrigin, vrShellAxis );
+
+	vrShellNeedsUpdate = !vrSystem->GetHead( vrShellOrigin, vrShellAxis );
 	if( vrShellNeedsUpdate )
 	{
 		return false;
 	}
+
 	idVec3 forward;
 	if( vrShellAxis[0].z > 0.707f ) // head pitched up
 	{
@@ -149,10 +151,12 @@ bool idGuiModel::UpdateVRShell()
 	{
 		forward = vrShellAxis[0];
 	}
+
 	static idVec3 up( 0, 0, 1 );
 	forward.ProjectOntoPlane( up );
 	forward.Normalize();
 	vrShellAxis = forward.ToMat3();
+
 	return true;
 }
 

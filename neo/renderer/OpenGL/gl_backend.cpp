@@ -162,7 +162,7 @@ const void GL_BlockingSwapBuffers()
 			vr_outputUpdates++;
 		}
 
-		VR_PostSwap();
+		vrSystem->PostSwap();
 	}
 	else
 	{
@@ -616,7 +616,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 		case STEREO3D_OPENVR:
 			if( glConfig.openVREnabled )
 			{
-				VR_PreSwap( stereoRenderImages[0]->GetTexNum(), stereoRenderImages[1]->GetTexNum() );
+				vrSystem->PreSwap( stereoRenderImages[0]->GetTexNum(), stereoRenderImages[1]->GetTexNum() );
 			}
 
 			if( vr_outputMode.IsModified() || vr_outputScale.IsModified() )

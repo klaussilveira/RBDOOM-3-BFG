@@ -7277,7 +7277,7 @@ void idPlayer::UpdateViewAngles()
 			}
 			hadBodyYaw = !( usercmd.buttons & BUTTON_RECENTER );
 
-			vrFaceForward = VR_GetSeatedAxisInverse() * idAngles( 0, delta, 0 ).ToMat3();
+			vrFaceForward = vrSystem->GetSeatedAxisInverse() * idAngles( 0, delta, 0 ).ToMat3();
 		}
 		else if( usercmd.vrHasHead )
 		{
@@ -10998,7 +10998,7 @@ bool idPlayer::CalculateVRView( idVec3& origin, idMat3& axis, bool overridePitch
 	}
 	else
 	{
-		origin += ( usercmd.vrHeadOrigin - VR_GetSeatedOrigin() ) * vrFaceForward * axis;
+		origin += ( usercmd.vrHeadOrigin - vrSystem->GetSeatedOrigin() ) * vrFaceForward * axis;
 	}
 
 	axis = usercmd.vrHeadAxis * vrFaceForward * axis;
@@ -11198,7 +11198,7 @@ void idPlayer::CalculateFirstPersonView()
 
 		if( glConfig.openVRSeated )
 		{
-			const idVec3& seatedOrigin = VR_GetSeatedOrigin();
+			const idVec3& seatedOrigin = vrSystem->GetSeatedOrigin();
 
 			flashlightOrigin = hmdOrigin + hmdAxis[2] * -5;
 
@@ -11467,9 +11467,9 @@ void idPlayer::CalculateRenderView()
 				hasCameraFirstFrame = usercmd.vrHasHead;
 				if( vr_seated.GetBool() || !hasCameraFirstFrame )
 				{
-					lastHeadOrigin = VR_GetSeatedOrigin();
-					lastHeadAxisInv = VR_GetSeatedAxisInverse();
-					tr.guiModel->SetVRShell( lastHeadOrigin, VR_GetSeatedAxis() );
+					lastHeadOrigin = vrSystem->GetSeatedOrigin();
+					lastHeadAxisInv = vrSystem->GetSeatedAxisInverse();
+					tr.guiModel->SetVRShell( lastHeadOrigin, vrSystem->GetSeatedAxis() );
 				}
 				else
 				{

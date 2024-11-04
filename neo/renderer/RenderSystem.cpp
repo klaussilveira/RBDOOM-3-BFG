@@ -240,7 +240,7 @@ static void R_CheckCvars()
 #if 0
 	if( vr_resolutionScale.IsModified() )
 	{
-		VR_UpdateResolution();
+		vrSystem->UpdateResolution();
 	}
 #endif
 

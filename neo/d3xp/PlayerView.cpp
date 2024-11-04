@@ -857,8 +857,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	// first chance update of VR head tracking
 	idVec3 vrHeadOrigin;
 	idMat3 vrHeadAxis;
-	if( player->usercmd.vrHasHead &&
-			VR_GetHead( vrHeadOrigin, vrHeadAxis ) )
+	if( player->usercmd.vrHasHead && vrSystem->GetHead( vrHeadOrigin, vrHeadAxis ) )
 	{
 		idVec3 vrDeltaOrigin = ( vrHeadOrigin - player->usercmd.vrHeadOrigin ) * eyeView.vrMoveAxis;
 		idMat3 vrDeltaAxis = vrHeadAxis * player->usercmd.vrHeadAxis.Inverse();

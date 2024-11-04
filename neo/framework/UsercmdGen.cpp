@@ -1088,17 +1088,17 @@ void idUsercmdGenLocal::VRControlMove()
 	bool touchpad = false;
 	leftAxis.Zero();
 	rightAxis.Zero();
-	if( vr_leftAxis.GetInteger() == 0 && VR_GetLeftControllerAxis( leftAxis ) )
+	if( vr_leftAxis.GetInteger() == 0 && vrSystem->GetLeftControllerAxis( leftAxis ) )
 	{
-		wasPressed = VR_LeftControllerWasPressed();
-		isPressed = VR_LeftControllerIsPressed();
+		wasPressed = vrSystem->LeftControllerWasPressed();
+		isPressed = vrSystem->LeftControllerIsPressed();
 		touchpad = glConfig.openVRLeftTouchpad;
 		moving = true;
 	}
-	if( vr_rightAxis.GetInteger() == 0 && VR_GetRightControllerAxis( rightAxis ) )
+	if( vr_rightAxis.GetInteger() == 0 && vrSystem->GetRightControllerAxis( rightAxis ) )
 	{
-		wasPressed |= VR_RightControllerWasPressed();
-		isPressed |= VR_RightControllerIsPressed();
+		wasPressed |= vrSystem->RightControllerWasPressed();
+		isPressed |= vrSystem->RightControllerIsPressed();
 		touchpad |= glConfig.openVRRightTouchpad;
 		moving = true;
 	}
@@ -1318,16 +1318,19 @@ void idUsercmdGenLocal::VRControlMove()
 	bool turning = false;
 	leftAxis.Zero();
 	rightAxis.Zero();
+
 	if( vr_leftAxis.GetInteger() == 1 )
 	{
-		VR_GetLeftControllerAxis( leftAxis );
+		vrSystem->GetLeftControllerAxis( leftAxis );
 		turning = true;
 	}
+
 	if( vr_rightAxis.GetInteger() == 1 )
 	{
-		VR_GetRightControllerAxis( rightAxis );
+		vrSystem->GetRightControllerAxis( rightAxis );
 		turning = true;
 	}
+
 	if( turning )
 	{
 		axis = leftAxis + rightAxis;
@@ -1367,7 +1370,7 @@ idUsercmdGenLocal::VRTrackedMove
 */
 void idUsercmdGenLocal::VRTrackedMove()
 {
-	cmd.vrHasHead = VR_GetHead( cmd.vrHeadOrigin, cmd.vrHeadAxis );
+	cmd.vrHasHead = vrSystem->GetHead( cmd.vrHeadOrigin, cmd.vrHeadAxis );
 	if( !cmd.vrHasHead )
 	{
 		cmd.vrHeadAxis.Identity();
@@ -1378,8 +1381,8 @@ void idUsercmdGenLocal::VRTrackedMove()
 		return;
 	}
 
-	cmd.vrHasLeftController = VR_GetLeftController( cmd.vrLeftControllerOrigin, cmd.vrLeftControllerAxis );
-	cmd.vrHasRightController = VR_GetRightController( cmd.vrRightControllerOrigin, cmd.vrRightControllerAxis );
+	cmd.vrHasLeftController = vrSystem->GetLeftController( cmd.vrLeftControllerOrigin, cmd.vrLeftControllerAxis );
+	cmd.vrHasRightController = vrSystem->GetRightController( cmd.vrRightControllerOrigin, cmd.vrRightControllerAxis );
 	if( !cmd.vrHasLeftController || !cmd.vrHasRightController )
 	{
 		cmd.vrHasLeftController = false;
@@ -1848,13 +1851,13 @@ idUsercmdGenLocal::VRControllers
 */
 void idUsercmdGenLocal::VRControllers()
 {
-	int numEvents = VR_PollGameInputEvents();
+	int numEvents = vrSystem->PollGameInputEvents();
 
 	for( int i = 0; i < numEvents; i++ )
 	{
 		int button;
 		int value;
-		if( VR_ReturnGameInputEvent( i, button, value ) )
+		if( vrSystem->ReturnGameInputEvent( i, button, value ) )
 		{
 			bool down = value != 0;
 			Key( button, down );

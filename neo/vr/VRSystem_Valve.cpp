@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 2016 Leyland Needham
+Copyright (C) 2024 Robert Beckebans (class refactoring)
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -34,15 +35,65 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../renderer/tr_local.h" // TODO remove
 #include "VRSystem.h"
 
-extern vr::IVRSystem* hmd;
-extern float g_vrScaleX;
-extern float g_vrScaleY;
-extern float g_vrScaleZ;
-extern vr::TrackedDeviceIndex_t g_openVRLeftController;
-extern vr::TrackedDeviceIndex_t g_openVRRightController;
-extern idVec3 g_SeatedOrigin;
-extern idMat3 g_SeatedAxis;
-extern idMat3 g_SeatedAxisInverse;
+class VRSystem_Valve : public VRSystem
+{
+	virtual	bool			InitHMD();
+	virtual	void			ShutdownHMD() {}
+	virtual	void			UpdateHMD() {}
+
+	virtual	void			ResetPose();
+	virtual	void			LogDevices();
+
+	virtual void			UpdateResolution();
+	virtual void			UpdateScaling();
+	virtual void			UpdateControllers();
+
+	virtual int				PollGameInputEvents();
+	virtual int				ReturnGameInputEvent( const int n, int& action, int& value );
+
+	virtual void			PreSwap( GLuint left, GLuint right );
+	virtual void			PostSwap();
+
+	virtual bool			GetHead( idVec3& origin, idMat3& axis );
+	virtual bool			GetLeftController( idVec3& origin, idMat3& axis );
+	virtual bool			GetRightController( idVec3& origin, idMat3& axis );
+	virtual void			MoveDelta( idVec3& delta, float& height );
+	virtual void			HapticPulse( int leftDuration, int rightDuration );
+
+	virtual bool			GetLeftControllerAxis( idVec2& axis );
+	virtual bool			GetRightControllerAxis( idVec2& axis );
+
+	virtual bool			LeftControllerWasPressed();
+	virtual bool			LeftControllerIsPressed();
+
+	virtual bool			RightControllerWasPressed();
+	virtual bool			RightControllerIsPressed();
+
+	virtual const idVec3&	GetSeatedOrigin();
+	virtual const idMat3&	GetSeatedAxis();
+	virtual const idMat3&	GetSeatedAxisInverse();
+
+	const sysEvent_t&		UIEventNext();
+
+};
+
+void VRSystem::Init()
+{
+	// TODO API check
+
+	vrSystem = new VRSystem_Valve();
+	vrSystem->InitHMD();
+}
+
+vr::IVRSystem* hmd;
+float g_vrScaleX = 1.f;
+float g_vrScaleY = 1.f;
+float g_vrScaleZ = 1.f;
+vr::TrackedDeviceIndex_t g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
+vr::TrackedDeviceIndex_t g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+idVec3 g_SeatedOrigin;
+idMat3 g_SeatedAxis;
+idMat3 g_SeatedAxisInverse;
 
 bool g_vrLeftControllerWasPressed;
 bool g_vrRightControllerWasPressed;
@@ -68,13 +119,92 @@ idMat3 g_vrRightControllerAxis;
 
 bool g_poseReset;
 
-void VR_ResetPose()
+void VR_ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis )
+{
+	origin.Set(
+		g_vrScaleX * poseMat.m[2][3],
+		g_vrScaleY * poseMat.m[0][3],
+		g_vrScaleZ * poseMat.m[1][3] );
+	axis[0].Set( poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2] );
+	axis[1].Set( poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0] );
+	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
+}
+
+bool VRSystem_Valve::InitHMD()
+{
+	vr::EVRInitError error = vr::VRInitError_None;
+	hmd = vr::VR_Init( &error, vr::VRApplication_Scene );
+	if( error != vr::VRInitError_None )
+	{
+		common->Printf( "VR initialization failed: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription( error ) );
+		glConfig.openVREnabled = false;
+		return false;
+	}
+
+	if( !vr::VRCompositor() )
+	{
+		common->Printf( "VR compositor not present.\n" );
+		glConfig.openVREnabled = false;
+		return false;
+	}
+
+	//vr::VRCompositor()->ForceInterleavedReprojectionOn( true );
+
+	glConfig.openVREnabled = true;
+
+	UpdateResolution();
+
+	hmd->GetProjectionRaw( vr::Eye_Left,
+						   &glConfig.openVRfovEye[1][0], &glConfig.openVRfovEye[1][1],
+						   &glConfig.openVRfovEye[1][2], &glConfig.openVRfovEye[1][3] );
+
+	hmd->GetProjectionRaw( vr::Eye_Right,
+						   &glConfig.openVRfovEye[0][0], &glConfig.openVRfovEye[0][1],
+						   &glConfig.openVRfovEye[0][2], &glConfig.openVRfovEye[0][3] );
+
+	glConfig.openVRScreenSeparation =
+		0.5f * ( glConfig.openVRfovEye[1][1] + glConfig.openVRfovEye[1][0] )
+		/ ( glConfig.openVRfovEye[1][1] - glConfig.openVRfovEye[1][0] )
+		- 0.5f * ( glConfig.openVRfovEye[0][1] + glConfig.openVRfovEye[0][0] )
+		/ ( glConfig.openVRfovEye[0][1] - glConfig.openVRfovEye[0][0] );
+
+	vr::HmdMatrix34_t mat;
+
+#if 0
+	mat = hmd->GetEyeToHeadTransform( vr::Eye_Left );
+	Convert4x3Matrix( &mat, hmdEyeLeft );
+	MatrixRTInverse( hmdEyeLeft );
+#endif
+
+	mat = hmd->GetEyeToHeadTransform( vr::Eye_Right );
+#if 0
+	Convert4x3Matrix( &mat, hmdEyeRight );
+	MatrixRTInverse( hmdEyeRight );
+#endif
+
+	glConfig.openVRUnscaledHalfIPD = mat.m[0][3];
+	glConfig.openVRUnscaledEyeForward = -mat.m[2][3];
+	UpdateScaling();
+
+	glConfig.openVRSeated = true;
+	g_openVRLeftController = vr::k_unTrackedDeviceIndexInvalid;
+	g_openVRRightController = vr::k_unTrackedDeviceIndexInvalid;
+	UpdateControllers();
+
+	vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
+	VR_ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), g_SeatedOrigin, g_SeatedAxis );
+	g_SeatedAxisInverse = g_SeatedAxis.Inverse();
+
+	return true;
+}
+
+void VRSystem_Valve::ResetPose()
 {
 	g_poseReset = true;
 	hmd->ResetSeatedZeroPose();
 }
 
-void VR_LogDevices()
+void VRSystem_Valve::LogDevices()
 {
 	char modelNumberString[ vr::k_unTrackingStringSize ];
 	int axisType;
@@ -127,7 +257,7 @@ struct
 	int value;
 } g_vrGameEvents[MAX_VREVENTS];
 
-void VR_ClearEvents()
+static void VR_ClearEvents()
 {
 	g_vrUIEventIndex = 0;
 	g_vrUIEventCount = 0;
@@ -136,7 +266,7 @@ void VR_ClearEvents()
 	g_vrRightControllerWasPressed = false;
 }
 
-void VR_UIEventQue( sysEventType_t type, int value, int value2 )
+static void VR_UIEventQue( sysEventType_t type, int value, int value2 )
 {
 	assert( g_vrUIEventCount < MAX_VREVENTS );
 	sysEvent_t* ev = &g_vrUIEvents[g_vrUIEventCount++];
@@ -149,7 +279,7 @@ void VR_UIEventQue( sysEventType_t type, int value, int value2 )
 	ev->inputDevice = 0;
 }
 
-const sysEvent_t& VR_UIEventNext()
+const sysEvent_t& VRSystem_Valve::UIEventNext()
 {
 	assert( g_vrUIEventIndex < MAX_VREVENTS );
 	if( g_vrUIEventIndex >= g_vrUIEventCount )
@@ -161,12 +291,12 @@ const sysEvent_t& VR_UIEventNext()
 	return g_vrUIEvents[g_vrUIEventIndex++];
 }
 
-int VR_PollGameInputEvents()
+int VRSystem_Valve::PollGameInputEvents()
 {
 	return g_vrGameEventCount;
 }
 
-void VR_GameEventQue( int action, int value )
+static void VR_GameEventQue( int action, int value )
 {
 	assert( g_vrGameEventCount < MAX_VREVENTS );
 	g_vrGameEvents[g_vrGameEventCount].action = action;
@@ -174,7 +304,7 @@ void VR_GameEventQue( int action, int value )
 	g_vrGameEventCount++;
 }
 
-int VR_ReturnGameInputEvent( const int n, int& action, int& value )
+int VRSystem_Valve::ReturnGameInputEvent( const int n, int& action, int& value )
 {
 	if( n < 0 || n > g_vrGameEventCount )
 	{
@@ -499,16 +629,7 @@ static void VR_GenMouseEvents()
 	}
 }
 
-void VR_ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis )
-{
-	origin.Set(
-		g_vrScaleX * poseMat.m[2][3],
-		g_vrScaleY * poseMat.m[0][3],
-		g_vrScaleZ * poseMat.m[1][3] );
-	axis[0].Set( poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2] );
-	axis[1].Set( poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0] );
-	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
-}
+
 
 bool VR_ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3& axis )
 {
@@ -522,7 +643,7 @@ bool VR_ConvertPose( const vr::TrackedDevicePose_t& pose, idVec3& origin, idMat3
 	return true;
 }
 
-void VR_UpdateResolution()
+void VRSystem_Valve::UpdateResolution()
 {
 	vr_resolutionScale.ClearModified();
 	float scale = vr_resolutionScale.GetFloat();
@@ -550,7 +671,7 @@ void VR_UpdateResolution()
 	glConfig.openVRHeight = height;
 }
 
-void VR_UpdateScaling()
+void VRSystem_Valve::UpdateScaling()
 {
 	const float m2i = 1 / 0.0254f; // meters to inches
 	const float cm2i = 1 / 2.54f; // centimeters to inches
@@ -563,7 +684,7 @@ void VR_UpdateScaling()
 	g_vrScaleZ = glConfig.openVRScale;
 }
 
-void VR_UpdateControllers()
+void VRSystem_Valve::UpdateControllers()
 {
 	if( vr_forceGamepad.GetBool() )
 	{
@@ -633,28 +754,29 @@ void VR_UpdateControllers()
 	}
 }
 
-void VR_PreSwap( GLuint left, GLuint right )
+void VRSystem_Valve::PreSwap( GLuint left, GLuint right )
 {
 	GL_ViewportAndScissor( 0, 0, glConfig.openVRWidth, glConfig.openVRHeight );
+
 	vr::Texture_t leftEyeTexture = {( void* )left, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
 	vr::Texture_t rightEyeTexture = {( void* )right, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
 }
 
-void VR_PostSwap()
+void VRSystem_Valve::PostSwap()
 {
 	//vr::VRCompositor()->PostPresentHandoff();
 
 	vr::TrackedDevicePose_t rTrackedDevicePose[ vr::k_unMaxTrackedDeviceCount ];
 	vr::VRCompositor()->WaitGetPoses( rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
 
-	VR_UpdateControllers();
+	UpdateControllers();
 
 	if( vr_playerHeightCM.IsModified() )
 	{
 		vr_playerHeightCM.ClearModified();
-		VR_UpdateScaling();
+		UpdateScaling();
 	}
 
 	if( vr_seated.IsModified() )
@@ -832,7 +954,7 @@ bool VR_CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bo
 	return true;
 }
 
-bool VR_GetHead( idVec3& origin, idMat3& axis )
+bool VRSystem_Valve::GetHead( idVec3& origin, idMat3& axis )
 {
 	if( !g_vrHasHeadPose )
 	{
@@ -846,7 +968,7 @@ bool VR_GetHead( idVec3& origin, idMat3& axis )
 }
 
 // returns left controller position relative to the head
-bool VR_GetLeftController( idVec3& origin, idMat3& axis )
+bool VRSystem_Valve::GetLeftController( idVec3& origin, idMat3& axis )
 {
 	if( !g_vrHasLeftControllerPose || !g_vrHasHeadPose )
 	{
@@ -860,7 +982,7 @@ bool VR_GetLeftController( idVec3& origin, idMat3& axis )
 }
 
 // returns right controller position relative to the head
-bool VR_GetRightController( idVec3& origin, idMat3& axis )
+bool VRSystem_Valve::GetRightController( idVec3& origin, idMat3& axis )
 {
 	if( !g_vrHasRightControllerPose || !g_vrHasHeadPose )
 	{
@@ -873,7 +995,7 @@ bool VR_GetRightController( idVec3& origin, idMat3& axis )
 	return true;
 }
 
-void VR_MoveDelta( idVec3& delta, float& height )
+void VRSystem_Valve::MoveDelta( idVec3& delta, float& height )
 {
 	if( !g_vrHasHeadPose )
 	{
@@ -891,7 +1013,7 @@ void VR_MoveDelta( idVec3& delta, float& height )
 	g_vrHeadMoveDelta.Zero();
 }
 
-void VR_HapticPulse( int leftDuration, int rightDuration )
+void VRSystem_Valve::HapticPulse( int leftDuration, int rightDuration )
 {
 	if( leftDuration > g_openVRLeftControllerPulseDur )
 	{
@@ -905,7 +1027,7 @@ void VR_HapticPulse( int leftDuration, int rightDuration )
 
 extern idCVar joy_deadZone;
 
-bool VR_GetLeftControllerAxis( idVec2& axis )
+bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 {
 	if( g_openVRLeftController == vr::k_unTrackedDeviceIndexInvalid )
 	{
@@ -933,7 +1055,7 @@ bool VR_GetLeftControllerAxis( idVec2& axis )
 	return true;
 }
 
-bool VR_GetRightControllerAxis( idVec2& axis )
+bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 {
 	if( g_openVRRightController == vr::k_unTrackedDeviceIndexInvalid )
 	{
@@ -961,39 +1083,39 @@ bool VR_GetRightControllerAxis( idVec2& axis )
 	return true;
 }
 
-bool VR_LeftControllerWasPressed()
+bool VRSystem_Valve::LeftControllerWasPressed()
 {
 	return g_vrLeftControllerWasPressed;
 }
 
-bool VR_LeftControllerIsPressed()
+bool VRSystem_Valve::LeftControllerIsPressed()
 {
 	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	return ( g_vrLeftControllerState.ulButtonPressed & mask ) != 0;
 }
 
-bool VR_RightControllerWasPressed()
+bool VRSystem_Valve::RightControllerWasPressed()
 {
 	return g_vrRightControllerWasPressed;
 }
 
-bool VR_RightControllerIsPressed()
+bool VRSystem_Valve::RightControllerIsPressed()
 {
 	static uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 	return ( g_vrRightControllerState.ulButtonPressed & mask ) != 0;
 }
 
-const idVec3& VR_GetSeatedOrigin()
+const idVec3& VRSystem_Valve::GetSeatedOrigin()
 {
 	return g_SeatedOrigin;
 }
 
-const idMat3& VR_GetSeatedAxis()
+const idMat3& VRSystem_Valve::GetSeatedAxis()
 {
 	return g_SeatedAxis;
 }
 
-const idMat3& VR_GetSeatedAxisInverse()
+const idMat3& VRSystem_Valve::GetSeatedAxisInverse()
 {
 	return g_SeatedAxisInverse;
 }
