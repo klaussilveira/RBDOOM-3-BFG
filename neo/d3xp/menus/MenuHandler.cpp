@@ -123,7 +123,7 @@ idMenuHandler::GetPlatform
 int idMenuHandler::GetPlatform( bool realPlatform )
 {
 
-	if( platform == 2 && ( in_useJoystick.GetBool() || glConfig.openVREnabled ) && !realPlatform )
+	if( platform == 2 && ( in_useJoystick.GetBool() || vrSystem->IsActive() ) && !realPlatform )
 	{
 		return 0;
 	}

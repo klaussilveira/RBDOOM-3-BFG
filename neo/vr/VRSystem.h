@@ -43,6 +43,10 @@ public:
 
 	virtual					~VRSystem() {}
 
+	//virtual bool			HasHMD() const = 0;
+	virtual bool			IsActive() const = 0;
+	virtual bool			IsSeated() const = 0;
+
 	virtual bool			InitHMD() = 0;
 	virtual void			ShutdownHMD() = 0;
 	virtual void			UpdateHMD() = 0;

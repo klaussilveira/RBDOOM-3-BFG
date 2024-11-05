@@ -337,7 +337,7 @@ void idGuiModel::EmitSurfaces( float modelMatrix[16], float modelViewMatrix[16],
 					break;
 			}
 
-			if( glConfig.openVREnabled )
+			if( vrSystem->IsActive() )
 			{
 				int minIndex = indexPointer[guiSurf.firstIndex];
 				int maxIndex = minIndex;

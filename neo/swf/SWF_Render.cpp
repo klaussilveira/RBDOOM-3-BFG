@@ -137,7 +137,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 	}
 
 	float sysWidth, sysHeight;
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		sysWidth = renderSystem->GetVirtualWidth();
 		sysHeight = renderSystem->GetVirtualHeight();
@@ -151,7 +151,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 
 	float scale = swfScale * sysHeight / ( float )frameHeight;
 
-	if( glConfig.openVREnabled && isHUD )
+	if( vrSystem->IsActive() && isHUD )
 	{
 		scale *= 0.75f;
 	}
@@ -356,7 +356,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 				float heightAdj = swf_titleSafe.GetFloat() * frameHeight;
 
 				float sysWidth, sysHeight;
-				if( glConfig.openVREnabled )
+				if( vrSystem->IsActive() )
 				{
 					sysWidth = renderSystem->GetVirtualWidth();
 					sysHeight = renderSystem->GetVirtualHeight();

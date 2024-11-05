@@ -200,8 +200,6 @@ struct glconfig_t
 
 	float				pixelAspect;
 
-	bool				openVREnabled;
-	bool				openVRSeated;
 	bool				openVRLeftTouchpad;
 	bool				openVRRightTouchpad;
 	int					openVRWidth;

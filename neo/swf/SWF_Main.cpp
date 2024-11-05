@@ -677,7 +677,7 @@ int	idSWF::GetPlatform()
 {
 
 
-	if( in_useJoystick.GetBool() || glConfig.openVREnabled || forceNonPCPlatform )
+	if( in_useJoystick.GetBool() || vrSystem->IsActive() || forceNonPCPlatform )
 	{
 		forceNonPCPlatform = false;
 		return 0;

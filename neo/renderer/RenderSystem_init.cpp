@@ -2517,7 +2517,7 @@ VR_ResetPose_f
 
 void VR_ResetPose_f( const idCmdArgs& args )
 {
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		vrSystem->ResetPose();
 	}
@@ -2531,7 +2531,7 @@ VR_LogDevices_f
 
 void VR_LogDevices_f( const idCmdArgs& args )
 {
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		vrSystem->LogDevices();
 	}
@@ -3240,7 +3240,7 @@ idRenderSystemLocal::UpdateStereo3DMode
 */
 void idRenderSystemLocal::UpdateStereo3DMode()
 {
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		glConfig.stereo3Dmode = STEREO3D_OPENVR;
 	}

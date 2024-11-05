@@ -153,7 +153,7 @@ const void GL_BlockingSwapBuffers()
 		common->Printf( "%i msec to glFinish\n", beforeSwap - beforeFinish );
 	}
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		if( vr_outputMode.GetBool() || vr_outputUpdates < 4 )
 		{
@@ -614,7 +614,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 			break;
 
 		case STEREO3D_OPENVR:
-			if( glConfig.openVREnabled )
+			if( vrSystem->IsActive() )
 			{
 				vrSystem->PreSwap( stereoRenderImages[0]->GetTexNum(), stereoRenderImages[1]->GetTexNum() );
 			}

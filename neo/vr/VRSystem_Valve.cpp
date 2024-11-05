@@ -74,6 +74,16 @@ class VRSystem_Valve : public VRSystem
 
 	const sysEvent_t&		UIEventNext();
 
+	virtual bool			IsActive() const
+	{
+		return openVREnabled;
+	}
+
+	virtual bool			IsSeated() const
+	{
+		return openVRSeated;
+	}
+
 private:
 	void					ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis );
 
@@ -94,7 +104,10 @@ private:
 	// unused
 	bool					CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch );
 
-	vr::IVRSystem* hmd = NULL;
+	vr::IVRSystem*	hmd = NULL;
+	bool			openVREnabled;
+	bool			openVRSeated;
+
 	float m_ScaleX = 1.0f;
 	float m_ScaleY = 1.0f;
 	float m_ScaleZ = 1.0f;
@@ -166,20 +179,22 @@ bool VRSystem_Valve::InitHMD()
 	if( error != vr::VRInitError_None )
 	{
 		common->Printf( "VR initialization failed: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription( error ) );
-		glConfig.openVREnabled = false;
+		openVREnabled = false;
+		
 		return false;
 	}
 
 	if( !vr::VRCompositor() )
 	{
 		common->Printf( "VR compositor not present.\n" );
-		glConfig.openVREnabled = false;
+		openVREnabled = false;
+		
 		return false;
 	}
 
 	//vr::VRCompositor()->ForceInterleavedReprojectionOn( true );
 
-	glConfig.openVREnabled = true;
+	openVREnabled = true;
 
 	UpdateResolution();
 
@@ -215,7 +230,7 @@ bool VRSystem_Valve::InitHMD()
 	glConfig.openVRUnscaledEyeForward = -mat.m[2][3];
 	UpdateScaling();
 
-	glConfig.openVRSeated = true;
+	openVRSeated = true;
 	m_leftController = vr::k_unTrackedDeviceIndexInvalid;
 	m_rightController = vr::k_unTrackedDeviceIndexInvalid;
 	UpdateControllers();
@@ -744,9 +759,9 @@ void VRSystem_Valve::UpdateControllers()
 	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid
 			|| m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		if( glConfig.openVRSeated )
+		if( openVRSeated )
 		{
-			glConfig.openVRSeated = false;
+			openVRSeated = false;
 
 			char modelNumberString[ vr::k_unTrackingStringSize ];
 			int axisType;
@@ -780,9 +795,9 @@ void VRSystem_Valve::UpdateControllers()
 	}
 	else
 	{
-		if( !glConfig.openVRSeated )
+		if( !openVRSeated )
 		{
-			glConfig.openVRSeated = true;
+			openVRSeated = true;
 		}
 	}
 }
@@ -945,7 +960,7 @@ void VRSystem_Valve::PostSwap()
 		}
 	}
 
-	if( !glConfig.openVRSeated )
+	if( !openVRSeated )
 	{
 		GenMouseEvents();
 	}

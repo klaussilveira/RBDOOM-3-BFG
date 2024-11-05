@@ -1503,7 +1503,7 @@ void idUsercmdGenLocal::MakeCurrent()
 		// aim assist
 		AimAssist();
 
-		if( glConfig.openVREnabled )
+		if( vrSystem->IsActive() )
 		{
 			VRTrackedMove();
 
@@ -1526,7 +1526,7 @@ void idUsercmdGenLocal::MakeCurrent()
 		mouseDx = 0;
 		mouseDy = 0;
 
-		if( glConfig.openVREnabled )
+		if( vrSystem->IsActive() )
 		{
 			VRTrackedMove();
 		}
@@ -1916,7 +1916,7 @@ void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum )
 		Joystick( deviceNum );
 	}
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		VRControllers();
 	}

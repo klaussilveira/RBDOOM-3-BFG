@@ -1530,7 +1530,7 @@ void idWeapon::UpdateFlashPosition()
 	// the flash has an explicit joint for locating it
 	GetGlobalJointTransform( true, flashJointView, muzzleFlash.origin, muzzleFlash.axis );
 
-	if( isPlayerFlashlight && ( !glConfig.openVREnabled || glConfig.openVRSeated ) )
+	if( isPlayerFlashlight && ( !vrSystem->IsActive() || vrSystem->IsSeated() ) )
 	{
 		static float pscale = 2.0f;
 		static float yscale = 0.25f;
@@ -2520,7 +2520,7 @@ bool idWeapon::GetMuzzlePositionWithHacks( idVec3& origin, idMat3& axis )
 	// workaround hacks...
 	const idStr& weaponIconName = pdaIcon;
 
-	if( glConfig.openVREnabled && !glConfig.openVRSeated )
+	if( vrSystem->IsActive() && !vrSystem->IsSeated() )
 	{
 		origin = viewWeaponOrigin;
 		axis = viewWeaponAxis;
@@ -2850,7 +2850,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	{
 		bool doAdjust = true;
 
-		if( glConfig.openVREnabled )
+		if( vrSystem->IsActive() )
 		{
 			viewWeaponOrigin = owner->flashlightOrigin;
 			viewWeaponAxis = owner->flashlightAxis;
@@ -2902,7 +2902,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 		bool shouldHide = false;
 		static idVec3 invOrigin;
 		static idMat3 invAxis;
-		if( glConfig.openVREnabled
+		if( vrSystem->IsActive()
 				&& owner->usercmd.vrHasLeftController
 				&& owner->usercmd.vrHasRightController
 				&& GetInverseHandle( invOrigin, invAxis ) )
@@ -3207,7 +3207,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 		}
 	}
 
-	if( glConfig.openVREnabled && !isPlayerFlashlight )
+	if( vrSystem->IsActive() && !isPlayerFlashlight )
 	{
 		if( !owner->usercmd.vrHasRightController )
 		{
@@ -4144,7 +4144,7 @@ void idWeapon::Event_SetSkin( const char* skinname )
 	}
 
 	const idDeclSkin* currentSkin;
-	if( glConfig.openVREnabled && !isPlayerFlashlight )
+	if( vrSystem->IsActive() && !isPlayerFlashlight )
 	{
 		currentSkin = vrWrapperSkin.GetWrapped();
 	}
@@ -4849,7 +4849,7 @@ void idWeapon::Event_Melee()
 	if( !common->IsClient() )
 	{
 		idVec3 start, end;
-		if( glConfig.openVREnabled && !glConfig.openVRSeated )
+		if( vrSystem->IsActive() && !vrSystem->IsSeated() )
 		{
 			start = viewWeaponOrigin;
 			end = start + viewWeaponAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );

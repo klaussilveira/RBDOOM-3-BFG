@@ -3591,7 +3591,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 		// guiStereoScreenOffset will always be zero for 3D views, so the !=
 		// check will never force an update due to the current sort value.
 		float thisGuiStereoOffset;
-		if( surf->sort < 0.f || glConfig.openVREnabled )
+		if( surf->sort < 0.f || vrSystem->IsActive() )
 		{
 			thisGuiStereoOffset = 0.f;
 		}
@@ -5345,7 +5345,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 	{
 		renderLog.OpenMainBlock( MRB_DRAW_SHADER_PASSES );
 		float guiScreenOffset;
-		if( viewDef->viewEntitys != NULL || glConfig.openVREnabled )
+		if( viewDef->viewEntitys != NULL || vrSystem->IsActive() )
 		{
 			// guiScreenOffset will be 0 in non-gui views
 			guiScreenOffset = 0.0f;
@@ -5644,7 +5644,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 	// TODO VR some of this may be better done else where.
 	idVec3 vrHeadOrigin;
 	idMat3 vrHeadAxis;
-	if( glConfig.openVREnabled
+	if( vrSystem->IsActive()
 			&& cmd->viewDef->guiMode == GUIMODE_NONE
 			&& cmd->viewDef->renderView.vrHadHead
 			&& vrSystem->GetHead( vrHeadOrigin, vrHeadAxis ) )
@@ -5687,7 +5687,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 			}
 		}
 	}
-	else if( glConfig.openVREnabled &&
+	else if( vrSystem->IsActive() &&
 			 ( cmd->viewDef->guiMode == GUIMODE_SHELL ||
 			   cmd->viewDef->guiMode == GUIMODE_HUD ) )
 	{
@@ -5710,11 +5710,11 @@ void RB_DrawView( const void* data, const int stereoEye )
 			if( cmd->viewDef->guiMode == GUIMODE_SHELL )
 			{
 				static bool wasSeated = true;
-				if( wasSeated && !glConfig.openVRSeated )
+				if( wasSeated && !vrSystem->IsSeated() )
 				{
 					tr.guiModel->UpdateVRShell();
 				}
-				wasSeated = glConfig.openVRSeated;
+				wasSeated = vrSystem->IsSeated();
 
 				idVec3 vrShellOrigin;
 				idMat3 vrShellAxis;

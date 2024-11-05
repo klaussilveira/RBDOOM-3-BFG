@@ -256,7 +256,7 @@ which will determine the head kick direction
 */
 void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict* damageDef )
 {
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		return;
 	}
@@ -354,7 +354,7 @@ Called when a weapon fires, generates head twitches, etc
 */
 void idPlayerView::WeaponFireFeedback( const idDict* weaponDef )
 {
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		return;
 	}
@@ -466,7 +466,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t hackedView = *view;
-	if( !glConfig.openVREnabled )
+	if( !vrSystem->IsActive() )
 	{
 		hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 	}
@@ -796,7 +796,7 @@ stereoDistances_t	CaclulateStereoDistances(
 
 	stereoDistances_t	dists = {};
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		// head mounted display mode
 		dists.worldSeparation = CentimetersToInches( interOcularCentimeters * 0.5 );
@@ -845,7 +845,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 
 	renderView_t eyeView = *view;
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		const int targetEye = ( eye == 1 ) ? 1 : 0;
 		eyeView.fov_left = glConfig.openVRfovEye[ targetEye ][0];
@@ -875,7 +875,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 										view->fov_right );
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		eyeView.vieworg += eye * glConfig.openVRHalfIPD * eyeView.viewaxis[1];
 		// we are using fov instead
@@ -1538,7 +1538,7 @@ void FullscreenFX_Warp::HighQuality()
 	center.y = renderSystem->GetVirtualHeight() / 2.0f;
 	radius = 200;
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		center.x += renderSystem->GetVirtualWidth() * glConfig.openVRScreenSeparation * tr.guiModel->GetViewEyeBuffer() * 0.5;
 	}

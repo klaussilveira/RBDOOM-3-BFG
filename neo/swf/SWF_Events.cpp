@@ -464,7 +464,7 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 		// Mouse position in screen space needs to be converted to SWF space
 		if( event->evType == SE_MOUSE_ABSOLUTE )
 		{
-			if( glConfig.openVREnabled )
+			if( vrSystem->IsActive() )
 			{
 				float scaleX = frameWidth / glConfig.nativeScreenWidth;
 				float scaleY = frameHeight / glConfig.nativeScreenHeight;

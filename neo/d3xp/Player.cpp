@@ -6535,7 +6535,7 @@ void idPlayer::UpdateFocus()
 		return;
 	}
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		start = hmdOrigin;
 		end = start + hmdAxis[0] * 80.0f;
@@ -7079,7 +7079,7 @@ void idPlayer::BobCycle( const idVec3& pushVelocity )
 	{
 		bob = 6;
 	}
-	if( !glConfig.openVREnabled )
+	if( !vrSystem->IsActive() )
 	{
 		viewBob[2] += bob;
 	}
@@ -7190,7 +7190,7 @@ void idPlayer::UpdateViewAngles()
 		viewAngles.pitch = centerView.GetCurrentValue( gameLocal.time );
 	}
 
-	if( glConfig.openVREnabled && !vr_seated.GetBool() )
+	if( vrSystem->IsActive() && !vr_seated.GetBool() )
 	{
 		viewAngles.pitch = 0;
 		viewAngles.roll = 0;
@@ -7242,7 +7242,7 @@ void idPlayer::UpdateViewAngles()
 		viewAngles.pitch = std::max( viewAngles.pitch, pm_minviewpitch.GetFloat() * restrict );
 	}
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		if( vr_seated.GetBool() )
 		{
@@ -10862,7 +10862,7 @@ void idPlayer::CalculateViewWeaponPos( idVec3& origin, idMat3& axis )
 	// these cvars are just for hand tweaking before moving a value to the weapon def
 	idVec3	gunpos( g_gun_x.GetFloat(), g_gun_y.GetFloat(), g_gun_z.GetFloat() );
 
-	if( glConfig.openVREnabled && !glConfig.openVRSeated )
+	if( vrSystem->IsActive() && !vrSystem->IsSeated() )
 	{
 		// if we are here, this is a fallback for not being able to hold a weapon
 		origin = hmdOrigin;
@@ -10894,7 +10894,7 @@ void idPlayer::CalculateViewWeaponPos( idVec3& origin, idMat3& axis )
 	// CalculateRenderView must have been called first
 	idVec3 viewOrigin;
 	idMat3 viewAxis;
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		viewOrigin = flashlightOrigin;
 		viewAxis = flashlightAxis;
@@ -11125,7 +11125,7 @@ void idPlayer::GetViewPos( idVec3& origin, idMat3& axis ) const
 	else
 	{
 		origin = GetEyePosition() + viewBob;
-		if( glConfig.openVREnabled )
+		if( vrSystem->IsActive() )
 		{
 			angles = viewAngles + playerView.AngleOffset();
 		}
@@ -11136,7 +11136,7 @@ void idPlayer::GetViewPos( idVec3& origin, idMat3& axis ) const
 
 		axis = angles.ToMat3() * physicsObj.GetGravityAxis();
 
-		if( !glConfig.openVREnabled )
+		if( !vrSystem->IsActive() )
 		{
 			// Move pivot point down so looking straight ahead is a no-op on the Z
 			const idVec3& gravityVector = physicsObj.GetGravityNormal();
@@ -11180,7 +11180,7 @@ void idPlayer::CalculateFirstPersonView()
 		firstPersonViewAxis = firstPersonViewAxis * playerView.ShakeAxis();
 #endif
 	}
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		hmdAxis = firstPersonViewAxis;
 		hmdOrigin = firstPersonViewOrigin;
@@ -11196,7 +11196,7 @@ void idPlayer::CalculateFirstPersonView()
 		CalculateRightHand();
 		CalculateWaist();
 
-		if( glConfig.openVRSeated )
+		if( vrSystem->IsSeated() )
 		{
 			const idVec3& seatedOrigin = vrSystem->GetSeatedOrigin();
 
@@ -11458,7 +11458,7 @@ void idPlayer::CalculateRenderView()
 		renderView->fov_top = fov_y;
 	}
 
-	if( glConfig.openVREnabled )
+	if( vrSystem->IsActive() )
 	{
 		if( camera )
 		{

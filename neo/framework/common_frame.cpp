@@ -400,7 +400,7 @@ idCVar vr_hapticMax( "vr_hapticMax", "3999", CVAR_INTEGER, "0 - 3999, for debug 
 void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 {
 	// set joystick rumble
-	if( glConfig.openVREnabled && !glConfig.openVRSeated && !game->Shell_IsActive() )
+	if( vrSystem->IsActive() && !vrSystem->IsSeated() && !game->Shell_IsActive() )
 	{
 		int leftDur = vr_hapticScale.GetFloat() * ret.vibrationLow;
 		if( leftDur > vr_hapticMax.GetInteger() )
