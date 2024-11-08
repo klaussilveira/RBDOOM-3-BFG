@@ -865,7 +865,7 @@ int EyeForHalfRateFrame( const int frameCount )
 idPlayerView::RenderPlayerView
 ===================
 */
-idCVar vr_cinematicMode( "vr_cinematicMode", "1", CVAR_BOOL | CVAR_ARCHIVE, "Adds a black frame around cinematics." );
+idCVar vr_cinematicMode( "vr_cinematicMode", "0", CVAR_BOOL | CVAR_ARCHIVE, "Adds a black frame around cinematics." );
 idCVar vr_blink( "vr_blink", "1", CVAR_FLOAT | CVAR_ARCHIVE, "Darkens the screen when head bumps walls and objects." );
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 {
