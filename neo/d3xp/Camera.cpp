@@ -245,12 +245,7 @@ void idCameraView::GetViewParms( renderView_t* view )
 
 	float fov_x, fov_y;
 	gameLocal.CalcFov( fov, fov_x, fov_y );
-	fov_x = tan( fov_x * 0.5f * idMath::M_DEG2RAD );
-	fov_y = tan( fov_y * 0.5f * idMath::M_DEG2RAD );
-	view->fov_left = -fov_x;
-	view->fov_right = fov_x;
-	view->fov_bottom = -fov_y;
-	view->fov_top = fov_y;
+	view->SetFovXY( fov_x, fov_y );
 }
 
 /*
@@ -651,12 +646,7 @@ void idCameraAnim::GetViewParms( renderView_t* view )
 	}
 
 	gameLocal.CalcFov( fov_x, fov_x, fov_y );
-	fov_x = tan( fov_x * 0.5f * idMath::M_DEG2RAD );
-	fov_y = tan( fov_y * 0.5f * idMath::M_DEG2RAD );
-	view->fov_left = -fov_x;
-	view->fov_right = fov_x;
-	view->fov_bottom = -fov_y;
-	view->fov_top = fov_y;
+	view->SetFovXY( fov_x, fov_y );
 
 	// setup the pvs for this frame
 	UpdatePVSAreas( view->vieworg );

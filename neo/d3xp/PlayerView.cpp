@@ -740,7 +740,7 @@ stereoDistances_t	CaclulateStereoDistances(
 	const float	interOcularCentimeters,		// distance between two eyes, typically 6.0 - 7.0
 	const float screenWidthCentimeters,		// read from operating system
 	const float convergenceWorldUnits,		// pass 0 for head mounted display mode
-	const float	fov_right )  			// edge to edge horizontal field of view, typically 60 - 90
+	const float	fov_right )  				// edge to edge horizontal field of view, typically 60 - 90
 {
 
 	stereoDistances_t	dists = {};
@@ -797,10 +797,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	if( vrSystem->IsActive() )
 	{
 		const int targetEye = ( eye == 1 ) ? 1 : 0;
-		eyeView.fov_left = glConfig.openVRfovEye[ targetEye ][0];
-		eyeView.fov_right = glConfig.openVRfovEye[ targetEye ][1];
-		eyeView.fov_bottom = glConfig.openVRfovEye[ targetEye ][2];
-		eyeView.fov_top = glConfig.openVRfovEye[ targetEye ][3];
+		eyeView.SetFov( glConfig.openVRfovEye[ targetEye ] );
 	}
 
 	// first chance update of VR head tracking
@@ -821,7 +818,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 										stereoRender_interOccularCentimeters.GetFloat(),
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
-										view->fov_right );
+										view->GetFovRight() );
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
 	if( vrSystem->IsActive() )
@@ -882,6 +879,7 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 	{
 		SingleView( view, hudManager );
 	}
+
 	if( gameLocal.inCinematic && vr_cinematicMode.GetBool() )
 	{
 		tr.guiModel->SetMode( GUIMODE_SHELL );
@@ -929,11 +927,13 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 
 		renderSystem->SetGLState( 0 );
 	}
+
 	if( vr_blink.GetFloat() > 0.f && player->ShouldBlink() )
 	{
 		Fade( idVec4( 0, 0, 0, vr_blink.GetFloat() ), 0 );
 		Fade( idVec4( 0, 0, 0, 0 ), 33 );
 	}
+
 	tr.guiModel->SetMode( GUIMODE_FULLSCREEN );
 	ScreenFade();
 }

@@ -5693,11 +5693,9 @@ void RB_DrawView( const void* data, const int stereoEye )
 	{
 		// Put 2D GUI in a 3D world
 		const int targetEye = ( stereoEye == -1 ) ? 1 : 0;
-		cmd->viewDef->renderView.fov_left = glConfig.openVRfovEye[ targetEye ][0];
-		cmd->viewDef->renderView.fov_right = glConfig.openVRfovEye[ targetEye ][1];
-		cmd->viewDef->renderView.fov_bottom = glConfig.openVRfovEye[ targetEye ][2];
-		cmd->viewDef->renderView.fov_top = glConfig.openVRfovEye[ targetEye ][3];
-		cmd->viewDef->renderView.stereoScreenSeparation = 0.f;
+
+		cmd->viewDef->renderView.SetFov( glConfig.openVRfovEye[ targetEye ] );
+		cmd->viewDef->renderView.stereoScreenSeparation = 0.0f;
 		R_SetupProjectionMatrix( cmd->viewDef );
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
 

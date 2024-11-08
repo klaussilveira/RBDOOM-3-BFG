@@ -430,11 +430,11 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef )
 	//
 	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
 
-	float ymax = viewDef->renderView.fov_top;
-	float ymin = viewDef->renderView.fov_bottom;
+	float ymax = viewDef->renderView.GetFovTop();
+	float ymin = viewDef->renderView.GetFovBottom();
 
-	float xmax = viewDef->renderView.fov_right;
-	float xmin = viewDef->renderView.fov_left;
+	float xmax = viewDef->renderView.GetFovRight();
+	float xmin = viewDef->renderView.GetFovLeft();
 
 	const float width = xmax - xmin;
 	const float height = ymax - ymin;
@@ -487,11 +487,11 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef )
 // RB: standard OpenGL projection matrix
 void R_SetupProjectionMatrix2( const viewDef_t* viewDef, const float zNear, const float zFar, float projectionMatrix[16] )
 {
-	float ymax = viewDef->renderView.fov_top;
-	float ymin = viewDef->renderView.fov_bottom;
+	float ymax = viewDef->renderView.GetFovTop();
+	float ymin = viewDef->renderView.GetFovBottom();
 
-	float xmax = viewDef->renderView.fov_right;
-	float xmin = viewDef->renderView.fov_left;
+	float xmax = viewDef->renderView.GetFovRight();
+	float xmin = viewDef->renderView.GetFovLeft();
 
 	const float width = xmax - xmin;
 	const float height = ymax - ymin;

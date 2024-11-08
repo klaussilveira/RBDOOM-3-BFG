@@ -218,11 +218,62 @@ typedef struct renderLight_s
 
 typedef struct renderView_s
 {
+private:
+	float					fov_left, fov_right, fov_top, fov_bottom;		// as tangents
+
+public:
+
+	// assumes tangents
+	void					SetFov( const idVec4& fov )
+	{
+		fov_left = fov[0];
+		fov_right = fov[1];
+		fov_bottom = fov[2];
+		fov_top = fov[3];
+	}
+
+	// assumes degrees
+	void					SetFovXY( float fov_x, float fov_y )
+	{
+		fov_x = tan( fov_x * 0.5f * idMath::M_DEG2RAD );
+		fov_y = tan( fov_y * 0.5f * idMath::M_DEG2RAD );
+		fov_left = -fov_x;
+		fov_right = fov_x;
+		fov_bottom = -fov_y;
+		fov_top = fov_y;
+	}
+
+	// returns fov in degrees like in old Doom 3
+	void					GetFovXY( float& fov_x, float& fov_y ) const
+	{
+		fov_x = ( atan( fov_right ) - atan( fov_left ) ) * idMath::M_RAD2DEG;
+		fov_y = ( atan( fov_top ) - atan( fov_bottom ) ) * idMath::M_RAD2DEG;
+	}
+
+	float					GetFovLeft() const
+	{
+		return fov_left;
+	}
+
+	float					GetFovRight() const
+	{
+		return fov_right;
+	}
+
+	float					GetFovTop() const
+	{
+		return fov_top;
+	}
+
+	float					GetFovBottom() const
+	{
+		return fov_bottom;
+	}
+
 	// player views will set this to a non-zero integer for model suppress / allow
 	// subviews (mirrors, cameras, etc) will always clear it to zero
 	int						viewID;
 
-	float					fov_left, fov_right, fov_top, fov_bottom;		// as tangents
 	idVec3					vieworg;			// has already been adjusted for stereo world seperation
 	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
 	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
