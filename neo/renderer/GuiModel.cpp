@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "tr_local.h"
 
-const float idGuiModel::STEREO_DEPTH_DISABLE = -1.0f;
+const float idGuiModel::STEREO_DEPTH_DISABLE = -1.0f; // Leyland VR
 const float idGuiModel::STEREO_DEPTH_NEAR = 0.0f;
 const float idGuiModel::STEREO_DEPTH_MID  = 0.5f;
 const float idGuiModel::STEREO_DEPTH_FAR  = 1.0f;
@@ -48,12 +48,15 @@ idGuiModel::idGuiModel()
 	{
 		shaderParms[i] = 1.0f;
 	}
+
+	// Leyland VR
 	viewEyeBuffer = 0;
 	mode = GUIMODE_SHELL;
 	vrShellActive = false;
 	vrShellNeedsUpdate = true;
 	vrShellOrigin.Zero();
 	vrShellAxis.Identity();
+	// Leyland end
 }
 
 /*
@@ -87,6 +90,7 @@ void idGuiModel::ReadFromDemo( idDemoFile* demo )
 {
 }
 
+// Leyland VR
 /*
 ================
 idGuiModel::SetViewEyeBuffer
@@ -201,6 +205,7 @@ void idGuiModel::SetVRShell( const idVec3& origin, const idMat3& axis )
 	vrShellAxis = axis;
 	vrShellNeedsUpdate = false;
 }
+// Leyland end
 
 /*
 ================
@@ -306,6 +311,7 @@ void idGuiModel::EmitSurfaces( float modelMatrix[16], float modelViewMatrix[16],
 			// override sort with the stereoDepth
 			//drawSurf->sort = stereoDepth;
 
+			// Leyland VR
 			float zoffset = 0;
 
 			static float zoffsetNone = 0;
@@ -360,6 +366,7 @@ void idGuiModel::EmitSurfaces( float modelMatrix[16], float modelViewMatrix[16],
 					vertexPointer[index].xyz.z -= zoffset;
 				}
 			}
+			// Leyland end
 		}
 	}
 }
@@ -474,6 +481,7 @@ void idGuiModel::EmitFullScreen()
 	viewDef_t* oldViewDef = tr.viewDef;
 	tr.viewDef = viewDef;
 
+	// Leyland VR: link as entity
 	EmitSurfaces( viewDef->worldSpace.modelMatrix, viewDef->worldSpace.modelViewMatrix,
 				  false /* depthHack */ , stereoEnabled /* stereoDepthSort */, true /* link as entity */ );
 

@@ -1344,6 +1344,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// load the game dll
 		LoadGameDLL();
 
+		// Leyland VR
 		// check if we need to set default bindings for vr
 		bool vrHasBinding = false;
 		for( int i = K_VR_FIRST_KEY; i <= K_VR_LAST_KEY; i++ )
@@ -1355,6 +1356,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 				break;
 			}
 		}
+
 		if( !vrHasBinding )
 		{
 			idKeyInput::SetBinding( K_VR_LEFT_MENU, "_impulse19" );
@@ -1367,6 +1369,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			idKeyInput::SetBinding( K_VR_RIGHT_TRIGGER, "_attack" );
 			idKeyInput::SetBinding( K_VR_RIGHT_GRIP, "_impulse13" );
 		}
+		// Leyland end
 
 		// On the PC touch them all so they get included in the resource build
 		if( !fileSystem->UsingResourceFiles() )
@@ -1783,11 +1786,13 @@ idCommonLocal::ProcessEvent
 */
 bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 {
+	// Leyland: moved this up
 	if( Dialog().IsDialogActive() )
 	{
 		Dialog().HandleDialogEvent( event );
 		return true;
 	}
+	// Leyland end
 
 	// hitting escape anywhere brings up the menu
 	if( game && game->IsInGame() )

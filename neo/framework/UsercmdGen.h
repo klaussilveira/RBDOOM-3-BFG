@@ -48,9 +48,12 @@ const int BUTTON_USE			= BIT( 4 );
 const int BUTTON_JUMP			= BIT( 5 );
 const int BUTTON_CROUCH			= BIT( 6 );
 const int BUTTON_CHATTING		= BIT( 7 );
+
+// Leyland VR
 const int BUTTON_LEFT_GRAB		= BIT( 8 );
 const int BUTTON_RIGHT_GRAB		= BIT( 9 );
 const int BUTTON_RECENTER		= BIT( 10 );
+// Leyland end
 
 // usercmd_t->impulse commands
 const int IMPULSE_0				= 0;			// weap 0
@@ -126,6 +129,7 @@ public:
 	idVec3		pos;
 	float		speedSquared;
 
+	// Leyland VR
 	bool		vrHasHead;
 	idMat3		vrHeadAxis;
 	idVec3		vrHeadOrigin;
@@ -136,6 +140,7 @@ public:
 	bool		vrHasRightController;
 	idMat3		vrRightControllerAxis;
 	idVec3		vrRightControllerOrigin;
+	// Leyland end
 
 public:
 	void		Serialize( class idSerializer& s, const usercmd_t& base );
@@ -169,7 +174,7 @@ typedef enum
 	UB_ZOOM,
 	UB_SHOWSCORES,
 	UB_USE,
-	UB_RECENTER,
+	UB_RECENTER,	// Leyland VR
 
 	UB_IMPULSE0,
 	UB_IMPULSE1,

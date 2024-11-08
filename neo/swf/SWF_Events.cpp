@@ -464,6 +464,7 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 		// Mouse position in screen space needs to be converted to SWF space
 		if( event->evType == SE_MOUSE_ABSOLUTE )
 		{
+			// Leyland VR
 			if( vrSystem->IsActive() )
 			{
 				float scaleX = frameWidth / glConfig.nativeScreenWidth;
@@ -484,6 +485,7 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 				mouseX = idMath::Ftoi( ( static_cast<float>( event->evValue ) - tx ) * invScale );
 				mouseY = idMath::Ftoi( ( static_cast<float>( event->evValue2 ) - ty ) * invScale );
 			}
+			// Leyland end
 		}
 		else
 		{

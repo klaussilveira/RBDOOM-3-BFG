@@ -218,7 +218,7 @@ private:
 	idStr			filename;
 	ID_TIME_T		timestamp;
 
-	bool			isHUD;
+	bool			isHUD;	// Leyland VR
 
 	float			frameWidth;
 	float			frameHeight;

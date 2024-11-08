@@ -170,6 +170,7 @@ void idRenderWindow::Draw( int time, float x, float y )
 	refdef.shaderParms[2] = 1;
 	refdef.shaderParms[3] = 1;
 
+	// Leyland VR: new FOV definition
 	refdef.SetFovXY( 90, 2 * atan( ( float )drawRect.h / drawRect.w ) * idMath::M_RAD2DEG );
 
 	refdef.time[0] = time;

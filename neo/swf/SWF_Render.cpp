@@ -136,6 +136,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 		}
 	}
 
+	// Leyland VR
 	float sysWidth, sysHeight;
 	if( vrSystem->IsActive() )
 	{
@@ -174,6 +175,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 		DrawStretchPic( 0.0f, 0.0f, sysWidth, sysHeight, 0, 0, 1, 1, white );
 		renderState.activeMasks = 1;
 	}
+	// Leyland end
 
 	RenderSprite( gui, mainspriteInstance, renderState, time, isSplitscreen );
 
@@ -211,6 +213,7 @@ void idSWF::Render( idRenderSystem* gui, int time, bool isSplitscreen )
 		}
 	}
 
+	// Leyland VR
 	if( tr.guiModel->GetMode() == GUIMODE_SHELL )
 	{
 		renderState.activeMasks = STENCIL_DECR;
@@ -355,6 +358,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 				float widthAdj = swf_titleSafe.GetFloat() * frameWidth;
 				float heightAdj = swf_titleSafe.GetFloat() * frameHeight;
 
+				// Leyland VR
 				float sysWidth, sysHeight;
 				if( vrSystem->IsActive() )
 				{
@@ -374,6 +378,7 @@ void idSWF::RenderSprite( idRenderSystem* gui, idSWFSpriteInstance* spriteInstan
 					sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
 					sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 				}
+				// Leyland end
 
 				if( display.spriteInstance->name.Icmp( "_fullScreen" ) == 0 )
 				{

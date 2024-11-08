@@ -251,14 +251,14 @@ void idCommonLocal::Draw()
 
 	if( loadGUI != NULL )
 	{
-		tr.guiModel->SetMode( GUIMODE_SHELL );
+		tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
 		loadGUI->Render( renderSystem, Sys_Milliseconds() );
 	}
 	// RB begin
 #if defined(USE_DOOMCLASSIC)
 	else if( currentGame == DOOM_CLASSIC || currentGame == DOOM2_CLASSIC )
 	{
-		tr.guiModel->SetMode( GUIMODE_SHELL );
+		tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
 		const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 		const float sysHeight = renderSystem->GetHeight();
 		const float sysAspect = sysWidth / sysHeight;
@@ -339,11 +339,11 @@ void idCommonLocal::Draw()
 		// draw the wipe material on top of this if it hasn't completed yet
 		DrawWipeModel();
 
-		tr.guiModel->SetMode( GUIMODE_SHELL );
+		tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
 		Dialog().Render( loadGUI != NULL );
 
 		// draw the half console / notify console on top of everything
-		tr.guiModel->SetMode( GUIMODE_HUD );
+		tr.guiModel->SetMode( GUIMODE_HUD ); // Leyland VR
 		console->Draw( false );
 	}
 }
@@ -400,6 +400,7 @@ idCVar vr_hapticMax( "vr_hapticMax", "3999", CVAR_INTEGER, "0 - 3999, for debug 
 void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 {
 	// set joystick rumble
+	// Leyland VR
 	if( vrSystem->IsActive() && !vrSystem->IsSeated() && !game->Shell_IsActive() )
 	{
 		int leftDur = vr_hapticScale.GetFloat() * ret.vibrationLow;
@@ -407,6 +408,7 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 		{
 			leftDur = vr_hapticMax.GetInteger();
 		}
+
 		int rightDur = vr_hapticScale.GetFloat() * ret.vibrationHigh;
 		if( rightDur > vr_hapticMax.GetInteger() )
 		{
@@ -415,6 +417,7 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 
 		vrSystem->HapticPulse( leftDur, rightDur );
 	}
+	// Leyland end
 	else if( in_useJoystick.GetBool() && in_joystickRumble.GetBool() && !game->Shell_IsActive() && session->GetSignInManager().GetMasterInputDevice() >= 0 )
 	{
 		Sys_SetRumble( session->GetSignInManager().GetMasterInputDevice(), ret.vibrationLow, ret.vibrationHigh );		// Only set the rumble on the active controller
@@ -659,6 +662,7 @@ void idCommonLocal::Frame()
 				break;
 			}
 
+			// Leyland VR: moved this out of the for loop
 			// How much time to wait before running the next frame,
 			// based on com_engineHz
 			const int frameDelay = FRAME_TO_MSEC( gameFrame + 1 ) - FRAME_TO_MSEC( gameFrame );
@@ -676,7 +680,7 @@ void idCommonLocal::Frame()
 
 			if( numGameFrames > 0 )
 			{
-				// debt forgiveness
+				// // Leyland VR: debt forgiveness
 				if( gameTimeResidual < frameDelay / 4.0f )
 				{
 					gameTimeResidual = 0;

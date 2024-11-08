@@ -5641,6 +5641,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 
 	RB_ShowOverdraw();
 
+	// Leyland VR
 	// TODO VR some of this may be better done else where.
 	idVec3 vrHeadOrigin;
 	idMat3 vrHeadAxis;
@@ -5816,6 +5817,8 @@ void RB_DrawView( const void* data, const int stereoEye )
 			}
 		}
 	}
+	// Leyland end
+
 	// render the scene
 	RB_DrawViewInternal( cmd->viewDef, stereoEye );
 

@@ -387,6 +387,7 @@ enum keyNum_t
 	K_JOY_DPAD_LEFT,
 	K_JOY_DPAD_RIGHT,
 
+	// Leyland VR
 	K_VR_FIRST_KEY,
 	K_VR_LEFT_MENU = K_VR_FIRST_KEY,
 	K_VR_LEFT_DPAD_LEFT,
@@ -408,6 +409,7 @@ enum keyNum_t
 	K_VR_RIGHT_GRIP,
 	K_VR_RIGHT_A,
 	K_VR_LAST_KEY = K_VR_RIGHT_A,
+	// Leyland end
 
 	//------------------------
 	// K_MOUSE enums must be contiguous (no char codes in the middle)

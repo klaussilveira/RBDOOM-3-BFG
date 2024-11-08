@@ -89,6 +89,7 @@ sysEvent_t	idEventLoop::GetRealEvent()
 	}
 	else
 	{
+		// Leyland: prioritize UI events
 		if( vrSystem->IsActive() )
 		{
 			ev = vrSystem->UIEventNext();
@@ -101,6 +102,7 @@ sysEvent_t	idEventLoop::GetRealEvent()
 		{
 			ev = Sys_GetEvent();
 		}
+		// Leyland end
 
 		// write the journal value out if needed
 		if( com_journal.GetInteger() == 1 )

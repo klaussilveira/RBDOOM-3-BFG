@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-idDeclNullSkinBase idDeclNullSkinBase::instance;
+idDeclNullSkinBase idDeclNullSkinBase::instance; // Leyland VR
 
 /*
 =================
@@ -209,7 +209,7 @@ const idMaterial* idDeclSkin::RemapShaderBySkin( const idMaterial* shader ) cons
 	return shader;
 }
 
-
+// Leyland VR
 /*
 ===============
 idDeclSkinWrapper::idDeclSkinWrapper
@@ -274,3 +274,4 @@ void idDeclSkinWrapper::SetWrapped( const idDeclSkin* skin )
 		base = &idDeclNullSkinBase::instance;
 	}
 }
+// Leyland end

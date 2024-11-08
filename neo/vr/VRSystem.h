@@ -88,4 +88,17 @@ public:
 
 extern VRSystem* vrSystem;
 
+extern idCVar vr_resolutionScale;
+extern idCVar vr_playerHeightCM;
+extern idCVar vr_aimLook;
+extern idCVar vr_seated;
+extern idCVar vr_forceGamepad;
+extern idCVar vr_knockbackScale;
+extern idCVar vr_strafing;
+extern idCVar vr_forwardOnly;
+extern idCVar vr_relativeAxis;
+extern idCVar vr_responseCurve;
+extern idCVar vr_moveMode;
+extern idCVar vr_moveSpeed;
+
 #endif // __VR_SYSTEM_H

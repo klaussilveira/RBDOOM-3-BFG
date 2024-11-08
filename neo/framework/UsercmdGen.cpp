@@ -132,7 +132,7 @@ userCmdString_t	userCmdStrings[] =
 	{ "_zoom",			UB_ZOOM },
 	{ "_showScores",	UB_SHOWSCORES },
 	{ "_use",			UB_USE },
-	{ "_recenter",		UB_RECENTER },
+	{ "_recenter",		UB_RECENTER },// Leyland VR
 
 	{ "_impulse0",		UB_IMPULSE0 },
 	{ "_impulse1",		UB_IMPULSE1 },
@@ -265,8 +265,8 @@ private:
 	void			HandleJoystickAxis( int keyNum, float unclampedValue, float threshold, bool positive );
 	void			JoystickMove();
 	void			JoystickMove2();
-	void			VRControlMove();
-	void			VRTrackedMove();
+	void			VRControlMove();	// Leyland VR
+	void			VRTrackedMove();	// Leyland VR
 	void			MouseMove();
 	void			CmdButtons();
 
@@ -275,7 +275,7 @@ private:
 	void			Mouse();
 	void			Keyboard();
 	void			Joystick( int deviceNum );
-	void			VRControllers();
+	void			VRControllers();	// Leyland VR
 
 	void			Key( int keyNum, bool down );
 
@@ -283,6 +283,7 @@ private:
 	int				impulseSequence;
 	int				impulse;
 
+	// Leyland VR
 	int				vrClickCount;
 	bool			vrTouched;
 	idVec2			vrTouchedAxis;
@@ -290,6 +291,7 @@ private:
 	int				vrPressedTime;
 	bool			vrLeftGrab;
 	bool			vrRightGrab;
+	// Leyland end
 
 	buttonState_t	toggled_crouch;
 	buttonState_t	toggled_run;
@@ -361,11 +363,13 @@ idUsercmdGenLocal::idUsercmdGenLocal()
 	impulseSequence = 0;
 	impulse = 0;
 
+	// Leyland VR
 	vrClickCount = 0;
 	vrTouched = false;
 	vrPressed = false;
 	vrLeftGrab = false;
 	vrRightGrab = false;
+	// Leyland end
 
 	toggled_crouch.Clear();
 	toggled_run.Clear();
@@ -1068,6 +1072,7 @@ void idUsercmdGenLocal::JoystickMove2()
 	HandleJoystickAxis( K_JOY_TRIGGER2, joystickAxis[ AXIS_RIGHT_TRIG ], triggerThreshold, true );
 }
 
+// Leyland VR
 /*
 =================
 idUsercmdGenLocal::VRControlMove
@@ -1088,6 +1093,7 @@ void idUsercmdGenLocal::VRControlMove()
 	bool touchpad = false;
 	leftAxis.Zero();
 	rightAxis.Zero();
+
 	if( vr_leftAxis.GetInteger() == 0 && vrSystem->GetLeftControllerAxis( leftAxis ) )
 	{
 		wasPressed = vrSystem->LeftControllerWasPressed();
@@ -1095,6 +1101,7 @@ void idUsercmdGenLocal::VRControlMove()
 		touchpad = glConfig.openVRLeftTouchpad;
 		moving = true;
 	}
+
 	if( vr_rightAxis.GetInteger() == 0 && vrSystem->GetRightControllerAxis( rightAxis ) )
 	{
 		wasPressed |= vrSystem->RightControllerWasPressed();
@@ -1343,6 +1350,7 @@ void idUsercmdGenLocal::VRControlMove()
 		const float aimAssist = game != NULL ? game->GetAimAssistSensitivity() : 1.0f;
 		idVec2 rightMapped = JoypadFunction( axis, aimAssist, threshold, range, shape, mergedThreshold );
 		viewangles[YAW] += MS2SEC( pollTime - lastPollTime ) * -rightMapped.x * yawSpeed;
+
 		if( vr_turnCrouch.GetBool() && rightMapped.y < -0.5f )
 		{
 			cmd.buttons |= BUTTON_CROUCH;
@@ -1438,10 +1446,12 @@ void idUsercmdGenLocal::CmdButtons()
 	{
 		cmd.buttons |= BUTTON_CROUCH;
 	}
+	// Leyland VR
 	if( ButtonState( UB_RECENTER ) )
 	{
 		cmd.buttons |= BUTTON_RECENTER;
 	}
+	// Leyland end
 }
 
 /*
@@ -1503,6 +1513,7 @@ void idUsercmdGenLocal::MakeCurrent()
 		// aim assist
 		AimAssist();
 
+		// Leyland VR
 		if( vrSystem->IsActive() )
 		{
 			VRTrackedMove();
@@ -1510,6 +1521,7 @@ void idUsercmdGenLocal::MakeCurrent()
 			// VR joystick movement
 			VRControlMove();
 		}
+		// Leyland end
 
 		// check to make sure the angles haven't wrapped
 		if( viewangles[PITCH] - oldAngles[PITCH] > 90 )
@@ -1526,10 +1538,12 @@ void idUsercmdGenLocal::MakeCurrent()
 		mouseDx = 0;
 		mouseDy = 0;
 
+		// Leyland VR
 		if( vrSystem->IsActive() )
 		{
 			VRTrackedMove();
 		}
+		// Leyland end
 	}
 
 	for( int i = 0; i < 3; i++ )
@@ -1608,11 +1622,13 @@ void idUsercmdGenLocal::InitForNewMap()
 	impulseSequence = 0;
 	impulse = 0;
 
+	// Leyland VR
 	vrClickCount = 0;
 	vrTouched = false;
 	vrPressed = false;
 	vrLeftGrab = false;
 	vrRightGrab = false;
+	// Leyland end
 
 	toggled_crouch.Clear();
 	toggled_run.Clear();
@@ -1846,6 +1862,8 @@ void idUsercmdGenLocal::Joystick( int deviceNum )
 
 /*
 ===============
+Leyland VR
+
 idUsercmdGenLocal::VRControllers
 ===============
 */
@@ -1857,10 +1875,12 @@ void idUsercmdGenLocal::VRControllers()
 	{
 		int button;
 		int value;
+
 		if( vrSystem->ReturnGameInputEvent( i, button, value ) )
 		{
 			bool down = value != 0;
 			Key( button, down );
+
 			if( button == K_VR_LEFT_GRIP )
 			{
 				vrLeftGrab = down;
@@ -1916,10 +1936,12 @@ void idUsercmdGenLocal::BuildCurrentUsercmd( int deviceNum )
 		Joystick( deviceNum );
 	}
 
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		VRControllers();
 	}
+	// Leyland end
 
 	// create the usercmd
 	MakeCurrent();

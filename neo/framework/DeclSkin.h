@@ -52,7 +52,7 @@ public:
 	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion );
 	virtual void			FreeData();
 
-	virtual const idMaterial* 		RemapShaderBySkin( const idMaterial* shader ) const;
+	virtual const idMaterial* 		RemapShaderBySkin( const idMaterial* shader ) const;// Leyland VR
 
 	// model associations are just for the preview dialog in the editor
 	const int				GetNumModelAssociations() const;
@@ -63,6 +63,7 @@ protected:
 	idStrList				associatedModels;
 };
 
+// Leyland VR
 class idDeclNullSkinBase : public idDeclBase
 {
 public:
@@ -169,5 +170,6 @@ protected:
 	const idDeclSkin* wrapper;
 	const idDeclSkin* wrapped;
 };
+// Leyland end
 
 #endif /* !__DECLSKIN_H__ */

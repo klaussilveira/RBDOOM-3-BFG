@@ -131,7 +131,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	filename.BackSlashesToSlashes();
 	filename.SetFileExtension( ".swf" );
 
-	isHUD = ( filename.Find( "hud", false ) != -1 );
+	isHUD = ( filename.Find( "hud", false ) != -1 );	// Leyland VR
 
 	timestamp = fileSystem->GetTimestamp( filename );
 
@@ -675,8 +675,7 @@ idSWF::GetPlatform
 */
 int	idSWF::GetPlatform()
 {
-
-
+	// Leyland VR
 	if( in_useJoystick.GetBool() || vrSystem->IsActive() || forceNonPCPlatform )
 	{
 		forceNonPCPlatform = false;
