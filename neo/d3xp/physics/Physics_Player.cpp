@@ -179,7 +179,7 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 	float		d, time_left, into, totalMass;
 	idVec3		dir, planes[MAX_CLIP_PLANES];
 	idVec3		end, stepEnd, primal_velocity, endVelocity, endClipVelocity, clipVelocity;
-	idVec3		vrVelocity, vrClipVelocity;
+	idVec3		vrVelocity, vrClipVelocity; // Leyland VR
 	trace_t		trace, stepTrace, downTrace;
 	bool		nearGround, stepped, pushed;
 
@@ -412,10 +412,14 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 				// slide the original velocity along the crease
 				dir = planes[i].Cross( planes[j] );
 				dir.Normalize();
-
 				d = dir * current.velocity;
 				clipVelocity = d * dir;
 
+				// Leyland VR: outcommented
+				// RB TODO: check this
+				//dir = planes[i].Cross( planes[j] );
+				//dir.Normalize();
+				// Leyland end
 				d = dir * endVelocity;
 				endClipVelocity = d * dir;
 
@@ -445,6 +449,7 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 		}
 	}
 
+	// Leyland VR
 	time_left = frametime;
 	if( time_left > 0 )
 	{
@@ -751,6 +756,7 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 		headOrigin = trace.endpos - current.origin;
 	}
 	headOrigin.z = headHeightDiff;
+	// Leyland end
 
 	// step down
 	if( stepDown && groundPlane )
@@ -1124,6 +1130,7 @@ void idPhysics_Player::WalkMove()
 		}
 	}
 
+	// Leyland VR
 	if( vrHadHeadOrigin && command.vrHasHead )
 	{
 		vrDelta = ( command.vrHeadOrigin - vrLastHeadOrigin ) * vrFaceForward;
@@ -1143,6 +1150,7 @@ void idPhysics_Player::WalkMove()
 	idPhysics_Player::SlideMove( false, true, true, true );
 
 	vrDelta.Zero();
+	// Leyland end
 }
 
 /*
@@ -2032,11 +2040,13 @@ idPhysics_Player::idPhysics_Player()
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
 
+	// Leyland VR
 	vrHadHeadOrigin = false;
 	vrDelta.Zero();
 	headOrigin = vec3_origin;
 	blink = false;
 	headBumped = false;
+	// Leyland end
 }
 
 /*
@@ -2158,7 +2168,7 @@ void idPhysics_Player::SetPlayerInput( const usercmd_t& cmd, const idVec3& forwa
 {
 	command = cmd;
 	commandForward = forwardVector;		// can't use cmd.angles cause of the delta_angles
-	vrFaceForward = faceForward;
+	vrFaceForward = faceForward;		// Leyland VR
 }
 
 /*
@@ -2253,7 +2263,7 @@ bool idPhysics_Player::Evaluate( int timeStepMSec, int endTimeMSec )
 
 	clipModel->Unlink();
 
-	blink = false;
+	blink = false;	// Leyland VR
 
 	// if bound to a master
 	if( masterEntity )
@@ -2272,9 +2282,11 @@ bool idPhysics_Player::Evaluate( int timeStepMSec, int endTimeMSec )
 
 	idPhysics_Player::MovePlayer( timeStepMSec );
 
+	// Leyland VR
 	vrLastHeadOrigin = command.vrHeadOrigin;
 	vrHadHeadOrigin = command.vrHasHead && !vr_seated.GetBool();
 	vrDelta.Zero();
+	// Leyland end
 
 	clipModel->Link( gameLocal.clip, self, 0, current.origin, clipModel->GetAxis() );
 
@@ -2385,6 +2397,7 @@ void idPhysics_Player::ApplyImpulse( const int id, const idVec3& point, const id
 {
 	if( current.movementType != PM_NOCLIP )
 	{
+		// Leyland VR: reduce knockbacks
 		current.velocity += impulse * invMass * vr_knockbackScale.GetFloat();
 	}
 }

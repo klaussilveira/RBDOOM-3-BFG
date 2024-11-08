@@ -130,7 +130,7 @@ public:
 	virtual void			LinkCombat();
 	virtual void			UnlinkCombat();
 
-	virtual bool			GetPhysicsToVisualTransform( idVec3& origin, idMat3& axis );
+	virtual bool			GetPhysicsToVisualTransform( idVec3& origin, idMat3& axis );	// Leyland VR
 
 protected:
 	idEntity* 				body;

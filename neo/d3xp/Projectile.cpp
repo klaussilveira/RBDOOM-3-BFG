@@ -1003,6 +1003,7 @@ idProjectile::Explode
 ================
 */
 idCVar vr_hapticDistMin( "vr_hapticDistMin", "160", CVAR_FLOAT, "distance when falloff occurs" );
+
 void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 {
 	const char* fxname, *light_shader, *sndExplode;
@@ -1039,6 +1040,8 @@ void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 		{
 			damage = 200;
 		}
+
+		// Leyland VR
 		float damageScale = ( float )damage * ( 1.0f / 200.0f );
 
 		idVec3 dir = GetPhysics()->GetOrigin() - player->GetPhysics()->GetOrigin();
@@ -1070,6 +1073,7 @@ void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 		{
 			player->SetControllerShake( highMag, highDuration, lowMag, lowDuration );
 		}
+		// Leyland end
 	}
 
 	// stop sound

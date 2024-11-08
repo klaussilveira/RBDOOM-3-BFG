@@ -314,6 +314,7 @@ void idGrabber::StartDrag( idEntity* grabEnt, int id )
 	saveGravity = phys->GetGravity();
 	phys->SetGravity( vec3_origin );
 
+	// Leyland VR: use GetMuzzlePosition
 	idVec3 muzzleOrigin;
 	idMat3 muzzleAxis;
 	if( !thePlayer->weapon.GetEntity()->GetMuzzlePosition( muzzleOrigin, muzzleAxis ) )
@@ -337,6 +338,7 @@ void idGrabber::StartDrag( idEntity* grabEnt, int id )
 	{
 		warpId = thePlayer->playerView.AddWarp( phys->GetOrigin(), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 160, 2000 );
 	}
+	// Leyland end
 }
 
 /*
@@ -413,6 +415,7 @@ void idGrabber::StopDrag( bool dropOnly )
 		}
 		else
 		{
+			// Leyland VR: use GetMuzzlePosition
 			idVec3 muzzleOrigin;
 			idMat3 muzzleAxis;
 			if( !thePlayer->weapon.GetEntity()->GetMuzzlePosition( muzzleOrigin, muzzleAxis ) )
@@ -430,6 +433,7 @@ void idGrabber::StopDrag( bool dropOnly )
 			{
 				idPlayer* player = owner.GetEntity();
 				idAngles ang = muzzleAxis[0].ToAngles();
+				// Leyland end
 
 				ang.pitch += 90.f;
 				ent->GetPhysics()->SetAxis( ang.ToMat3() );
@@ -541,6 +545,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 
 	owner = player;
 
+	// Leyland VR: use GetMuzzlePosition
 	idVec3 muzzleOrigin;
 	idMat3 muzzleAxis;
 	if( !player->weapon.GetEntity()->GetMuzzlePosition( muzzleOrigin, muzzleAxis ) )
@@ -752,6 +757,7 @@ int idGrabber::Update( idPlayer* player, bool hide )
 		// Currently holding an object
 		return 2;
 	}
+	// Leyland end
 
 	// Not holding, nothing to hold
 	return 0;

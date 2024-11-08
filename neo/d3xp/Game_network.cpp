@@ -678,6 +678,7 @@ void idGameLocal::ServerProcessReliableMessage( int clientNum, int type, const i
 			idVec3 muzzleOrigin;
 			idMat3 muzzleAxis;
 
+			// Leyland VR: changed to GetMuzzlePosition
 			attacker.weapon.GetEntity()->GetMuzzlePosition( muzzleOrigin, muzzleAxis );
 
 			idVec3 targetLocation = victim.GetRenderEntity()->origin + victim.GetRenderEntity()->joints[location].ToVec3() * victim.GetRenderEntity()->axis;

@@ -255,10 +255,12 @@ which will determine the head kick direction
 */
 void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict* damageDef )
 {
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		return;
 	}
+	// Leyland end
 
 	//
 	// double vision effect
@@ -353,10 +355,13 @@ Called when a weapon fires, generates head twitches, etc
 */
 void idPlayerView::WeaponFireFeedback( const idDict* weaponDef )
 {
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		return;
 	}
+	// Leyland end
+
 	int recoilTime = weaponDef->GetInt( "recoilTime" );
 	// don't shorten a damage kick in progress
 	if( recoilTime && kickFinishTime < gameLocal.slow.time )
@@ -445,6 +450,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 		return;
 	}
 
+	// Leyland VR
 	// everything here gets drawn twice in stereoscopic and needs to know which buffer.
 	tr.guiModel->SetViewEyeBuffer( view->viewEyeBuffer );
 
@@ -597,6 +603,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	}
 
 	tr.guiModel->SetViewEyeBuffer( 0 );
+	// Leyland end
 }
 
 
@@ -745,6 +752,7 @@ stereoDistances_t	CaclulateStereoDistances(
 
 	stereoDistances_t	dists = {};
 
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		// head mounted display mode
@@ -752,6 +760,7 @@ stereoDistances_t	CaclulateStereoDistances(
 		dists.screenSeparation = glConfig.openVRScreenSeparation;
 		return dists;
 	}
+	// Leyland end
 
 	if( convergenceWorldUnits == 0.0f )
 	{
@@ -774,7 +783,7 @@ float	GetScreenSeparationForGuis()
 										stereoRender_interOccularCentimeters.GetFloat(),
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
-										tan( 80.0f * 0.5f * idMath::M_DEG2RAD ) /* fov */ );
+										tan( 80.0f * 0.5f * idMath::M_DEG2RAD ) /* fov */ ); // Leyland VR
 
 	return dists.screenSeparation;
 }
@@ -794,6 +803,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 
 	renderView_t eyeView = *view;
 
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		const int targetEye = ( eye == 1 ) ? 1 : 0;
@@ -825,13 +835,14 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	{
 		eyeView.vieworg += eye * glConfig.openVRHalfIPD * eyeView.viewaxis[1];
 		// we are using fov instead
-		eyeView.stereoScreenSeparation = 0.f;
+		eyeView.stereoScreenSeparation = 0.0f;
 	}
 	else
 	{
 		eyeView.vieworg += eye * dists.worldSeparation * eyeView.viewaxis[1];
 		eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
 	}
+	// Leyland end
 
 	SingleView( &eyeView, hudManager );
 }
@@ -862,8 +873,11 @@ int EyeForHalfRateFrame( const int frameCount )
 idPlayerView::RenderPlayerView
 ===================
 */
+// Leyland VR
 idCVar vr_cinematicMode( "vr_cinematicMode", "0", CVAR_BOOL | CVAR_ARCHIVE, "Adds a black frame around cinematics." );
 idCVar vr_blink( "vr_blink", "1", CVAR_FLOAT | CVAR_ARCHIVE, "Darkens the screen when head bumps walls and objects." );
+// Leyland end
+
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 {
 	const renderView_t* view = player->GetRenderView();
@@ -880,6 +894,7 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 		SingleView( view, hudManager );
 	}
 
+	// Leyland VR
 	if( gameLocal.inCinematic && vr_cinematicMode.GetBool() )
 	{
 		tr.guiModel->SetMode( GUIMODE_SHELL );
@@ -935,6 +950,8 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 	}
 
 	tr.guiModel->SetMode( GUIMODE_FULLSCREEN );
+	// Leyland end
+
 	ScreenFade();
 }
 
@@ -1487,10 +1504,12 @@ void FullscreenFX_Warp::HighQuality()
 	center.y = renderSystem->GetVirtualHeight() / 2.0f;
 	radius = 200;
 
+	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
 		center.x += renderSystem->GetVirtualWidth() * glConfig.openVRScreenSeparation * tr.guiModel->GetViewEyeBuffer() * 0.5;
 	}
+	// Leyland end
 
 	for( float i = 0; i < 360; i += STEP )
 	{
@@ -2072,7 +2091,9 @@ void FullscreenFXManager::Process( const renderView_t* view )
 		return;
 	}
 
+	// Leyland VR
 	renderSystem->SetStereoDepth( STEREO_DEPTH_TYPE_DISABLE );
+	// Leyland end
 
 	// do the process
 	for( int i = 0; i < fx.Num(); i++ )
@@ -2116,7 +2137,9 @@ void FullscreenFXManager::Process( const renderView_t* view )
 		}
 	}
 
+	// Leyland VR
 	renderSystem->SetStereoDepth( STEREO_DEPTH_TYPE_NONE );
+	// Leyland end
 }
 
 

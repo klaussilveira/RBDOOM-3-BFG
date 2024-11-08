@@ -260,6 +260,7 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 			}
 			index++;
 
+			// Leyland VR: moved DEV menu down
 #if !defined ( ID_RETAIL )
 			option.Clear();
 			option.Append( "DEV" );	// DEV
@@ -273,6 +274,7 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 			}
 			index++;
 #endif
+			// Leyland end
 
 			// only add quit option for PC
 			option.Clear();

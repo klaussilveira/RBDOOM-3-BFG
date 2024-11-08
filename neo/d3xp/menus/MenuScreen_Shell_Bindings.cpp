@@ -275,6 +275,7 @@ void idMenuScreen_Shell_Bindings::UpdateBindingDisplay()
 
 			idStr bindings;
 
+			// Leyland: show controller bindings in VR mode
 			if( !bind.gamepad.IsEmpty() && ( in_useJoystick.GetBool() || vrSystem->IsActive() ) )
 			{
 				idStrList joyBinds;

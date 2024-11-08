@@ -246,11 +246,13 @@ bool IN_InitDIMouse()
 	}
 
 	// set the cooperativity level.
+	// Leyland VR: added NDEBUG
 #ifdef NDEBUG
 	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND );
 #else
 	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND );
 #endif
+	// Leyland end
 
 	if( FAILED( hr ) )
 	{
@@ -308,6 +310,7 @@ void IN_ActivateMouse()
 	}
 
 	win32.mouseGrabbed = true;
+	// Leyland VR
 #ifdef NDEBUG
 	for( i = 0; i < 10; i++ )
 	{
@@ -317,6 +320,7 @@ void IN_ActivateMouse()
 		}
 	}
 #endif
+	// Leyland end
 
 	// we may fail to reacquire if the window has been recreated
 	hr = win32.g_pMouse->Acquire();
@@ -326,11 +330,13 @@ void IN_ActivateMouse()
 	}
 
 	// set the cooperativity level.
+	// Leyland VR
 #ifdef NDEBUG
 	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND );
 #else
 	hr = win32.g_pMouse->SetCooperativeLevel( win32.hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND );
 #endif
+	// Leyland end
 
 }
 
@@ -350,6 +356,7 @@ void IN_DeactivateMouse()
 
 	win32.g_pMouse->Unacquire();
 
+	// Leyland VR
 #ifdef NDEBUG
 	for( i = 0; i < 10; i++ )
 	{
@@ -359,6 +366,7 @@ void IN_DeactivateMouse()
 		}
 	}
 #endif
+	// Leyland end
 	win32.mouseGrabbed = false;
 }
 

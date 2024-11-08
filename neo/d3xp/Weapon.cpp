@@ -615,10 +615,14 @@ void idWeapon::Restore( idRestoreGame* savefile )
 	savefile->ReadInt( zoomFov );
 
 	savefile->ReadJoint( barrelJointView );
+
+	// Leyland VR
 	if( barrelJointView == INVALID_JOINT && idStr::Icmp( "weapon_grabber", weaponDef->GetName() ) == 0 )
 	{
 		barrelJointView = animator.GetJointHandle( "particle_upper" );
 	}
+	// Leyland end
+
 	savefile->ReadJoint( flashJointView );
 	savefile->ReadJoint( ejectJointView );
 	savefile->ReadJoint( guiLightJointView );
@@ -1102,10 +1106,14 @@ void idWeapon::GetWeaponDef( const char* objectname, int ammoinclip )
 
 	// find some joints in the model for locating effects
 	barrelJointView = animator.GetJointHandle( "barrel" );
+
+	// Leyland VR
 	if( barrelJointView == INVALID_JOINT && idStr::Icmp( "weapon_grabber", weaponDef->GetName() ) == 0 )
 	{
 		barrelJointView = animator.GetJointHandle( "particle_upper" );
 	}
+	// Leyland end
+
 	flashJointView = animator.GetJointHandle( "flash" );
 	ejectJointView = animator.GetJointHandle( "eject" );
 	guiLightJointView = animator.GetJointHandle( "guiLight" );
@@ -1530,6 +1538,7 @@ void idWeapon::UpdateFlashPosition()
 	// the flash has an explicit joint for locating it
 	GetGlobalJointTransform( true, flashJointView, muzzleFlash.origin, muzzleFlash.axis );
 
+	// Leyland VR
 	if( isPlayerFlashlight && ( !vrSystem->IsActive() || vrSystem->IsSeated() ) )
 	{
 		static float pscale = 2.0f;
@@ -2520,6 +2529,7 @@ bool idWeapon::GetMuzzlePositionWithHacks( idVec3& origin, idMat3& axis )
 	// workaround hacks...
 	const idStr& weaponIconName = pdaIcon;
 
+	// Leyland VR
 	if( vrSystem->IsActive() && !vrSystem->IsSeated() )
 	{
 		origin = viewWeaponOrigin;
@@ -2530,6 +2540,7 @@ bool idWeapon::GetMuzzlePositionWithHacks( idVec3& origin, idMat3& axis )
 		origin = playerViewOrigin;
 		axis = playerViewAxis;
 	}
+	// Leyland end
 
 	if( weaponIconName == "guis/assets/hud/icons/grenade_new.tga" )
 	{
@@ -2604,6 +2615,7 @@ bool idWeapon::GetMuzzlePositionWithHacks( idVec3& origin, idMat3& axis )
 	return true;
 }
 
+// Leyland VR
 bool idWeapon::GetMuzzlePosition( idVec3& origin, idMat3& axis )
 {
 	origin = muzzleOrigin;
@@ -2834,6 +2846,7 @@ bool idWeapon::GetInverseHandle( idVec3& origin, idMat3& axis )
 
 	return true;
 }
+// Leyland end
 
 /*
 ================
@@ -2845,6 +2858,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	playerViewOrigin = owner->firstPersonViewOrigin;
 	playerViewAxis = owner->firstPersonViewAxis;
 
+	// Leyland VR
 	bool hidden = false;
 	if( isPlayerFlashlight )
 	{
@@ -2931,6 +2945,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 			owner->CalculateViewWeaponPos( viewWeaponOrigin, viewWeaponAxis );
 			shouldHide = ( pdaIcon == "guis/assets/hud/icons/fists_new.tga" );
 		}
+		// Leyland end
 
 		// hide offset is for dropping the gun when approaching a GUI or NPC
 		// This is simpler to manage than doing the weapon put-away animation
@@ -2950,7 +2965,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 		}
 		else
 		{
-			hidden = shouldHide && hide;
+			hidden = shouldHide && hide; // Leyland VR
 			hideOffset = hideEnd;
 			if( hide && disabled )
 			{
@@ -2962,6 +2977,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 		// kick up based on repeat firing
 		MuzzleRise( viewWeaponOrigin, viewWeaponAxis );
 
+		// Leyland VR
 		if( barrelJointView != INVALID_JOINT )
 		{
 			// there is an explicit joint for the muzzle
@@ -2974,6 +2990,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 			muzzleOrigin = playerViewOrigin;
 			muzzleAxis = playerViewAxis;
 		}
+		// Leyland end
 	}
 
 	// set the physics position and orientation
@@ -2996,7 +3013,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	renderEntity.weaponDepthHack = g_useWeaponDepthHack.GetBool();
 
 	// present the model
-	if( showViewModel && !hidden )
+	if( showViewModel && !hidden ) // Leyland VR
 	{
 		Present();
 	}
@@ -3028,6 +3045,8 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	// muzzle smoke
 	if( showViewModel && !disabled && weaponSmoke && ( weaponSmokeStartTime != 0 ) )
 	{
+		// Leyland VR: separate smoke transform
+
 		// use the barrel joint if available
 		idVec3 smokeOrigin;
 		idMat3 smokeAxis;
@@ -3053,6 +3072,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 		{
 			weaponSmokeStartTime = ( continuousSmoke ) ? gameLocal.time : 0;
 		}
+		// Leyland end
 	}
 
 	if( showViewModel && strikeSmoke && strikeSmokeStartTime != 0 )
@@ -3075,6 +3095,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 			{
 				if( part->smoke )
 				{
+					// Leyland VR: separate smoke transform
 					idVec3 smokeOrigin;
 					idMat3 smokeAxis;
 					if( part->joint != INVALID_JOINT )
@@ -3092,6 +3113,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 						part->active = false;	// all done
 						part->startTime = 0;
 					}
+					// Leyland end
 				}
 				else
 				{
@@ -3193,6 +3215,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	float lowMagnitude = weaponDef->dict.GetFloat( "controllerConstantShakeLowMag" );
 	int lowDuration = weaponDef->dict.GetInt( "controllerConstantShakeLowTime" );
 
+	// Leyland VR
 	if( owner->IsLocallyControlled() )
 	{
 		if( owner->usercmd.vrHasRightController )
@@ -3229,6 +3252,7 @@ void idWeapon::PresentWeapon( bool showViewModel )
 			}
 		}
 	}
+	// Leyland VR
 }
 
 /*
@@ -4143,6 +4167,7 @@ void idWeapon::Event_SetSkin( const char* skinname )
 		skinDecl = declManager->FindSkin( skinname );
 	}
 
+	// Leyland VR: hide hands and arms
 	const idDeclSkin* currentSkin;
 	if( vrSystem->IsActive() && !isPlayerFlashlight )
 	{
@@ -4158,6 +4183,7 @@ void idWeapon::Event_SetSkin( const char* skinname )
 	{
 		return;
 	}
+	// Leyland end
 
 	renderEntity.customSkin = skinDecl;
 	UpdateVisuals();
@@ -4641,6 +4667,8 @@ void idWeapon::Event_LaunchProjectilesEllipse( int num_projectiles, float spread
 
 		for( i = 0; i < num_projectiles; i++ )
 		{
+			// Leyland VR: use new muzzle axis
+
 			//Ellipse Form
 			spin = ( float )DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			anga = idMath::Sin( spreadRadA * gameLocal.random.RandomFloat() );
@@ -4676,6 +4704,7 @@ void idWeapon::Event_LaunchProjectilesEllipse( int num_projectiles, float spread
 				gameLocal.clip.Translation( tr, start, muzzle_pos, proj->GetPhysics()->GetClipModel(), proj->GetPhysics()->GetClipModel()->GetAxis(), MASK_SHOT_RENDERMODEL, owner );
 				muzzle_pos = tr.endpos;
 			}
+			// Leyland end
 
 			proj->Launch( muzzle_pos, dir, pushVelocity, fuseOffset, power );
 		}
@@ -4848,6 +4877,7 @@ void idWeapon::Event_Melee()
 
 	if( !common->IsClient() )
 	{
+		// Leyland VR
 		idVec3 start, end;
 		if( vrSystem->IsActive() && !vrSystem->IsSeated() )
 		{
@@ -4859,6 +4889,8 @@ void idWeapon::Event_Melee()
 			start = playerViewOrigin;
 			end = start + playerViewAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
 		}
+		// Leyland end
+
 		gameLocal.clip.TracePoint( tr, start, end, MASK_SHOT_RENDERMODEL, owner );
 		if( tr.fraction < 1.0f )
 		{

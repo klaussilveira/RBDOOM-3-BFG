@@ -2164,6 +2164,7 @@ void idTarget_RumbleJoystick::Event_Activate( idEntity* activator )
 		float lowMagnitude = spawnArgs.GetFloat( "low_magnitude" );
 		int lowDuration = spawnArgs.GetInt( "low_duration" );
 
+		// Leyland VR
 		if( player->usercmd.vrHasRightController )
 		{
 			float mag = ( highMagnitude > lowMagnitude ) ? highMagnitude : lowMagnitude;
@@ -2174,6 +2175,7 @@ void idTarget_RumbleJoystick::Event_Activate( idEntity* activator )
 		{
 			player->SetControllerShake( highMagnitude, highDuration, lowMagnitude, lowDuration );
 		}
+		// Leyland end
 	}
 
 }

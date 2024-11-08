@@ -775,11 +775,13 @@ void idSaveGame::WriteRenderView( const renderView_t& view )
 	WriteInt( 0 /* view.width */ );
 	WriteInt( 0 /* view.height */ );
 
+	// Leyland VR: new FOV definition
 	float fov_x, fov_y;
 	view.GetFovXY( fov_x, fov_y );
 
 	WriteFloat( fov_x );
 	WriteFloat( fov_y );
+	// Leyland VR end
 	WriteVec3( view.vieworg );
 	WriteMat3( view.viewaxis );
 
@@ -800,7 +802,7 @@ idSaveGame::WriteUsercmd
 */
 void idSaveGame::WriteUsercmd( const usercmd_t& usercmd )
 {
-	// TODO: on save game update, we need to save as uint16
+	// Leyland TODO: on save game update, we need to save as uint16
 	WriteByte( usercmd.buttons );
 	WriteSignedChar( usercmd.forwardmove );
 	WriteSignedChar( usercmd.rightmove );
@@ -1674,11 +1676,13 @@ void idRestoreGame::ReadRenderView( renderView_t& view )
 	ReadInt( i /* view.width */ );
 	ReadInt( i /* view.height */ );
 
+	// Leyland VR: new FOV definition
 	ReadFloat( fov_x );
 	ReadFloat( fov_y );
 	view.SetFovXY( fov_x, fov_y );
 	ReadVec3( view.vieworg );
 	ReadMat3( view.viewaxis );
+	// Leyland end
 
 	ReadBool( view.cramZNear );
 
@@ -1697,7 +1701,7 @@ idRestoreGame::ReadUsercmd
 */
 void idRestoreGame::ReadUsercmd( usercmd_t& usercmd )
 {
-	// TODO: on save game update, we need to read as uint16
+	// Leyland TODO: on save game update, we need to read as uint16
 	ReadByte( *( byte* )&usercmd.buttons );
 	ReadSignedChar( usercmd.forwardmove );
 	ReadSignedChar( usercmd.rightmove );

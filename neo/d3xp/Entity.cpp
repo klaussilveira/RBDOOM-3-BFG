@@ -1763,6 +1763,8 @@ renderView_t* idEntity::GetRenderView()
 	memset( renderView, 0, sizeof( *renderView ) );
 
 	renderView->vieworg = GetPhysics()->GetOrigin();
+
+	// Leyland VR: new FOV definition
 	renderView->SetFovXY( 120, 120 );
 	renderView->viewaxis = GetPhysics()->GetAxis();
 

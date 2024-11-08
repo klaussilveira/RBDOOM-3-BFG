@@ -835,6 +835,7 @@ void idMenuHandler_Shell::SetupPCOptions()
 			navOptions.Append( "#str_swf_multiplayer" );	// multiplayer
 			navOptions.Append( "#str_swf_settings" );	// settings
 			navOptions.Append( "#str_swf_credits" );	// credits
+			// Leyland VR: moved DEV menu down
 #if !defined ( ID_RETAIL )
 			navOptions.Append( "DEV" );	// DEV
 #endif
@@ -885,6 +886,7 @@ void idMenuHandler_Shell::SetupPCOptions()
 			}
 			index++;
 #endif
+			// Leyland end
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
 			if( buttonWidget != NULL )
 			{

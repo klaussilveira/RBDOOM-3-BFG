@@ -1038,6 +1038,7 @@ void Cmd_TestLight_f( const idCmdArgs& args )
 
 	renderView_t*	rv = player->GetRenderView();
 
+	// Leyland VR: new FOV definition
 	float fov = rv->GetFovRight();
 
 	dict.SetMatrix( "rotation", mat3_default );

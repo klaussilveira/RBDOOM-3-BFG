@@ -349,7 +349,7 @@ void idGameLocal::Init()
 		//have the correct xp binds
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta g_xp_bind_run_once 1\n" );
-		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec autoexec.cfg\n" );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec autoexec.cfg\n" ); // Leyland VR
 		cmdSystem->ExecuteCommandBuffer();
 	}
 
@@ -975,7 +975,7 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 		}
 	}
 	mapFileName = mapFile->GetName();
-	mapIsIntro = ( idStr::FindText( mapFileName, "mars_city1" ) >= 0 );
+	mapIsIntro = ( idStr::FindText( mapFileName, "mars_city1" ) >= 0 );// Leyland VR
 
 	// load the collision map
 	collisionModelManager->LoadMap( mapFile );

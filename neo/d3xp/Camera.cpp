@@ -243,9 +243,11 @@ void idCameraView::GetViewParms( renderView_t* view )
 		view->viewaxis = ent->GetPhysics()->GetAxis();
 	}
 
+	// Leyland VR: new FOV definition
 	float fov_x, fov_y;
 	gameLocal.CalcFov( fov, fov_x, fov_y );
 	view->SetFovXY( fov_x, fov_y );
+	// Leyland end
 }
 
 /*
@@ -645,8 +647,10 @@ void idCameraAnim::GetViewParms( renderView_t* view )
 		fov_x = camFrame[ 0 ].fov * invlerp + camFrame[ 1 ].fov * lerp;
 	}
 
+	// Leyland VR: new FOV definition
 	gameLocal.CalcFov( fov_x, fov_x, fov_y );
 	view->SetFovXY( fov_x, fov_y );
+	// Leyland end
 
 	// setup the pvs for this frame
 	UpdatePVSAreas( view->vieworg );

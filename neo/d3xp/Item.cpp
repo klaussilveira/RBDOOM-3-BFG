@@ -1744,6 +1744,7 @@ bool idVideoCDItem::GetPhysicsToVisualTransform( idVec3& origin, idMat3& axis )
 	origin = offset;
 	return true;
 }
+// Carl end
 
 /*
 ===============================================================================
