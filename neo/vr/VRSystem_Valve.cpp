@@ -180,7 +180,7 @@ bool VRSystem_Valve::InitHMD()
 	{
 		common->Printf( "VR initialization failed: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription( error ) );
 		openVREnabled = false;
-		
+
 		return false;
 	}
 
@@ -188,7 +188,7 @@ bool VRSystem_Valve::InitHMD()
 	{
 		common->Printf( "VR compositor not present.\n" );
 		openVREnabled = false;
-		
+
 		return false;
 	}
 
@@ -321,6 +321,7 @@ const sysEvent_t& VRSystem_Valve::UIEventNext()
 		ev.evType = SE_NONE;
 		return ev;
 	}
+
 	return m_UIEvents[m_UIEventIndex++];
 }
 
@@ -600,6 +601,7 @@ void VRSystem_Valve::GenJoyAxisEvents()
 			}
 		}
 	}
+
 	if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		vr::VRControllerState_t& state = m_RightControllerState;
@@ -637,6 +639,7 @@ void VRSystem_Valve::GenMouseEvents()
 	// virtual head tracking mouse for shell UI
 	idVec3 shellOrigin;
 	idMat3 shellAxis;
+
 	if( m_HadHead && tr.guiModel->GetVRShell( shellOrigin, shellAxis ) )
 	{
 		const float virtualWidth = renderSystem->GetVirtualWidth();
@@ -1069,6 +1072,7 @@ void VRSystem_Valve::HapticPulse( int leftDuration, int rightDuration )
 	{
 		m_leftControllerPulseDur = leftDuration;
 	}
+
 	if( rightDuration > m_rightControllerPulseDur )
 	{
 		m_rightControllerPulseDur = rightDuration;
@@ -1083,7 +1087,9 @@ bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 	{
 		return false;
 	}
+
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
+
 	if( glConfig.openVRLeftTouchpad )
 	{
 		if( !( m_LeftControllerState.ulButtonTouched & mask ) )
@@ -1100,8 +1106,10 @@ bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 			return false;
 		}
 	}
+
 	axis.x = m_LeftControllerState.rAxis[0].x;
 	axis.y = m_LeftControllerState.rAxis[0].y;
+
 	return true;
 }
 
@@ -1111,7 +1119,9 @@ bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 	{
 		return false;
 	}
+
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
+
 	if( glConfig.openVRRightTouchpad )
 	{
 		if( !( m_RightControllerState.ulButtonTouched & mask ) )
@@ -1128,8 +1138,10 @@ bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 			return false;
 		}
 	}
+
 	axis.x = m_RightControllerState.rAxis[0].x;
 	axis.y = m_RightControllerState.rAxis[0].y;
+
 	return true;
 }
 
