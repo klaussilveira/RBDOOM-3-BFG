@@ -3183,7 +3183,8 @@ idRenderSystemLocal::GetVirtualWidth
 */
 int idRenderSystemLocal::GetVirtualWidth() const
 {
-	if( r_useVirtualScreenResolution.GetBool() )
+	// RB: use lower res for VR guis
+	if( r_useVirtualScreenResolution.GetBool() || vrSystem->IsActive() )
 	{
 		return SCREEN_WIDTH;
 	}
@@ -3197,7 +3198,8 @@ idRenderSystemLocal::GetVirtualHeight
 */
 int idRenderSystemLocal::GetVirtualHeight() const
 {
-	if( r_useVirtualScreenResolution.GetBool() )
+	// RB: use lower res for VR guis
+	if( r_useVirtualScreenResolution.GetBool() || vrSystem->IsActive() )
 	{
 		return SCREEN_HEIGHT;
 	}
