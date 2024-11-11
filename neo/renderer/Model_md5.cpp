@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2014 Robert Beckebans
+Copyright (C) 2016-2017 Dustin Land
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -27,15 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 #include "Model_local.h"
 
-#if defined(USE_INTRINSICS)
-static const __m128 vector_float_posInfinity		= { idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY };
-static const __m128 vector_float_negInfinity		= { -idMath::INFINITY, -idMath::INFINITY, -idMath::INFINITY, -idMath::INFINITY };
+#if defined(USE_INTRINSICS_SSE)
+static const __m128 vector_float_posInfinity		= { idMath::INFINITUM, idMath::INFINITUM, idMath::INFINITUM, idMath::INFINITUM };
+static const __m128 vector_float_negInfinity		= { -idMath::INFINITUM, -idMath::INFINITUM, -idMath::INFINITUM, -idMath::INFINITUM };
 #endif
 
 static const char* MD5_SnapshotName = "_MD5_Snapshot_";
@@ -43,7 +44,7 @@ static const char* MD5_SnapshotName = "_MD5_Snapshot_";
 static const byte MD5B_VERSION = 106;
 static const unsigned int MD5B_MAGIC = ( '5' << 24 ) | ( 'D' << 16 ) | ( 'M' << 8 ) | MD5B_VERSION;
 
-idCVar r_useGPUSkinning( "r_useGPUSkinning", "1", CVAR_INTEGER, "animate normals and tangents instead of deriving" );
+idCVar r_useGPUSkinning( "r_useGPUSkinning", "1", CVAR_INTEGER | CVAR_NOCHEAT, "animate normals and tangents instead of deriving" );
 
 /***********************************************************************
 
@@ -521,15 +522,13 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 	tri->mirroredVerts = deformInfo->mirroredVerts;
 	tri->numDupVerts = deformInfo->numDupVerts;
 	tri->dupVerts = deformInfo->dupVerts;
-	tri->numSilEdges = deformInfo->numSilEdges;
-	tri->silEdges = deformInfo->silEdges;
 
 	tri->indexCache = deformInfo->staticIndexCache;
 
 	tri->numVerts = deformInfo->numOutputVerts;
 
 	// RB: added check wether GPU skinning is available at all
-	if( r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable )
+	if( r_useGPUSkinning.GetBool() )
 	{
 		if( tri->verts != NULL && tri->verts != deformInfo->verts )
 		{
@@ -537,7 +536,6 @@ void idMD5Mesh::UpdateSurface( const struct renderEntity_s* ent, const idJointMa
 		}
 		tri->verts = deformInfo->verts;
 		tri->ambientCache = deformInfo->staticAmbientCache;
-		tri->shadowCache = deformInfo->staticShadowCache;
 		tri->referencedVerts = true;
 	}
 	else
@@ -564,7 +562,7 @@ idMD5Mesh::CalculateBounds
 */
 void idMD5Mesh::CalculateBounds( const idJointMat* entJoints, idBounds& bounds ) const
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 
 	__m128 minX = vector_float_posInfinity;
 	__m128 minY = vector_float_posInfinity;
@@ -705,7 +703,7 @@ void idRenderModelMD5::ParseJoint( idLexer& parser, idMD5Joint* joint, idJointQu
 idRenderModelMD5::InitFromFile
 ====================
 */
-void idRenderModelMD5::InitFromFile( const char* fileName )
+void idRenderModelMD5::InitFromFile( const char* fileName, const idImportOptions* options )
 {
 	name = fileName;
 	LoadModel();
@@ -718,7 +716,6 @@ idRenderModelMD5::LoadBinaryModel
 */
 bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp )
 {
-
 	if( !idRenderModelStatic::LoadBinaryModel( file, sourceTimeStamp ) )
 	{
 		return false;
@@ -800,7 +797,9 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 		file->ReadBig( deform.numIndexes );
 		file->ReadBig( deform.numMirroredVerts );
 		file->ReadBig( deform.numDupVerts );
-		file->ReadBig( deform.numSilEdges );
+
+		int numSilEdges;
+		file->ReadBig( numSilEdges );
 
 		srfTriangles_t	tri;
 		memset( &tri, 0, sizeof( srfTriangles_t ) );
@@ -835,29 +834,19 @@ bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTime
 			deform.dupVerts = tri.dupVerts;
 			file->ReadBigArray( deform.dupVerts, deform.numDupVerts * 2 );
 		}
-
-		if( deform.numSilEdges > 0 )
+// jmarshall - compatibility
+		if( numSilEdges > 0 )
 		{
-			R_AllocStaticTriSurfSilEdges( &tri, deform.numSilEdges );
-			deform.silEdges = tri.silEdges;
-			assert( deform.silEdges != NULL );
-			for( int j = 0; j < deform.numSilEdges; j++ )
+			for( int j = 0; j < numSilEdges; j++ )
 			{
-				file->ReadBig( deform.silEdges[j].p1 );
-				file->ReadBig( deform.silEdges[j].p2 );
-				file->ReadBig( deform.silEdges[j].v1 );
-				file->ReadBig( deform.silEdges[j].v2 );
+				triIndex_t stub;
+				file->ReadBig( stub );
+				file->ReadBig( stub );
+				file->ReadBig( stub );
+				file->ReadBig( stub );
 			}
 		}
-
-		idShadowVertSkinned* shadowVerts = ( idShadowVertSkinned* ) Mem_Alloc( ALIGN( deform.numOutputVerts * 2 * sizeof( idShadowVertSkinned ), 16 ), TAG_MODEL );
-		idShadowVertSkinned::CreateShadowCache( shadowVerts, deform.verts, deform.numOutputVerts );
-
-		deform.staticAmbientCache = vertexCache.AllocStaticVertex( deform.verts, ALIGN( deform.numOutputVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
-		deform.staticIndexCache = vertexCache.AllocStaticIndex( deform.indexes, ALIGN( deform.numIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
-		deform.staticShadowCache = vertexCache.AllocStaticVertex( shadowVerts, ALIGN( deform.numOutputVerts * 2 * sizeof( idShadowVertSkinned ), VERTEX_CACHE_ALIGN ) );
-
-		Mem_Free( shadowVerts );
+// jmarshall end
 
 		file->ReadBig( meshes[i].surfaceNum );
 	}
@@ -937,7 +926,8 @@ void idRenderModelMD5::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp ) c
 		file->WriteBig( deform.numIndexes );
 		file->WriteBig( deform.numMirroredVerts );
 		file->WriteBig( deform.numDupVerts );
-		file->WriteBig( deform.numSilEdges );
+		int silDummy = 0;
+		file->WriteBig( silDummy ); // deform.numSilEdges
 
 		if( deform.numOutputVerts > 0 )
 		{
@@ -958,17 +948,6 @@ void idRenderModelMD5::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp ) c
 		if( deform.numDupVerts > 0 )
 		{
 			file->WriteBigArray( deform.dupVerts, deform.numDupVerts * 2 );
-		}
-
-		if( deform.numSilEdges > 0 )
-		{
-			for( int j = 0; j < deform.numSilEdges; j++ )
-			{
-				file->WriteBig( deform.silEdges[j].p1 );
-				file->WriteBig( deform.silEdges[j].p2 );
-				file->WriteBig( deform.silEdges[j].v1 );
-				file->WriteBig( deform.silEdges[j].v2 );
-			}
 		}
 
 		file->WriteBig( meshes[i].surfaceNum );
@@ -1093,6 +1072,15 @@ void idRenderModelMD5::LoadModel()
 	fileSystem->ReadFile( name, NULL, &timeStamp );
 
 	common->UpdateLevelLoadPacifier();
+}
+
+void idRenderModelMD5::CreateBuffers( nvrhi::ICommandList* commandList )
+{
+	for( int i = 0; i < meshes.Num(); i++ )
+	{
+		auto& deform = *meshes[i].deformInfo;
+		R_CreateDeformStaticVertices( meshes[i].deformInfo, commandList );
+	}
 }
 
 /*
@@ -1235,7 +1223,7 @@ static void TransformJoints( idJointMat* __restrict outJoints, const int numJoin
 	assert_16_byte_aligned( inFloats1 );
 	assert_16_byte_aligned( inFloats2 );
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 
 	const __m128 mask_keep_last = __m128c( _mm_set_epi32( 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000 ) );
 
@@ -1392,8 +1380,7 @@ idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEnt
 	if( staticModel->jointsInverted == NULL )
 	{
 		staticModel->numInvertedJoints = numInvertedJoints;
-		const int alignment = glConfig.uniformBufferOffsetAlignment;
-		staticModel->jointsInverted = ( idJointMat* )Mem_ClearedAlloc( ALIGN( numInvertedJoints * sizeof( idJointMat ), alignment ), TAG_JOINTMAT );
+		staticModel->jointsInverted = ( idJointMat* )Mem_ClearedAlloc( numInvertedJoints * sizeof( idJointMat ), TAG_JOINTMAT );
 		staticModel->jointsInvertedBuffer = 0;
 	}
 	else
@@ -1607,3 +1594,38 @@ int	idRenderModelMD5::Memory() const
 	}
 	return total;
 }
+
+
+// RB begin
+void idRenderModelMD5::ExportOBJ( idFile* objFile, idFile* mtlFile, ID_TIME_T* _timeStamp )
+{
+	if( objFile == NULL || mtlFile == NULL )
+	{
+		common->Printf( "Failed to ExportOBJ\n" );
+		return;
+	}
+
+	renderEntity_t			ent;
+
+	memset( &ent, 0, sizeof( ent ) );
+
+	ent.bounds.Clear();
+	ent.suppressSurfaceInViewID = 0;
+
+	ent.numJoints = NumJoints();
+	if( ent.numJoints > 0 )
+	{
+		ent.joints = ( idJointMat* )Mem_ClearedAlloc( SIMD_ROUND_JOINTS( ent.numJoints ) * sizeof( *ent.joints ), TAG_JOINTMAT );
+
+		SIMD_INIT_LAST_JOINT( ent.joints, ent.numJoints );
+
+		idRenderModel* newmodel = InstantiateDynamicModel( &ent, NULL, NULL );
+		newmodel->ExportOBJ( objFile, mtlFile, _timeStamp );
+
+		Mem_Free16( ent.joints );
+		ent.joints = NULL;
+
+		delete newmodel;
+	}
+}
+// RB end

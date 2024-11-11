@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "Font.h"
 
 const char* DEFAULT_FONT = "Arial_Narrow";
@@ -86,6 +86,14 @@ idFont::~idFont
 */
 idFont::~idFont()
 {
+	// SRS - Free glyph data before deleting fontInfo, otherwise will leak
+	if( fontInfo )
+	{
+		Mem_Free( fontInfo->glyphData );
+		fontInfo->glyphData = NULL;
+		Mem_Free( fontInfo->charIndex );
+		fontInfo->charIndex = NULL;
+	}
 	delete fontInfo;
 }
 

@@ -29,7 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MENUSCREEN_H__
 #define __MENUSCREEN_H__
 
-#include "../../renderer/tr_local.h"
+#ifndef __TYPEINFOGEN__
+	#include "../../renderer/RenderCommon.h"
+#endif
 
 enum mainMenuTransition_t
 {
@@ -416,6 +418,7 @@ private:
 	bool						isMpPause;
 };
 
+#if defined(USE_DOOMCLASSIC)
 //*
 //================================================
 //idMenuScreen_Shell_PressStart
@@ -477,6 +480,7 @@ private:
 	const idMaterial* 			doom2Cover;
 	const idMaterial* 			doom3Cover;
 };
+#endif
 
 //*
 //================================================
@@ -624,7 +628,7 @@ private:
 		}
 		bool operator==( const optionData_t& other ) const
 		{
-			return ( fullscreen == other.fullscreen ) && ( ( vidmode == other.vidmode ) || ( fullscreen == 0 ) );
+			return ( fullscreen == other.fullscreen ) && ( ( vidmode == other.vidmode ) || ( fullscreen <= 0 ) );
 		}
 		int fullscreen;
 		int vidmode;
@@ -1014,7 +1018,7 @@ public:
 			GAME_FIELD_AUTO_RELOAD,
 			GAME_FIELD_AIM_ASSIST,
 			GAME_FIELD_ALWAYS_SPRINT,
-			GAME_FIELD_FLASHLIGHT_SHADOWS,
+			GAME_FIELD_CLASSIC_FLASHLIGHT,
 			GAME_FIELD_MUZZLE_FLASHES,
 			MAX_GAME_FIELDS
 		};
@@ -1358,14 +1362,19 @@ public:
 	public:
 		enum systemSettingFields_t
 		{
+#ifdef _WIN32
+			SYSTEM_FIELD_RENDERAPI, // RB: choose between DX12 and Vulkan on Windows
+#endif
 			SYSTEM_FIELD_FULLSCREEN,
 			SYSTEM_FIELD_FRAMERATE,
 			SYSTEM_FIELD_VSYNC,
 			SYSTEM_FIELD_ANTIALIASING,
-			SYSTEM_FIELD_MOTIONBLUR,
 			// RB begin
-			SYSTEM_FIELD_SHADOWMAPPING,
-			//SYSTEM_FIELD_LODBIAS,
+			SYSTEM_FIELD_RENDERMODE,
+			SYSTEM_FIELD_AMBIENT_BRIGHTNESS,
+			SYSTEM_FIELD_SSAO,
+			SYSTEM_FIELD_FILMIC_POSTFX,
+			SYSTEM_FIELD_CRT_POSTFX,
 			// RB end
 			SYSTEM_FIELD_BRIGHTNESS,
 			SYSTEM_FIELD_VOLUME,
@@ -1392,14 +1401,19 @@ public:
 		bool						IsRestartRequired() const;
 
 	private:
+		idStr originalRenderAPI;
 		int originalFramerate;
 		int originalAntialias;
-		int originalMotionBlur;
 		int originalVsync;
 		float originalBrightness;
 		float originalVolume;
 		// RB begin
-		int originalShadowMapping;
+		//int originalShadowMapping; // TODO use for quality of shadowmaps?
+		int originalRenderMode;
+		float originalAmbientBrightness;
+		int originalSSAO;
+		int originalPostProcessing;
+		int originalCRTPostFX;
 		// RB end
 
 		idList<vidMode_t>			modeList;
@@ -1422,6 +1436,8 @@ private:
 	idMenuWidget_Button*			btnBack;
 
 };
+
+#if VR_OPTIONS
 
 //*
 //================================================
@@ -1490,6 +1506,8 @@ private:
 	const idMaterial* 			leftEyeMat;
 	const idMaterial* 			rightEyeMat;
 };
+
+#endif
 
 //*
 //================================================

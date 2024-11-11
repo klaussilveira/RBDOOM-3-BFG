@@ -26,11 +26,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "DeviceContext.h"
-#include "../renderer/GuiModel.h"
+
+#include "imgui.h"
+#include "../renderer/RenderCommon.h"
 
 extern idCVar in_useJoystick;
 
@@ -1003,9 +1005,10 @@ char* idRectangle::String() const
 
 	// use an array so that multiple toString's won't collide
 	s = str[ index ];
-	index = ( index + 1 ) & 7;
 
-	sprintf( s, "%.2f %.2f %.2f %.2f", x, y, w, h );
+	idStr::snPrintf( s, sizeof( str[ index ] ), "%.2f %.2f %.2f %.2f", x, y, w, h );
+
+	index = ( index + 1 ) & 7;
 
 	return s;
 }

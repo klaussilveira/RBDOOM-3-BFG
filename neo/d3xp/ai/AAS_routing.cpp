@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
 #include "AAS_local.h"
@@ -190,8 +190,8 @@ void idAASLocal::CalculateAreaTravelTimes()
 		}
 	}
 
-	// RB: 64 bit fixes, changed unsigned int to ptrdiff_t
-	assert( ( ( ptrdiff_t ) bytePtr - ( ptrdiff_t ) areaTravelTimes ) <= numAreaTravelTimes * sizeof( unsigned short ) );
+	// RB: 64 bit fixes, changed unsigned int to ptrdiff_t, SRS - added ptrdiff_t casts on RHS for type consistency across compare operator
+	assert( ( ( ptrdiff_t ) bytePtr - ( ptrdiff_t ) areaTravelTimes ) <= ( ptrdiff_t ) numAreaTravelTimes * ( ptrdiff_t ) sizeof( unsigned short ) );
 	// RB end
 
 }

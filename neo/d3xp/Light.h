@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2021 Justin Marshall
+Copyright (C) 2021-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -41,6 +43,38 @@ extern const idEventDef EV_Light_GetLightParm;
 extern const idEventDef EV_Light_SetLightParm;
 extern const idEventDef EV_Light_SetLightParms;
 
+// jmarshall
+struct iceLightStyleState_t
+{
+	iceLightStyleState_t();
+
+	int				dl_frame;
+	float			dl_framef;
+	int				dl_oldframe;
+	int				dl_time;
+	float			dl_backlerp;
+
+	void			Reset();
+};
+
+ID_INLINE iceLightStyleState_t::iceLightStyleState_t()
+{
+	Reset();
+}
+
+ID_INLINE void iceLightStyleState_t::Reset()
+{
+	dl_frame = 0;
+	dl_framef = 0;
+	dl_oldframe = 0;
+	dl_time = 0;
+	dl_backlerp = 0;
+}
+// jmarshall end
+
+
+//class idStaticEntity;
+
 class idLight : public idEntity
 {
 public:
@@ -60,7 +94,9 @@ public:
 	virtual void	FreeLightDef();
 	virtual bool	GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis );
 	void			Present();
-
+// jmarshall
+	virtual void	SharedThink();
+// jmarshall end
 	void			SaveState( idDict* args );
 	virtual void	SetColor( float red, float green, float blue );
 	virtual void	SetColor( const idVec4& color );
@@ -71,6 +107,7 @@ public:
 	{
 		return baseColor;
 	}
+	virtual idVec3	GetEditOrigin() const;
 	void			SetShader( const char* shadername );
 	void			SetLightParm( int parmnum, float value );
 	void			SetLightParms( float parm0, float parm1, float parm2, float parm3 );
@@ -94,6 +131,11 @@ public:
 	void			SetLightLevel();
 
 	virtual void	ShowEditingDialog();
+
+	const renderLight_t& GetRenderLight() const
+	{
+		return renderLight;
+	}
 
 	enum
 	{
@@ -122,6 +164,11 @@ private:
 
 	bool			breakOnTrigger;
 	int				count;
+// jmarshall
+	int				lightStyle;
+	int				lightStyleFrameTime;
+	idVec3			lightStyleBase;
+// jmarshall end
 	int				triggercount;
 	idEntity* 		lightParent;
 	idVec4			fadeFrom;
@@ -129,6 +176,9 @@ private:
 	int				fadeStart;
 	int				fadeEnd;
 	bool			soundWasPlaying;
+
+	// RB: pointing to static model because this light entity was split into 2 entities by convertMapToValve220
+	idEntityPtr<idStaticEntity> modelTarget;
 
 private:
 	void			PresentLightDefChange();
@@ -148,6 +198,12 @@ private:
 	void			Event_SetSoundHandles();
 	void			Event_FadeOut( float time );
 	void			Event_FadeIn( float time );
+	void			Event_UpdateModelTarget();
+
+// jmarshall
+	idList<idStr>	light_styles;
+	iceLightStyleState_t lightStyleState;
+// jmarshall end
 };
 
 #endif /* !__GAME_LIGHT_H__ */

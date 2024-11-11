@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "RegExp.h"
 #include "DeviceContext.h"
@@ -176,40 +176,6 @@ void idRegister::GetFromRegs( float* registers )
 			break;
 		}
 	}
-}
-
-/*
-=================
-idRegister::ReadFromDemoFile
-=================
-*/
-void idRegister::ReadFromDemoFile( idDemoFile* f )
-{
-	f->ReadBool( enabled );
-	f->ReadShort( type );
-	f->ReadInt( regCount );
-	for( int i = 0; i < 4; i++ )
-	{
-		f->ReadUnsignedShort( regs[i] );
-	}
-	name = f->ReadHashString();
-}
-
-/*
-=================
-idRegister::WriteToDemoFile
-=================
-*/
-void idRegister::WriteToDemoFile( idDemoFile* f )
-{
-	f->WriteBool( enabled );
-	f->WriteShort( type );
-	f->WriteInt( regCount );
-	for( int i = 0; i < 4; i++ )
-	{
-		f->WriteUnsignedShort( regs[i] );
-	}
-	f->WriteHashString( name );
 }
 
 /*
@@ -397,41 +363,6 @@ void idRegisterList::Reset()
 {
 	regs.DeleteContents( true );
 	regHash.Clear();
-}
-
-/*
-====================
-idRegisterList::ReadFromSaveGame
-====================
-*/
-void idRegisterList::ReadFromDemoFile( idDemoFile* f )
-{
-	int c;
-
-	f->ReadInt( c );
-	regs.DeleteContents( true );
-	for( int i = 0; i < c; i++ )
-	{
-		idRegister* reg = new( TAG_OLD_UI ) idRegister;
-		reg->ReadFromDemoFile( f );
-		regs.Append( reg );
-	}
-}
-
-/*
-====================
-idRegisterList::ReadFromSaveGame
-====================
-*/
-void idRegisterList::WriteToDemoFile( idDemoFile* f )
-{
-	int c = regs.Num();
-
-	f->WriteInt( c );
-	for( int i = 0 ; i < c; i++ )
-	{
-		regs[i]->WriteToDemoFile( f );
-	}
 }
 
 /*

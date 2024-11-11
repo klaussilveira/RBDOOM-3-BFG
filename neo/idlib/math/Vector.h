@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2020 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -69,6 +70,7 @@ public:
 	float			operator*( const idVec2& a ) const;
 	idVec2			operator*( const float a ) const;
 	idVec2			operator/( const float a ) const;
+	idVec2			operator/( const idVec2& a ) const;
 	idVec2			operator+( const idVec2& a ) const;
 	idVec2			operator-( const idVec2& a ) const;
 	idVec2& 		operator+=( const idVec2& a );
@@ -107,6 +109,7 @@ public:
 
 extern idVec2 vec2_origin;
 #define vec2_zero vec2_origin
+extern idVec2 vec2_one;
 
 ID_INLINE idVec2::idVec2()
 {
@@ -249,8 +252,8 @@ ID_INLINE void idVec2::Clamp( const idVec2& min, const idVec2& max )
 
 ID_INLINE void idVec2::Snap()
 {
-	x = floor( x + 0.5f );
-	y = floor( y + 0.5f );
+	x = floorf( x + 0.5f );
+	y = floorf( y + 0.5f );
 }
 
 ID_INLINE void idVec2::SnapInt()
@@ -283,6 +286,11 @@ ID_INLINE idVec2 idVec2::operator/( const float a ) const
 {
 	float inva = 1.0f / a;
 	return idVec2( x * inva, y * inva );
+}
+
+ID_INLINE idVec2 idVec2::operator/( const idVec2& a ) const
+{
+	return idVec2( x / a.x, y / a.y );
 }
 
 ID_INLINE idVec2 operator*( const float a, const idVec2 b )
@@ -356,6 +364,12 @@ ID_INLINE float* idVec2::ToFloatPtr()
 	return &x;
 }
 
+ID_INLINE idVec2& operator/( float lhs, idVec2& rhs )
+{
+	rhs.x = lhs / rhs.x;
+	rhs.y = lhs / rhs.y;
+	return rhs;
+}
 
 //===============================================================
 //
@@ -430,6 +444,13 @@ public:
 	float* 			ToFloatPtr();
 	const char* 	ToString( int precision = 2 ) const;
 
+	// RB: assumes to be normalized, result is an octrahedral vector on the [-1, +1] square
+	idVec2			ToOctahedral() const;
+
+	// builds a 3D unit vector from an an octrahedral vector on the [-1, +1] square
+	void			FromOctahedral( const idVec2& v );
+	// RB end
+
 	void			NormalVectors( idVec3& left, idVec3& down ) const;	// vector should be normalized
 	void			OrthogonalBasis( idVec3& left, idVec3& up ) const;
 
@@ -443,6 +464,7 @@ public:
 
 extern idVec3 vec3_origin;
 #define vec3_zero vec3_origin
+extern idVec3 vec3_one;
 
 ID_INLINE idVec3::idVec3()
 {
@@ -830,9 +852,9 @@ ID_INLINE void idVec3::Clamp( const idVec3& min, const idVec3& max )
 
 ID_INLINE void idVec3::Snap()
 {
-	x = floor( x + 0.5f );
-	y = floor( y + 0.5f );
-	z = floor( z + 0.5f );
+	x = floorf( x + 0.5f );
+	y = floorf( y + 0.5f );
+	z = floorf( z + 0.5f );
 }
 
 ID_INLINE void idVec3::SnapInt()
@@ -955,6 +977,14 @@ ID_INLINE bool idVec3::ProjectAlongPlane( const idVec3& normal, const float epsi
 	return true;
 }
 
+ID_INLINE idVec3& operator/( float lhs, idVec3& rhs )
+{
+	rhs.x = rhs.x / lhs;
+	rhs.y = rhs.y / lhs;
+	rhs.z = rhs.z / lhs;
+	return rhs;
+}
+
 //===============================================================
 //
 //	idTupleSize< idVec3 > - Specialization to get the size
@@ -1038,6 +1068,7 @@ public:
 
 extern idVec4 vec4_origin;
 #define vec4_zero vec4_origin
+extern idVec4 vec4_one;
 
 ID_INLINE void idVec4::Set( const float x, const float y, const float z, const float w )
 {
@@ -1749,6 +1780,14 @@ ID_INLINE idVec3 idPolar3::ToVec3() const
 	return idVec3( cp * radius * ct, cp * radius * st, radius * sp );
 }
 
+namespace VectorUtil
+{
+inline uint32_t Vec4ToColorInt( const idVec4& vec )
+{
+	idVec4 vecCopy = 255.0f * vec;
+	return ( ( uint32_t )vecCopy[0] << 28 ) | ( ( uint32_t )vecCopy[1] << 20 ) | ( ( uint32_t )vecCopy[2] << 12 ) | ( uint32_t )vecCopy[3];
+}
+}
 
 /*
 ===============================================================================

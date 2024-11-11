@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2012-2014 Robert Beckebans
+Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -36,6 +37,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../sound/sound.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 // RB begin
 #if defined(USE_DOOMCLASSIC)
 	#include "../../doomclassic/doom/doomlib.h"
@@ -59,7 +63,7 @@ struct version_s
 {
 	version_s()
 	{
-		sprintf( string, "%s.%d%s %s %s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_STRING, __DATE__, __TIME__ );
+		idStr::snPrintf( string, sizeof( string ), "%s.%d%s %s %s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_STRING, __DATE__, __TIME__ );
 	}
 	char	string[256];
 } version;
@@ -67,7 +71,8 @@ struct version_s
 idCVar com_version( "si_version", version.string, CVAR_SYSTEM | CVAR_ROM | CVAR_SERVERINFO, "engine version" );
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "force generic platform independent SIMD" );
 
-#ifdef ID_RETAIL
+// RB: not allowing the console is a bit harsh for shipping builds
+#if 0 //def ID_RETAIL
 	idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
 #else
 	idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
@@ -75,8 +80,8 @@ idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL | CVAR_SYSTE
 
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "developer mode" );
 idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show engine timings" );
-// DG: support "com_showFPS 2" for fps-only view like in classic doom3 => make it CVAR_INTEGER
-idCVar com_showFPS( "com_showFPS", "0", CVAR_INTEGER | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second. 0: off 1: default bfg values, 2: only show FPS (classic view)" );
+// DG: support "com_showFPS 1" for fps-only view like in classic doom3 => make it CVAR_INTEGER
+idCVar com_showFPS( "com_showFPS", "0", CVAR_INTEGER | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second. 0: off, 1: only show FPS (classic view), 2: default bfg values" );
 // DG end
 idCVar com_showMemoryUsage( "com_showMemoryUsage", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show total and per frame memory usage" );
 idCVar com_updateLoadSize( "com_updateLoadSize", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "update the load size after loading a map" );
@@ -116,8 +121,11 @@ int com_editors = 0;
 idCommonLocal	commonLocal;
 idCommon* 		common = &commonLocal;
 
-// RB: defaulted this to 1 because we don't have a sound for the intro .bik video
-idCVar com_skipIntroVideos( "com_skipIntroVideos", "1", CVAR_BOOL , "skips intro videos" );
+#if defined( ID_RETAIL )
+	idCVar com_skipIntroVideos( "com_skipIntroVideos", "0", CVAR_BOOL , "skips intro videos" );
+#else
+	idCVar com_skipIntroVideos( "com_skipIntroVideos", "1", CVAR_BOOL , "skips intro videos" );
+#endif
 
 // For doom classic
 struct Globals;
@@ -186,19 +194,15 @@ idCommonLocal::idCommonLocal() :
 	mapSpawnData.savegameFile = NULL;
 
 	currentMapName.Clear();
-	aviDemoShortName.Clear();
 
 	renderWorld = NULL;
 	soundWorld = NULL;
 	menuSoundWorld = NULL;
-	readDemo = NULL;
-	writeDemo = NULL;
 
 	gameFrame = 0;
 	gameTimeResidual = 0;
 	syncNextGameFrame = true;
 	mapSpawned = false;
-	aviCaptureMode = false;
 	timeDemo = TD_NO;
 
 	nextSnapshotSendTime = 0;
@@ -219,7 +223,6 @@ idCommonLocal::Quit
 */
 void idCommonLocal::Quit()
 {
-
 	// don't try to shutdown if we are in a recursive error
 	if( !com_errorEntered )
 	{
@@ -346,6 +349,26 @@ void idCommonLocal::StartupVariable( const char* match )
 		i++;
 	}
 }
+
+// DG: add doom3 tools
+/*
+=================
+idCommonLocal::InitTool
+=================
+*/
+void idCommonLocal::InitTool( const toolFlag_t tool, const idDict* dict, idEntity* entity )
+{
+	if( tool & EDITOR_LIGHT )
+	{
+		ImGuiTools::LightEditorInit( dict, entity );
+	}
+
+	if( tool & EDITOR_AF )
+	{
+		ImGuiTools::AfEditorInit();
+	}
+}
+// DG end
 
 /*
 ==================
@@ -518,6 +541,7 @@ CONSOLE_COMMAND( printMemInfo, "prints memory debugging data", NULL )
 	fileSystem->CloseFile( f );
 }
 
+
 /*
 ==================
 Com_Error_f
@@ -623,7 +647,7 @@ Com_WriteConfig_f
 Write the config file to a specific name
 ===============
 */
-CONSOLE_COMMAND( writeConfig, "writes a config file", NULL )
+CONSOLE_COMMAND_SHIP( writeConfig, "writes a config file", NULL )
 {
 	idStr	filename;
 
@@ -827,16 +851,6 @@ CONSOLE_COMMAND( reloadLanguage, "reload language dict", NULL )
 
 /*
 =================
-Com_StartBuild_f
-=================
-*/
-CONSOLE_COMMAND( startBuild, "prepares to make a build", NULL )
-{
-	globalImages->StartBuild();
-}
-
-/*
-=================
 Com_FinishBuild_f
 =================
 */
@@ -846,7 +860,6 @@ CONSOLE_COMMAND( finishBuild, "finishes the build process", NULL )
 	{
 		game->CacheDictionaryMedia( NULL );
 	}
-	globalImages->FinishBuild( ( args.Argc() > 1 ) );
 }
 
 /*
@@ -856,6 +869,11 @@ idCommonLocal::RenderSplash
 */
 void idCommonLocal::RenderSplash()
 {
+	//const emptyCommand_t* renderCommands = NULL;
+
+	// RB: this is the same as Doom 3 renderSystem->BeginFrame()
+	//renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
+
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -878,8 +896,11 @@ void idCommonLocal::RenderSplash()
 	renderSystem->SetColor4( 1, 1, 1, 1 );
 	renderSystem->DrawStretchPic( barWidth, barHeight, renderSystem->GetVirtualWidth() - barWidth * 2.0f, renderSystem->GetVirtualHeight() - barHeight * 2.0f, 0, 0, 1, 1, splashScreen );
 
-	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
+	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 	renderSystem->RenderCommandBuffers( cmd );
+
+	// RB: this is the same as Doom 3 renderSystem->EndFrame()
+	//renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_moc, &time_gpu );
 }
 
 /*
@@ -900,18 +921,19 @@ void idCommonLocal::RenderBink( const char* path )
 	materialText.Format( "{ translucent { videoMap %s } }", path );
 
 	idMaterial* material = const_cast<idMaterial*>( declManager->FindMaterial( "splashbink" ) );
+	material->FreeData();	// SRS - always free data before parsing, otherwise leaks occur
 	material->Parse( materialText.c_str(), materialText.Length(), false );
 	material->ResetCinematicTime( Sys_Milliseconds() );
 
-	// RB: FFmpeg might return the wrong play length so I changed the intro video to play max 30 seconds until finished
-	int cinematicLength = 30000; //material->CinematicLength();
+	// SRS - Restored original calculation after implementing idCinematicLocal::GetStartTime() and fixing animationLength in idCinematicLocal::InitFromBinkDecFile()
+	int cinematicLength = material->CinematicLength();
 	int	mouseEvents[MAX_MOUSE_EVENTS][2];
 
 	bool escapeEvent = false;
 	while( ( Sys_Milliseconds() <= ( material->GetCinematicStartTime() + cinematicLength ) ) && material->CinematicIsPlaying() )
 	{
 		renderSystem->DrawStretchPic( chop, 0, imageWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, material );
-		const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
+		const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 		renderSystem->RenderCommandBuffers( cmd );
 
 		Sys_GenerateEvents();
@@ -1266,7 +1288,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		cvarSystem->ClearModifiedFlags( CVAR_ARCHIVE );
 
 		// init OpenGL, which will open a window and connect sound and input hardware
-		renderSystem->InitOpenGL();
+		renderSystem->InitBackend();
 
 		// Support up to 2 digits after the decimal point
 		com_engineHz_denominator = 100LL * com_engineHz.GetFloat();
@@ -1296,23 +1318,27 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_english" );
 		}
 
+		// SP: Load in the splash screen images.
+		globalImages->LoadDeferredImages();
+
 		const int legalMinTime = 4000;
 		const bool showVideo = ( !com_skipIntroVideos.GetBool() && fileSystem->UsingResourceFiles() );
+		const bool showSplash = true;
 		if( showVideo )
 		{
 			RenderBink( "video\\loadvideo.bik" );
 			RenderSplash();
 			RenderSplash();
 		}
-		else
+		else if( showSplash )
 		{
 			idLib::Printf( "Skipping Intro Videos!\n" );
 			// display the legal splash screen
 			// No clue why we have to render this twice to show up...
 			RenderSplash();
+			// SRS - OSX needs this for some OpenGL drivers, otherwise renders leftover image before splash
 			RenderSplash();
 		}
-
 
 		int legalStartTime = Sys_Milliseconds();
 		declManager->Init2();
@@ -1419,13 +1445,15 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		AddStartupCommands();
 
 		StartMenu( true );
-
+// SRS - changed ifndef to ifdef since legalMinTime should apply to retail builds, not dev builds
+#ifdef ID_RETAIL
 		while( Sys_Milliseconds() - legalStartTime < legalMinTime )
 		{
 			RenderSplash();
 			Sys_GenerateEvents();
 			Sys_Sleep( 10 );
 		};
+#endif
 
 		// print all warnings queued during initialization
 		PrintWarnings();
@@ -1466,6 +1494,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 
 		com_fullyInitialized = true;
 
+		globalImages->LoadDeferredImages();
 
 		// No longer need the splash screen
 		if( splashScreen != NULL )
@@ -1516,12 +1545,6 @@ void idCommonLocal::Shutdown()
 	// shutdown the script debugger
 	// DebuggerServerShutdown();
 
-	if( aviCaptureMode )
-	{
-		printf( "EndAVICapture();\n" );
-		EndAVICapture();
-	}
-
 	printf( "Stop();\n" );
 	Stop();
 
@@ -1532,16 +1555,22 @@ void idCommonLocal::Shutdown()
 	delete loadGUI;
 	loadGUI = NULL;
 
+	printf( "ImGuiHook::Destroy();\n" );
+	ImGuiHook::Destroy();
+
 	printf( "delete renderWorld;\n" );
-	delete renderWorld;
+	// SRS - Call FreeRenderWorld() vs. delete, otherwise worlds list not updated on shutdown
+	renderSystem->FreeRenderWorld( renderWorld );
 	renderWorld = NULL;
 
 	printf( "delete soundWorld;\n" );
-	delete soundWorld;
+	// SRS - Call FreeSoundWorld() vs. delete, otherwise soundWorlds list not updated and can segfault in soundSystem->Shutdown()
+	soundSystem->FreeSoundWorld( soundWorld );
 	soundWorld = NULL;
 
 	printf( "delete menuSoundWorld;\n" );
-	delete menuSoundWorld;
+	// SRS - Call FreeSoundWorld() vs. delete, otherwise soundWorlds list not updated and can segfault in soundSystem->Shutdown()
+	soundSystem->FreeSoundWorld( menuSoundWorld );
 	menuSoundWorld = NULL;
 
 	// shut down the session
@@ -1561,10 +1590,6 @@ void idCommonLocal::Shutdown()
 	printf( "uiManager->Shutdown();\n" );
 	uiManager->Shutdown();
 
-	// shut down the sound system
-	printf( "soundSystem->Shutdown();\n" );
-	soundSystem->Shutdown();
-
 	// shut down the user command input code
 	printf( "usercmdGen->Shutdown();\n" );
 	usercmdGen->Shutdown();
@@ -1574,12 +1599,20 @@ void idCommonLocal::Shutdown()
 	eventLoop->Shutdown();
 
 	// shutdown the decl manager
+	// SRS - Note this also shuts down all cinematic resources, including cinematic audio voices
 	printf( "declManager->Shutdown();\n" );
 	declManager->Shutdown();
 
 	// shut down the renderSystem
+	// SRS - Note this also shuts down any testVideo resources, including cinematic audio voices
 	printf( "renderSystem->Shutdown();\n" );
 	renderSystem->Shutdown();
+
+	// shut down the sound system
+	// SRS - Shut down sound system after decl manager and render system so cinematic audio voices are destroyed first
+	// Important for XAudio2 where the mastering voice cannot be destroyed if any other voices exist
+	printf( "soundSystem->Shutdown();\n" );
+	soundSystem->Shutdown();
 
 	printf( "commonDialog.Shutdown();\n" );
 	commonDialog.Shutdown();
@@ -1763,20 +1796,17 @@ idCommonLocal::LeaveGame
 */
 void idCommonLocal::LeaveGame()
 {
-
 	const bool captureToImage = false;
+
 	UpdateScreen( captureToImage );
 
 	ResetNetworkingState();
-
 
 	Stop( false );
 
 	CreateMainMenu();
 
 	StartMenu();
-
-
 }
 
 /*
@@ -1799,7 +1829,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	{
 		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) )
 		{
-			if( game->CheckInCinematic() == true )
+			if( game->CheckInCinematic() )
 			{
 				game->SkipCinematicScene();
 			}
@@ -1807,7 +1837,6 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 			{
 				if( !game->Shell_IsActive() )
 				{
-
 					// menus / etc
 					if( MenuEvent( event ) )
 					{
@@ -1885,6 +1914,11 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 
 	// menus / etc
 	if( MenuEvent( event ) )
+	{
+		return true;
+	}
+
+	if( ImGuiHook::InjectSysEvent( event ) )
 	{
 		return true;
 	}

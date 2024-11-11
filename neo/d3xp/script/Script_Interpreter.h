@@ -65,11 +65,13 @@ private:
 	idThread*			thread;
 
 	void				PopParms( int numParms );
-	void				PushString( const char* string );
+
 	// RB begin
 	// RB: 64 bit fix, changed int to intptr_t
+public:
+	void				PushString( const char* string );
 	void				Push( intptr_t value );
-
+private:
 	// RB: added PushVector for new E_EVENT_SIZEOF_VEC
 	void				PushVector( const idVec3& vector );
 	// RB end
@@ -205,11 +207,11 @@ ID_INLINE const char* idInterpreter::FloatToString( float value )
 
 	if( value == ( float )( int )value )
 	{
-		sprintf( text, "%d", ( int )value );
+		idStr::snPrintf( text, sizeof( text ), "%d", ( int )value );
 	}
 	else
 	{
-		sprintf( text, "%f", value );
+		idStr::snPrintf( text, sizeof( text ), "%f", value );
 	}
 	return text;
 }

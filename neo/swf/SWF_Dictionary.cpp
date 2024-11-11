@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 /*
 ========================
@@ -68,6 +68,32 @@ This exists mostly so idList works right
 ========================
 */
 idSWFDictionaryEntry& idSWFDictionaryEntry::operator=( idSWFDictionaryEntry& other )
+{
+	type = other.type;
+	material = other.material;
+	shape = other.shape;
+	sprite = other.sprite;
+	font = other.font;
+	text = other.text;
+	edittext = other.edittext;
+	imageSize = other.imageSize;
+	imageAtlasOffset = other.imageAtlasOffset;
+	other.type = SWF_DICT_NULL;
+	other.material = NULL;
+	other.shape = NULL;
+	other.sprite = NULL;
+	other.font = NULL;
+	other.text = NULL;
+	other.edittext = NULL;
+	return *this;
+}
+
+/*
+========================
+idSWF::idSWFDictionaryEntry::operator= (move)
+========================
+*/
+idSWFDictionaryEntry& idSWFDictionaryEntry::operator=( idSWFDictionaryEntry&& other )
 {
 	type = other.type;
 	material = other.material;

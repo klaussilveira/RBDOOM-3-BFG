@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../snd_local.h"
 
 extern idCVar s_useCompression;
@@ -107,7 +107,7 @@ void idSoundSample_OpenAL::WriteGeneratedSample( idFile* fileOut )
 	fileOut->WriteBig( loaded );
 	fileOut->WriteBig( playBegin );
 	fileOut->WriteBig( playLength );
-	idWaveFile::WriteWaveFormatDirect( format, fileOut );
+	idWaveFile::WriteWaveFormatDirect( format, fileOut, false );
 	fileOut->WriteBig( ( int )amplitude.Num() );
 	fileOut->Write( amplitude.Ptr(), amplitude.Num() );
 	fileOut->WriteBig( totalBufferSize );

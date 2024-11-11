@@ -326,17 +326,19 @@ class idCollisionModelManagerLocal : public idCollisionModelManager
 {
 public:
 	// load collision models from a map file
-	void			LoadMap( const idMapFile* mapFile );
+	void			LoadMap( const idMapFile* mapFile, bool ignoreOldCollisionFile );
 	// frees all the collision models
 	void			FreeMap();
 
 	void			Preload( const char* mapName );
 	// get clip handle for model
-	cmHandle_t		LoadModel( const char* modelName );
+	cmHandle_t		LoadModel( const char* modelName, const bool precache );
 	// sets up a trace model for collision with other trace models
 	cmHandle_t		SetupTrmModel( const idTraceModel& trm, const idMaterial* material );
 	// create trace model from a collision model, returns true if succesfull
 	bool			TrmFromModel( const char* modelName, idTraceModel& trm );
+
+	virtual int		PointContents( const idVec3 p, cmHandle_t model );
 
 	// name of the model
 	const char* 	GetModelName( cmHandle_t model ) const;
@@ -421,7 +423,6 @@ private:			// CollisionMap_contents.cpp
 	bool			TestTrmVertsInBrush( cm_traceWork_t* tw, cm_brush_t* b );
 	bool			TestTrmInPolygon( cm_traceWork_t* tw, cm_polygon_t* p );
 	cm_node_t* 		PointNode( const idVec3& p, cm_model_t* model );
-	int				PointContents( const idVec3 p, cmHandle_t model );
 	int				TransformedPointContents( const idVec3& p, cmHandle_t model, const idVec3& origin, const idMat3& modelAxis );
 	int				ContentsTrm( trace_t* results, const idVec3& start,
 								 const idTraceModel* trm, const idMat3& trmAxis, int contentMask,
@@ -492,8 +493,8 @@ private:			// CollisionMap_load.cpp
 	void			CalculateEdgeNormals( cm_model_t* model, cm_node_t* node );
 	void			CreatePatchPolygons( cm_model_t* model, idSurface_Patch& mesh, const idMaterial* material, int primitiveNum );
 	void			ConvertPatch( cm_model_t* model, const idMapPatch* patch, int primitiveNum );
-	void			ConvertBrushSides( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum );
-	void			ConvertBrush( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum );
+	void			ConvertBrushSides( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum, const idVec3& originOffset );
+	void			ConvertBrush( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum, const idVec3& originOffset );
 	// RB: support new .map format
 	void			ConvertMesh( cm_model_t* model, const MapPolygonMesh* mesh, int primitiveNum );
 	// RB end
@@ -502,7 +503,7 @@ private:			// CollisionMap_load.cpp
 	void			RemapEdges( cm_node_t* node, int* edgeRemap );
 	void			OptimizeArrays( cm_model_t* model );
 	void			FinishModel( cm_model_t* model );
-	void			BuildModels( const idMapFile* mapFile );
+	void			BuildModels( const idMapFile* mapFile, bool ignoreOldCollisionFile );
 	cmHandle_t		FindModel( const char* name );
 	cm_model_t* 	CollisionModelForMapEntity( const idMapEntity* mapEnt );	// brush/patch model from .map
 	cm_model_t* 	LoadRenderModel( const char* fileName );					// ASE/LWO models

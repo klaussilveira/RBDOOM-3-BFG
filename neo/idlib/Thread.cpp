@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 /*
 ================================================================================================
@@ -237,12 +237,18 @@ int idSysThread::ThreadProc( idSysThread* thread )
 					break;
 				}
 
+				// SRS - generalize thread instrumentation with correct Run() scope
+				OPTICK_THREAD( thread->GetName() );
+
 				retVal = thread->Run();
 			}
 			thread->signalWorkerDone.Raise();
 		}
 		else
 		{
+			// SRS - generalize thread instrumentation with correct Run() scope
+			OPTICK_THREAD( thread->GetName() );
+
 			retVal = thread->Run();
 		}
 	}

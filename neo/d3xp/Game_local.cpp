@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2021 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -168,7 +168,7 @@ TestGameAPI
 */
 void TestGameAPI()
 {
-	gameImport_t testImport;
+	gameImport_t testImport = {};
 	gameExport_t testExport;
 
 	testImport.sys						= ::sys;
@@ -487,7 +487,7 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 
 	idSaveGame savegame( f, strings, BUILD_NUMBER );
 
-	if( g_flushSave.GetBool( ) == true )
+	if( g_flushSave.GetBool() == true )
 	{
 		// force flushing with each write... for tracking down
 		// save game bugs.
@@ -978,7 +978,7 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 	mapIsIntro = ( idStr::FindText( mapFileName, "mars_city1" ) >= 0 );// Leyland VR
 
 	// load the collision map
-	collisionModelManager->LoadMap( mapFile );
+	collisionModelManager->LoadMap( mapFile, false );
 	collisionModelManager->Preload( mapName );
 
 	numClients = 0;
@@ -1114,7 +1114,7 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 idGameLocal::LocalMapRestart
 ===================
 */
-void idGameLocal::LocalMapRestart( )
+void idGameLocal::LocalMapRestart()
 {
 	int i, latchSpawnCount;
 
@@ -1220,7 +1220,7 @@ void idGameLocal::MapRestart_f( const idCmdArgs& args )
 		return;
 	}
 
-	gameLocal.MapRestart( );
+	gameLocal.MapRestart();
 }
 
 /*
@@ -1261,6 +1261,75 @@ void idGameLocal::MapPopulate()
 
 /*
 ===================
+RB idGameLocal::PopulateEnvironmentProbes
+===================
+*/
+void idGameLocal::PopulateEnvironmentProbes()
+{
+	idEntity* ent;
+
+	// check if there are already environment probes defined by the artist
+	int numEnvprobes = 0;
+
+	for( ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
+	{
+		if( ent->IsType( EnvironmentProbe::Type ) )
+		{
+			numEnvprobes++;
+		}
+	}
+
+	if( numEnvprobes > 0 )
+	{
+		return;
+	}
+
+	const idDict* envProbeDef = gameLocal.FindEntityDefDict( "env_probe", false );
+	if( !envProbeDef )
+	{
+		Printf( "entityDef env_probe missing in base/def/" );
+		return;
+	}
+
+	// naive approach: place an env probe into the center of each BSP area
+
+	int	numAreas = gameRenderWorld->NumAreas();
+
+	for( int i = 0; i < numAreas; i++ )
+	{
+		idBounds areaBounds = gameRenderWorld->AreaBounds( i );
+
+		idVec3 point = areaBounds.GetCenter();
+		point.SnapInt();
+
+		int areaNum = gameRenderWorld->PointInArea( point );
+		if( areaNum < 0 )
+		{
+			Warning( "PopulateEnvironmentProbes: location '%i' is not in a valid area\n", i );
+			continue;
+		}
+
+		idDict args;
+		args.Set( "classname", "env_probe" );
+		args.Set( "origin", point.ToString() );
+
+		idStr name;
+		name.Format( "env_probe_area_%i", i );
+		name = gameEdit->GetUniqueEntityName( name );
+
+		args.Set( "name", name );
+
+		gameLocal.SpawnEntityDef( args, &ent );
+		if( !ent )
+		{
+			gameLocal.Error( "Couldn't spawn 'env_probe'" );
+		}
+	}
+}
+// RB end
+
+/*
+===================
 idGameLocal::InitFromNewMap
 ===================
 */
@@ -1295,6 +1364,9 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld* renderWorl
 	InitScriptForMap();
 
 	MapPopulate();
+
+	// RB
+	PopulateEnvironmentProbes();
 
 	mpGame.Reset();
 	mpGame.Precache();
@@ -1566,7 +1638,6 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	savegame.RestoreObjects();
 
 	mpGame.Reset();
-
 	mpGame.Precache();
 
 	// free up any unused animations
@@ -1814,16 +1885,20 @@ void idGameLocal::CacheDictionaryMedia( const idDict* dict )
 	kv = dict->MatchPrefix( "model" );
 	while( kv )
 	{
-		if( kv->GetValue().Length() )
+		const char* modelKey = kv->GetKey().c_str();
+
+		if( kv->GetValue().Length() && idStr::Icmp( modelKey, "modelTarget" ) != 0 && idStr::Icmpn( modelKey, "modelscale", 10 ) != 0 )
 		{
 			declManager->MediaPrint( "Precaching model %s\n", kv->GetValue().c_str() );
+
 			// precache model/animations
 			if( declManager->FindType( DECL_MODELDEF, kv->GetValue(), false ) == NULL )
 			{
 				// precache the render model
 				renderModelManager->FindModel( kv->GetValue() );
+
 				// precache .cm files only
-				collisionModelManager->LoadModel( kv->GetValue() );
+				collisionModelManager->LoadModel( kv->GetValue(), true );
 			}
 		}
 		kv = dict->MatchPrefix( "model", kv );
@@ -2522,6 +2597,22 @@ void idGameLocal::RunEntityThink( idEntity& ent, idUserCmdMgr& userCmdMgr )
 
 idCVar g_recordTrace( "g_recordTrace", "0", CVAR_BOOL, "" );
 
+// jmarshall
+/*
+================
+idGameLocal::RunSharedThink
+================
+*/
+void idGameLocal::RunSharedThink()
+{
+	idEntity* ent;
+	for( ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )
+	{
+		ent->SharedThink();
+	}
+}
+// jmarshall end
+
 /*
 ================
 idGameLocal::RunFrame
@@ -2529,6 +2620,8 @@ idGameLocal::RunFrame
 */
 void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 {
+	SCOPED_PROFILE_EVENT( "RunFrame" );
+
 	idEntity* 	ent;
 	int			num;
 	float		ms;
@@ -2594,8 +2687,6 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			slow.realClientTime = slow.time;
 
 			SelectTimeGroup( false );
-
-			DemoWriteGameInfo();
 
 #ifdef GAME_DLL
 			// allow changing SIMD usage on the fly
@@ -2698,7 +2789,9 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			}
 
 			RunTimeGroup2( cmdMgr );
-
+// jmarshall
+			RunSharedThink();
+// jmarshall end
 			// Run catch-up for any client projectiles.
 			// This is done after the main think so that all projectiles will be up-to-date
 			// when snapshots are created.
@@ -2781,11 +2874,13 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 		// when then we keep until the end of the function
 	}
 
-	//ret.syncNextGameFrame = skipCinematic; // this is form dhewm3 but it seems it's no longer useful
 	if( skipCinematic )
 	{
 		soundSystem->SetMute( false );
 		skipCinematic = false;
+
+		// RB: replay music again because it got shut down with all other sounds :(
+		gameLocal.world->Event_PlayBackgroundMusic();
 	}
 
 	// show any debug info for this frame
@@ -3347,7 +3442,10 @@ void idGameLocal::RunDebugInfo()
 			}
 			if( viewTextBounds.IntersectsBounds( entBounds ) )
 			{
-				gameRenderWorld->DrawText( ent->name.c_str(), entBounds.GetCenter(), 0.1f, colorWhite, axis, 1 );
+				//if( ent->IsType( EnvironmentProbe::Type ) )
+				{
+					gameRenderWorld->DrawText( ent->name.c_str(), entBounds.GetCenter(), 0.1f, colorWhite, axis, 1 );
+				}
 				gameRenderWorld->DrawText( va( "#%d", ent->entityNumber ), entBounds.GetCenter() + up, 0.1f, colorWhite, axis, 1 );
 			}
 		}
@@ -3885,7 +3983,6 @@ idGameLocal::InhibitEntitySpawn
 */
 bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 {
-
 	bool result = false;
 
 	if( common->IsMultiplayer() )
@@ -3925,6 +4022,17 @@ bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 	{
 		const char* name = spawnArgs.GetString( "classname" );
 		if( idStr::Icmp( name, "weapon_bfg" ) == 0 || idStr::Icmp( name, "weapon_soulcube" ) == 0 )
+		{
+			result = true;
+		}
+	}
+
+	// RB: TrenchBroom interop skip func_group helper entities
+	{
+		const char* name = spawnArgs.GetString( "classname" );
+		const char* groupType = spawnArgs.GetString( "_tb_type" );
+
+		if( idStr::Icmp( name, "func_group" ) == 0 && ( idStr::Icmp( groupType, "_tb_group" ) == 0 || idStr::Icmp( groupType, "_tb_layer" ) == 0 ) )
 		{
 			result = true;
 		}
@@ -3992,7 +4100,6 @@ void idGameLocal::SpawnMapEntities()
 	{
 		common->UpdateLevelLoadPacifier();
 
-
 		mapEnt = mapFile->GetEntity( i );
 		args = mapEnt->epairs;
 
@@ -4000,6 +4107,9 @@ void idGameLocal::SpawnMapEntities()
 		{
 			// precache any media specified in the map entity
 			CacheDictionaryMedia( &args );
+
+			// Admer: brush origin offsets:
+			args.SetVector( BRUSH_ORIGIN_KEY, mapEnt->originOffset );
 
 			SpawnEntityDef( args );
 			num++;
@@ -4203,7 +4313,21 @@ idEntity* idGameLocal::FindTraceEntity( idVec3 start, idVec3 end, const idTypeIn
 	bestScale = 1.0f;
 	for( ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
 	{
-		if( ent->IsType( c ) && ent != skip )
+		// RB: use edit origin for lights
+		if( ent->IsType( idLight::Type ) && ent->IsType( c ) && ent != skip )
+		{
+			b[0] = b[1] = ent->GetEditOrigin();
+			b = b.Expand( 16 );
+			if( b.RayIntersection( start, end - start, scale ) )
+			{
+				if( scale >= 0.0f && scale < bestScale )
+				{
+					bestEnt = ent;
+					bestScale = scale;
+				}
+			}
+		}
+		else if( ent->IsType( c ) && ent != skip )
 		{
 			b = ent->GetPhysics()->GetAbsBounds().Expand( 16 );
 			if( b.RayIntersection( start, end - start, scale ) )
@@ -4909,7 +5033,7 @@ idCamera* idGameLocal::GetCamera() const
 idGameLocal::SkipCinematic
 =============
 */
-bool idGameLocal::SkipCinematic( void )
+bool idGameLocal::SkipCinematic()
 {
 	if( camera )
 	{
@@ -4934,6 +5058,8 @@ bool idGameLocal::SkipCinematic( void )
 	{
 		skipCinematic = true;
 		cinematicMaxSkipTime = gameLocal.time + SEC2MS( g_cinematicMaxSkipTime.GetFloat() );
+		// SRS - Skip the remainder of the currently playing cinematic sound
+		soundSystem->GetPlayingSoundWorld()->Skip( cinematicMaxSkipTime );
 	}
 
 	return true;
@@ -5842,9 +5968,11 @@ void idGameLocal::Shell_SyncWithSession()
 	}
 	switch( session->GetState() )
 	{
+#if defined( USE_DOOMCLASSIC)
 		case idSession::PRESS_START:
 			shellHandler->SetShellState( SHELL_STATE_PRESS_START );
 			break;
+#endif
 		case idSession::INGAME:
 			shellHandler->SetShellState( SHELL_STATE_PAUSED );
 			break;
@@ -5935,17 +6063,6 @@ void idGameLocal::Shell_UpdateLeaderboard( const idLeaderboardCallback* callback
 
 /*
 ========================
-idGameLocal::StartDemoPlayback
-========================
-*/
-void idGameLocal::StartDemoPlayback( idRenderWorld* renderworld )
-{
-	gameRenderWorld = renderworld;
-	smokeParticles->Init();
-}
-
-/*
-========================
 idGameLocal::SimulateProjectiles
 ========================
 */
@@ -5984,64 +6101,4 @@ bool idGameLocal::SimulateProjectiles()
 	return moreProjectiles;
 }
 
-/*
-===============
-idGameLocal::DemoWriteGameInfo
-===============
-*/
-void idGameLocal::DemoWriteGameInfo()
-{
-	if( common->WriteDemo() != NULL )
-	{
-		common->WriteDemo()->WriteInt( DS_GAME );
-		common->WriteDemo()->WriteInt( GCMD_GAMETIME );
 
-		common->WriteDemo()->WriteInt( previousTime );
-		common->WriteDemo()->WriteInt( time );
-		common->WriteDemo()->WriteInt( framenum );
-
-		common->WriteDemo()->WriteInt( fast.previousTime );
-		common->WriteDemo()->WriteInt( fast.time );
-		common->WriteDemo()->WriteInt( fast.realClientTime );
-
-		common->WriteDemo()->WriteInt( slow.previousTime );
-		common->WriteDemo()->WriteInt( slow.time );
-		common->WriteDemo()->WriteInt( slow.realClientTime );
-	}
-}
-
-bool idGameLocal::ProcessDemoCommand( idDemoFile* readDemo )
-{
-	gameDemoCommand_t cmd = GCMD_UNKNOWN;
-
-	if( !readDemo->ReadInt( ( int& )cmd ) )
-	{
-		return false;
-	}
-
-	switch( cmd )
-	{
-		case GCMD_GAMETIME:
-		{
-			readDemo->ReadInt( previousTime );
-			readDemo->ReadInt( time );
-			readDemo->ReadInt( framenum );
-
-			readDemo->ReadInt( fast.previousTime );
-			readDemo->ReadInt( fast.time );
-			readDemo->ReadInt( fast.realClientTime );
-
-			readDemo->ReadInt( slow.previousTime );
-			readDemo->ReadInt( slow.time );
-			readDemo->ReadInt( slow.realClientTime );
-			break;
-		}
-		default:
-		{
-			common->Error( "Bad demo game command '%d' in demo stream", cmd );
-			break;
-		}
-	}
-
-	return true;
-}

@@ -27,9 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
-#include "tr_local.h"
+#pragma hdrstop
+#include "RenderCommon.h"
 #include "ResolutionScale.h"
 
 
@@ -207,8 +207,11 @@ void idResolutionScale::GetConsoleText( idStr& s )
 	GetCurrentResolutionScale( x, y );
 	if( rs_display.GetInteger() > 0 )
 	{
-		x *= 1280.0f;
-		y *= 720.0f;
+		// x *= 1280.0f;
+		// y *= 720.0f;
+		x *= renderSystem->GetWidth();
+		y *= renderSystem->GetHeight();
+
 		if( rs_enable.GetInteger() == 1 )
 		{
 			y = 1.0f;

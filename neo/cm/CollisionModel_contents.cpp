@@ -34,9 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
-
+#pragma hdrstop
 
 #include "CollisionModel_local.h"
 
@@ -93,7 +92,7 @@ bool idCollisionModelManagerLocal::TestTrmVertsInBrush( cm_traceWork_t* tw, cm_b
 
 		// see if the point is inside the brush
 		bestPlane = 0;
-		bestd = -idMath::INFINITY;
+		bestd = -idMath::INFINITUM;
 		for( i = 0; i < b->numPlanes; i++ )
 		{
 			d = b->planes[i].Distance( *p );
@@ -226,7 +225,7 @@ bool idCollisionModelManagerLocal::TestTrmInPolygon( cm_traceWork_t* tw, cm_poly
 				}
 
 				bestPlane = 0;
-				bestd = -idMath::INFINITY;
+				bestd = -idMath::INFINITUM;
 				for( k = 0; k < tw->numPolys; k++ )
 				{
 					d = tw->polys[k].plane.Distance( v->p );
@@ -568,6 +567,8 @@ int idCollisionModelManagerLocal::ContentsTrm( trace_t* results, const idVec3& s
 	tw.trace.fraction = 1.0f;
 	tw.trace.c.contents = 0;
 	tw.trace.c.type = CONTACT_NONE;
+	tw.trace.c.material = NULL;
+	tw.trace.c.id = 0;
 	tw.contents = contentMask;
 	tw.isConvex = true;
 	tw.rotation = false;

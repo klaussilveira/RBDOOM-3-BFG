@@ -458,6 +458,10 @@ struct sysEvent_t
 	{
 		return evType == SE_MOUSE;
 	}
+	bool			IsMouseAbsoluteEvent() const
+	{
+		return evType == SE_MOUSE_ABSOLUTE;
+	}
 	bool			IsCharEvent() const
 	{
 		return evType == SE_CHAR;
@@ -469,6 +473,10 @@ struct sysEvent_t
 	bool			IsKeyDown() const
 	{
 		return evValue2 != 0;
+	}
+	bool			IsKeyUp() const
+	{
+		return evValue2 == 0;
 	}
 	keyNum_t		GetKey() const
 	{

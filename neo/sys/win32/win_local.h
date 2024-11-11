@@ -31,10 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <windows.h>
 
-// RB: replaced QGL with GLEW
-#include "../../libs/glew/include/GL/wglew.h" // windows OpenGL extensions
-// RB end
-
 #include "win_input.h"
 
 
@@ -73,7 +69,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
 void Conbuf_AppendText( const char* msg );
 
-typedef struct
+struct Win32Vars_t
 {
 	HWND			hWnd;
 	HINSTANCE		hInstance;
@@ -96,7 +92,6 @@ typedef struct
 	WNDPROC			wndproc;
 
 	HDC				hDC;							// handle to device context
-	HGLRC			hGLRC;						// handle to GL rendering context
 	PIXELFORMATDESCRIPTOR pfd;
 	int				pixelformat;
 
@@ -123,6 +118,9 @@ typedef struct
 	static idCVar	win_timerUpdate;
 	static idCVar	win_allowMultipleInstances;
 
+	static idCVar	sys_useSteamPath;
+	static idCVar	sys_useGOGPath;
+
 	CRITICAL_SECTION criticalSections[MAX_CRITICAL_SECTIONS];
 
 	HINSTANCE		hInstDI;			// direct input
@@ -132,7 +130,7 @@ typedef struct
 	LPDIRECTINPUTDEVICE8	g_pKeyboard;
 	idJoystickWin32			g_Joystick;
 
-} Win32Vars_t;
+};
 
 extern Win32Vars_t	win32;
 

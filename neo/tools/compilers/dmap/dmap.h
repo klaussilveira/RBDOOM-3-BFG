@@ -27,8 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../../../renderer/tr_local.h"
+#include "../../../renderer/RenderCommon.h"
 
+// DMAP TODO
+#define DMAP_INLINE_MODELS 1
 
 typedef struct primitive_s
 {
@@ -123,6 +125,8 @@ typedef struct side_s
 
 	const idMaterial* 	material;
 	textureVectors_t	texVec;
+	idVec2i				texSize;
+	bool				texValve220;	// RB
 
 	idWinding* 			winding;		// only clipped to the other sides of the brush
 	idWinding* 			visibleHull;	// also clipped to the solid parts of the world
@@ -205,8 +209,6 @@ typedef struct tree_s
 typedef struct
 {
 	idRenderLightLocal	def;
-	char				name[MAX_QPATH];		// for naming the shadow volume surface and interactions
-	srfTriangles_t*		shadowTris;
 
 	idPlane				frustumPlanes[6];		// RB: should be calculated after R_DeriveLightData()
 } mapLight_t;
@@ -276,9 +278,8 @@ typedef struct
 
 	idList<mapLight_t*>	mapLights;
 
-	bool	verbose;
-
 	bool	glview;
+	bool	asciiTree;			// BSP tree visualization in the .proc file
 	bool	noOptimize;
 	bool	verboseentities;
 	bool	noCurves;

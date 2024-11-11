@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
 #include "../Game_local.h"
@@ -731,6 +731,21 @@ void idSaveGame::WriteRenderLight( const renderLight_t& renderLight )
 	}
 }
 
+// RB begin
+void idSaveGame::WriteRenderEnvprobe( const renderEnvironmentProbe_t& renderEnvprobe )
+{
+	WriteVec3( renderEnvprobe.origin );
+
+	WriteInt( renderEnvprobe.suppressEnvprobeInViewID );
+	WriteInt( renderEnvprobe.allowEnvprobeInViewID );
+
+	for( int i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
+	{
+		WriteFloat( renderEnvprobe.shaderParms[ i ] );
+	}
+}
+// Rb end
+
 /*
 ================
 idSaveGame::WriteRefSound
@@ -1076,7 +1091,7 @@ void idRestoreGame::Error( const char* fmt, ... )
 	char	text[ 1024 ];
 
 	va_start( argptr, fmt );
-	vsprintf( text, fmt, argptr );
+	idStr::vsnPrintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
 	objects.DeleteContents( true );
@@ -1618,10 +1633,6 @@ void idRestoreGame::ReadRenderLight( renderLight_t& renderLight )
 	ReadVec3( renderLight.start );
 	ReadVec3( renderLight.end );
 
-	// only idLight has a prelightModel and it's always based on the entityname, so we'll restore it there
-	// ReadModel( renderLight.prelightModel );
-	renderLight.prelightModel = NULL;
-
 	ReadInt( renderLight.lightId );
 
 	ReadMaterial( renderLight.shader );
@@ -1634,6 +1645,21 @@ void idRestoreGame::ReadRenderLight( renderLight_t& renderLight )
 	ReadInt( index );
 	renderLight.referenceSound = gameSoundWorld->EmitterForIndex( index );
 }
+
+// RB begin
+void idRestoreGame::ReadRenderEnvprobe( renderEnvironmentProbe_t& renderEnvprobe )
+{
+	ReadVec3( renderEnvprobe.origin );
+
+	ReadInt( renderEnvprobe.suppressEnvprobeInViewID );
+	ReadInt( renderEnvprobe.allowEnvprobeInViewID );
+
+	for( int i = 0; i < MAX_ENTITY_SHADER_PARMS; i++ )
+	{
+		ReadFloat( renderEnvprobe.shaderParms[ i ] );
+	}
+}
+// RB end
 
 /*
 ================

@@ -3,7 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013 Robert Beckebans
+Copyright (C) 2014-2016 Kot in Action Creative Artel
+Copyright (C) 2014-2020 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -248,6 +249,18 @@ private:
 	int					GetMinMaxNormalsDXT5HQ( const byte* normalBlock, byte* minColor, byte* maxColor, unsigned int& colorIndices, byte* alphaIndices ) const;
 	int					GetMinMaxNormalsDXT5HQFast( const byte* normalBlock, byte* minColor, byte* maxColor, unsigned int& colorIndices, byte* alphaIndices ) const;
 	void				ScaleYCoCg( byte* colorBlock ) const;
+	// LordHavoc begin
+	void				ExtractBlockGimpDDS( const byte* src, int x, int y, int w, int h, byte* block );
+	void				EncodeAlphaBlockBC3GimpDDS( byte* dst, const byte* block, const int offset );
+	void				GetMinMaxYCoCgGimpDDS( const byte* block, byte* mincolor, byte* maxcolor );
+	void				ScaleYCoCgGimpDDS( byte* block, byte* mincolor, byte* maxcolor );
+	void				InsetBBoxYCoCgGimpDDS( byte* mincolor, byte* maxcolor );
+	void				SelectDiagonalYCoCgGimpDDS( const byte* block, byte* mincolor, byte* maxcolor );
+	void				LerpRGB13GimpDDS( byte* dst, byte* a, byte* b );
+	inline int			Mul8BitGimpDDS( int a, int b );
+	inline unsigned short	PackRGB565GimpDDS( const byte* c );
+	void				EncodeYCoCgBlockGimpDDS( byte* dst, byte* block );
+	// LordHavoc end
 	void				BiasScaleNormalY( byte* colorBlock ) const;
 	void				RotateNormalsDXT1( byte* block ) const;
 	void				RotateNormalsDXT5( byte* block ) const;
@@ -306,7 +319,7 @@ idDxtEncoder::CompressImageDXT1Fast
 */
 ID_INLINE void idDxtEncoder::CompressImageDXT1Fast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	CompressImageDXT1Fast_SSE2( inBuf, outBuf, width, height );
 #else
 	CompressImageDXT1Fast_Generic( inBuf, outBuf, width, height );
@@ -320,7 +333,7 @@ idDxtEncoder::CompressImageDXT1AlphaFast
 */
 ID_INLINE void idDxtEncoder::CompressImageDXT1AlphaFast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	CompressImageDXT1AlphaFast_SSE2( inBuf, outBuf, width, height );
 #else
 	CompressImageDXT1AlphaFast_Generic( inBuf, outBuf, width, height );
@@ -334,7 +347,7 @@ idDxtEncoder::CompressImageDXT5Fast
 */
 ID_INLINE void idDxtEncoder::CompressImageDXT5Fast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	CompressImageDXT5Fast_SSE2( inBuf, outBuf, width, height );
 #else
 	CompressImageDXT5Fast_Generic( inBuf, outBuf, width, height );
@@ -358,7 +371,7 @@ idDxtEncoder::CompressYCoCgDXT5Fast
 */
 ID_INLINE void idDxtEncoder::CompressYCoCgDXT5Fast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	CompressYCoCgDXT5Fast_SSE2( inBuf, outBuf, width, height );
 #else
 	CompressYCoCgDXT5Fast_Generic( inBuf, outBuf, width, height );
@@ -382,7 +395,7 @@ idDxtEncoder::CompressNormalMapDXT5Fast
 */
 ID_INLINE void idDxtEncoder::CompressNormalMapDXT5Fast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	CompressNormalMapDXT5Fast_SSE2( inBuf, outBuf, width, height );
 #else
 	CompressNormalMapDXT5Fast_Generic( inBuf, outBuf, width, height );

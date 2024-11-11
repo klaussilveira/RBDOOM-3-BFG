@@ -46,11 +46,11 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
-
+#pragma hdrstop
 
 #include "CollisionModel_local.h"
+#include "../renderer/Model_gltf.h"
 
 #define CMODEL_BINARYFILE_EXT	"bcmodel"
 
@@ -66,7 +66,6 @@ idHashIndex* 					cm_edgeHash;
 
 idBounds						cm_modelBounds;
 int								cm_vertexShift;
-
 
 idCVar preLoad_Collision( "preLoad_Collision", "1", CVAR_SYSTEM | CVAR_BOOL, "preload collision beginlevelload" );
 
@@ -3076,7 +3075,7 @@ void idCollisionModelManagerLocal::ConvertPatch( cm_model_t* model, const idMapP
 idCollisionModelManagerLocal::ConvertBrushSides
 ================
 */
-void idCollisionModelManagerLocal::ConvertBrushSides( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum )
+void idCollisionModelManagerLocal::ConvertBrushSides( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum, const idVec3& originOffset )
 {
 	int i, j;
 	idMapBrushSide* mapSide;
@@ -3090,6 +3089,10 @@ void idCollisionModelManagerLocal::ConvertBrushSides( cm_model_t* model, const i
 	{
 		planes[i] = mapBrush->GetSide( i )->GetPlane();
 		planes[i].FixDegeneracies( DEGENERATE_DIST_EPSILON );
+
+		// Admer: also offset em
+		idVec3 reverseOriginOffset = originOffset * -1.0f;
+		planes[i].TranslateSelf( reverseOriginOffset );
 	}
 
 	// create a collision polygon for each brush side
@@ -3123,7 +3126,7 @@ void idCollisionModelManagerLocal::ConvertBrushSides( cm_model_t* model, const i
 idCollisionModelManagerLocal::ConvertBrush
 ================
 */
-void idCollisionModelManagerLocal::ConvertBrush( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum )
+void idCollisionModelManagerLocal::ConvertBrush( cm_model_t* model, const idMapBrush* mapBrush, int primitiveNum, const idVec3& originOffset )
 {
 	int i, j, contents;
 	idBounds bounds;
@@ -3142,6 +3145,10 @@ void idCollisionModelManagerLocal::ConvertBrush( cm_model_t* model, const idMapB
 	{
 		planes[i] = mapBrush->GetSide( i )->GetPlane();
 		planes[i].FixDegeneracies( DEGENERATE_DIST_EPSILON );
+
+		// Admer: also offset em
+		idVec3 reverseOriginOffset = originOffset * -1.0f;
+		planes[i].TranslateSelf( reverseOriginOffset );
 	}
 
 	// we are only getting the bounds for the brush so there's no need
@@ -3551,11 +3558,15 @@ cm_model_t* idCollisionModelManagerLocal::LoadBinaryModelFromFile( idFile* file,
 	}
 
 	file->ReadBig( model->polygonMemory );
+	// SRS - Boost polygonMemory to handle in-memory (ptr) vs. on-disk (int) size for cm_polygon_t.material, otherwise AllocPolygon() leaks
+	model->polygonMemory += ( sizeof( idMaterial* ) - sizeof( int ) ) * model->numPolygons;
 	model->polygonBlock = ( cm_polygonBlock_t* ) Mem_ClearedAlloc( sizeof( cm_polygonBlock_t ) + model->polygonMemory, TAG_COLLISION );
 	model->polygonBlock->bytesRemaining = model->polygonMemory;
 	model->polygonBlock->next = ( ( byte* ) model->polygonBlock ) + sizeof( cm_polygonBlock_t );
 
 	file->ReadBig( model->brushMemory );
+	// SRS - Boost brushMemory to handle in-memory (ptr) vs. on-disk (int) size for cm_brush_t.material, otherwise AllocBrush() leaks
+	model->brushMemory += ( sizeof( idMaterial* ) - sizeof( int ) ) * model->numBrushes;
 	model->brushBlock = ( cm_brushBlock_t* ) Mem_ClearedAlloc( sizeof( cm_brushBlock_t ) + model->brushMemory, TAG_COLLISION );
 	model->brushBlock->bytesRemaining = model->brushMemory;
 	model->brushBlock->next = ( ( byte* ) model->brushBlock ) + sizeof( cm_brushBlock_t );
@@ -3653,7 +3664,7 @@ cm_model_t* idCollisionModelManagerLocal::LoadBinaryModelFromFile( idFile* file,
 	assert( model->polygonRefBlocks == NULL || ( model->polygonRefBlocks->next == NULL && model->polygonRefBlocks->nextRef == NULL ) );
 
 	// RB: FIXME
-#if !defined(__x86_64__) && !defined(_WIN64)
+#if !defined(__x86_64__) && !defined(_WIN64) && !defined(__PPC64__) && !defined(__e2k__) && !defined(__aarch64__) && !(defined(__mips64) || defined(__mips64_))
 	assert( model->polygonBlock->bytesRemaining == 0 );
 	assert( model->brushBlock->bytesRemaining == 0 );
 #endif
@@ -3709,6 +3720,7 @@ void idCollisionModelManagerLocal::WriteBinaryModelToFile( cm_model_t* model, id
 	file->WriteBig( model->numSharpEdges );
 	file->WriteBig( model->numRemovedPolys );
 	file->WriteBig( model->numMergedPolys );
+
 	for( int i = 0; i < model->numVertices; i++ )
 	{
 		file->WriteBig( model->vertices[i].p );
@@ -3855,8 +3867,8 @@ cm_model_t* idCollisionModelManagerLocal::LoadRenderModel( const char* fileName 
 	// only load ASE and LWO models
 	idStr( fileName ).ExtractFileExtension( extension );
 
-	// RB: DAE support
-	if( ( extension.Icmp( "ase" ) != 0 ) && ( extension.Icmp( "lwo" ) != 0 ) && ( extension.Icmp( "ma" ) != 0 ) && ( extension.Icmp( "dae" ) != 0 ) )
+	// RB: DAE and OBJ support
+	if( ( extension.Icmp( "glb" ) != 0 ) && ( extension.Icmp( "gltf" ) != 0 ) && ( extension.Icmp( "ase" ) != 0 ) && ( extension.Icmp( "lwo" ) != 0 ) && ( extension.Icmp( "ma" ) != 0 ) && ( extension.Icmp( "dae" ) != 0 ) && ( extension.Icmp( "obj" ) != 0 ) )
 	{
 		return NULL;
 	}
@@ -3982,6 +3994,7 @@ cm_model_t* idCollisionModelManagerLocal::CollisionModelForMapEntity( const idMa
 
 	cm_model_t* model;
 	idBounds bounds;
+	idVec3 originOffset = mapEnt->originOffset;
 	const char* name;
 	int i, brushCount;
 
@@ -4036,7 +4049,7 @@ cm_model_t* idCollisionModelManagerLocal::CollisionModelForMapEntity( const idMa
 		mapPrim = mapEnt->GetPrimitive( i );
 		if( mapPrim->GetType() == idMapPrimitive::TYPE_BRUSH )
 		{
-			ConvertBrush( model, static_cast<idMapBrush*>( mapPrim ), i );
+			ConvertBrush( model, static_cast<idMapBrush*>( mapPrim ), i, originOffset );
 			continue;
 		}
 
@@ -4096,7 +4109,7 @@ cm_model_t* idCollisionModelManagerLocal::CollisionModelForMapEntity( const idMa
 		}
 		if( mapPrim->GetType() == idMapPrimitive::TYPE_BRUSH )
 		{
-			ConvertBrushSides( model, static_cast<idMapBrush*>( mapPrim ), i );
+			ConvertBrushSides( model, static_cast<idMapBrush*>( mapPrim ), i, originOffset );
 			continue;
 		}
 
@@ -4248,7 +4261,7 @@ void idCollisionModelManagerLocal::ListModels()
 idCollisionModelManagerLocal::BuildModels
 ================
 */
-void idCollisionModelManagerLocal::BuildModels( const idMapFile* mapFile )
+void idCollisionModelManagerLocal::BuildModels( const idMapFile* mapFile, bool ignoreOldCollisionFile )
 {
 	int i;
 	const idMapEntity* mapEnt;
@@ -4256,9 +4269,8 @@ void idCollisionModelManagerLocal::BuildModels( const idMapFile* mapFile )
 	idTimer timer;
 	timer.Start();
 
-	if( !LoadCollisionModelFile( mapFile->GetName(), mapFile->GetGeometryCRC() ) )
+	if( ignoreOldCollisionFile || !LoadCollisionModelFile( mapFile->GetName(), mapFile->GetGeometryCRC() ) )
 	{
-
 		if( !mapFile->GetNumEntities() )
 		{
 			return;
@@ -4332,7 +4344,7 @@ void idCollisionModelManagerLocal::Preload( const char* mapName )
 			const preloadEntry_s& p = manifest.GetPreloadByIndex( i );
 			if( p.resType == PRELOAD_COLLISION )
 			{
-				LoadModel( p.resourceName );
+				LoadModel( p.resourceName, false );
 				numLoaded++;
 			}
 		}
@@ -4347,7 +4359,7 @@ void idCollisionModelManagerLocal::Preload( const char* mapName )
 idCollisionModelManagerLocal::LoadMap
 ================
 */
-void idCollisionModelManagerLocal::LoadMap( const idMapFile* mapFile )
+void idCollisionModelManagerLocal::LoadMap( const idMapFile* mapFile, bool ignoreOldCollisionFile )
 {
 
 	if( mapFile == NULL )
@@ -4390,7 +4402,7 @@ void idCollisionModelManagerLocal::LoadMap( const idMapFile* mapFile )
 	common->UpdateLevelLoadPacifier();
 
 	// build collision models
-	BuildModels( mapFile );
+	BuildModels( mapFile, ignoreOldCollisionFile );
 
 	common->UpdateLevelLoadPacifier();
 
@@ -4536,7 +4548,7 @@ bool idCollisionModelManagerLocal::GetModelPolygon( cmHandle_t model, int polygo
 idCollisionModelManagerLocal::LoadModel
 ==================
 */
-cmHandle_t idCollisionModelManagerLocal::LoadModel( const char* modelName )
+cmHandle_t idCollisionModelManagerLocal::LoadModel( const char* modelName, const bool precache )
 {
 	int handle;
 
@@ -4556,7 +4568,23 @@ cmHandle_t idCollisionModelManagerLocal::LoadModel( const char* modelName )
 	generatedFileName.AppendPath( modelName );
 	generatedFileName.SetFileExtension( CMODEL_BINARYFILE_EXT );
 
-	ID_TIME_T sourceTimeStamp = fileSystem->GetTimestamp( modelName );
+	ID_TIME_T sourceTimeStamp;
+
+	idStr extension;
+	idStr( modelName ).ExtractFileExtension( extension );
+	if( ( extension.Icmp( GLTF_GLB_EXT ) == 0 ) || ( extension.Icmp( GLTF_EXT ) == 0 ) )
+	{
+		int id;
+		idStr tmp;
+		idStr file = modelName;
+		gltfManager::ExtractIdentifier( file, id, tmp );
+
+		sourceTimeStamp = fileSystem->GetTimestamp( file );
+	}
+	else
+	{
+		sourceTimeStamp = fileSystem->GetTimestamp( modelName );
+	}
 
 	if( models == NULL )
 	{
@@ -4592,6 +4620,12 @@ cmHandle_t idCollisionModelManagerLocal::LoadModel( const char* modelName )
 		{
 			common->Warning( "idCollisionModelManagerLocal::LoadModel: collision file for '%s' contains different model", modelName );
 		}
+	}
+
+	// if only precaching .cm files do not waste memory converting render models
+	if( precache )
+	{
+		return 0;
 	}
 
 	// try to load a .ASE or .LWO model and convert it to a collision model
@@ -4773,7 +4807,7 @@ bool idCollisionModelManagerLocal::TrmFromModel( const char* modelName, idTraceM
 {
 	cmHandle_t handle;
 
-	handle = LoadModel( modelName );
+	handle = LoadModel( modelName, false );
 	if( !handle )
 	{
 		common->Printf( "idCollisionModelManagerLocal::TrmFromModel: model %s not found.\n", modelName );

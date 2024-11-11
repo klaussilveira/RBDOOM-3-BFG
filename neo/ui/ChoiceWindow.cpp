@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "DeviceContext.h"
 #include "Window.h"
@@ -39,7 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 idChoiceWindow::InitVars
 ============
 */
-void idChoiceWindow::InitVars( )
+void idChoiceWindow::InitVars()
 {
 	if( cvarStr.Length() )
 	{

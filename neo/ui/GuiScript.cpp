@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "Window.h"
 #include "Winvar.h"
@@ -663,16 +663,16 @@ void idGuiScript::FixupParms( idWindow* win )
 						rect = *( dynamic_cast<idWinRectangle*>( dest ) );
 						ownerparent->ClientToScreen( &rect );
 						destparent->ScreenToClient( &rect );
-						*v4 = rect.ToVec4( );
+						*v4 = rect.ToVec4();
 					}
 					else
 					{
-						v4->Set( dest->c_str( ) );
+						v4->Set( dest->c_str() );
 					}
 				}
 				else
 				{
-					v4->Set( dest->c_str( ) );
+					v4->Set( dest->c_str() );
 				}
 			}
 			else

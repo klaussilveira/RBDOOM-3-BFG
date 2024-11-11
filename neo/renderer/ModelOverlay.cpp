@@ -3,8 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2016 Robert Beckebans
-Copyright (C) 2014-2016 Kot in Action Creative Artel
+Copyright (C) 2013 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 #include "Model_local.h"
 
 #include "../idlib/geometry/DrawVert_intrinsics.h"
@@ -46,10 +45,7 @@ idRenderModelOverlay::idRenderModelOverlay() :
 	nextOverlay( 0 ),
 	firstDeferredOverlay( 0 ),
 	nextDeferredOverlay( 0 ),
-	numOverlayMaterials( 0 ),
-	index( -1 ),
-	demoSerialWrite( 0 ),
-	demoSerialCurrent( 0 )
+	numOverlayMaterials( 0 )
 {
 	memset( overlays, 0, sizeof( overlays ) );
 }
@@ -79,7 +75,6 @@ void idRenderModelOverlay::ReUse()
 	firstDeferredOverlay = 0;
 	nextDeferredOverlay = 0;
 	numOverlayMaterials = 0;
-	demoSerialCurrent++;
 
 	for( unsigned int i = 0; i < MAX_OVERLAYS; i++ )
 	{
@@ -117,7 +112,7 @@ static void R_OverlayPointCullStatic( byte* cullBits, halfFloat_t* texCoordS, ha
 	assert_16_byte_aligned( texCoordT );
 	assert_16_byte_aligned( verts );
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
 
 	const __m128 vector_float_zero	= { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -242,7 +237,7 @@ static void R_OverlayPointCullSkinned( byte* cullBits, halfFloat_t* texCoordS, h
 	assert_16_byte_aligned( texCoordT );
 	assert_16_byte_aligned( verts );
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 	idODSStreamedArray< idDrawVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
 
 	const __m128 vector_float_zero	= { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -424,7 +419,7 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		}
 
 		// RB: added check wether GPU skinning is available at all
-		if( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable )
+		if( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() )
 		{
 			R_OverlayPointCullSkinned( cullBits.Ptr(), texCoordS.Ptr(), texCoordT.Ptr(), localTextureAxis, tri->verts, tri->numVerts, tri->staticModelWithJoints->jointsInverted );
 		}
@@ -496,8 +491,6 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 			overlayIndexes[numIndexes + 2] = 0;
 		}
 
-		demoSerialCurrent++;
-
 		// allocate a new overlay
 		overlay_t& overlay = overlays[nextOverlay++ & ( MAX_OVERLAYS - 1 )];
 		FreeOverlay( overlay );
@@ -511,7 +504,6 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel* model, const idPl
 		overlay.verts = ( overlayVertex_t* )Mem_Alloc( numVerts * sizeof( overlay.verts[0] ), TAG_MODEL );
 		memcpy( overlay.verts, overlayVerts.Ptr(), numVerts * sizeof( overlay.verts[0] ) );
 		overlay.maxReferencedVertex = maxReferencedVertex;
-		overlay.writtenToDemo = false;
 
 		if( nextOverlay - firstOverlay > MAX_OVERLAYS )
 		{
@@ -567,7 +559,7 @@ static void R_CopyOverlaySurface( idDrawVert* verts, int numVerts, triIndex_t* i
 	assert( ( ( overlay->numVerts * sizeof( idDrawVert ) ) & 15 ) == 0 );
 	assert( ( ( overlay->numIndexes * sizeof( triIndex_t ) ) & 15 ) == 0 );
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 
 	const __m128i vector_int_clear_last = _mm_set_epi32( 0, -1, -1, -1 );
 	const __m128i vector_int_num_verts = _mm_shuffle_epi32( _mm_cvtsi32_si128( numVerts ), 0 );
@@ -706,8 +698,8 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
 	newTri->staticModelWithJoints = ( staticModel->jointsInverted != NULL ) ? const_cast< idRenderModelStatic* >( staticModel ) : NULL;	// allow GPU skinning
 
-	newTri->ambientCache = vertexCache.AllocVertex( NULL, ALIGN( maxVerts * sizeof( idDrawVert ), VERTEX_CACHE_ALIGN ) );
-	newTri->indexCache = vertexCache.AllocIndex( NULL, ALIGN( maxIndexes * sizeof( triIndex_t ), INDEX_CACHE_ALIGN ) );
+	newTri->ambientCache = vertexCache.AllocVertex( NULL, maxVerts );
+	newTri->indexCache = vertexCache.AllocIndex( NULL, maxIndexes );
 
 	idDrawVert* mappedVerts = ( idDrawVert* )vertexCache.MappedVertexBuffer( newTri->ambientCache );
 	triIndex_t* mappedIndexes = ( triIndex_t* )vertexCache.MappedIndexBuffer( newTri->indexCache );
@@ -786,11 +778,9 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	drawSurf->numIndexes = newTri->numIndexes;
 	drawSurf->ambientCache = newTri->ambientCache;
 	drawSurf->indexCache = newTri->indexCache;
-	drawSurf->shadowCache = 0;
 	drawSurf->space = space;
 	drawSurf->scissorRect = space->scissorRect;
 	drawSurf->extraGLState = 0;
-	drawSurf->renderZFail = 0;
 
 	R_SetupDrawSurfShader( drawSurf, material, &space->entityDef->parms );
 	R_SetupDrawSurfJoints( drawSurf, newTri, NULL );
@@ -798,106 +788,4 @@ drawSurf_t* idRenderModelOverlay::CreateOverlayDrawSurf( const viewEntity_t* spa
 	return drawSurf;
 }
 
-/*
-====================
-idRenderModelOverlay::ReadFromDemoFile
-====================
-*/
-void idRenderModelOverlay::ReadFromDemoFile( idDemoFile* f )
-{
-	f->ReadUnsignedInt( firstOverlay );
-	f->ReadUnsignedInt( nextOverlay );
 
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
-	{
-		overlay_t& overlay = overlays[ i & ( MAX_OVERLAYS - 1 ) ];
-
-		bool overlayWritten = false;
-		f->ReadBool( overlayWritten );
-		if( !overlayWritten )
-		{
-			continue;
-		}
-
-		f->ReadInt( overlay.surfaceNum );
-		f->ReadInt( overlay.surfaceId );
-		f->ReadInt( overlay.maxReferencedVertex );
-
-		const char* matName = f->ReadHashString();
-		overlay.material = matName[ 0 ] ? declManager->FindMaterial( matName ) : NULL;
-
-		int numVerts = 0;
-		int numIndices = 0;
-
-		f->ReadInt( numVerts );
-
-		if( numVerts > 0 )
-		{
-			if( overlay.numVerts != numVerts )
-			{
-				Mem_Free( overlay.verts );
-				overlay.numVerts = numVerts;
-				overlay.verts = ( overlayVertex_t* )Mem_Alloc( overlay.numVerts * sizeof( overlayVertex_t ), TAG_MODEL );
-			}
-
-			f->Read( overlay.verts, sizeof( overlayVertex_t ) * overlay.numVerts );
-		}
-
-		f->ReadInt( numIndices );
-
-		if( numIndices > 0 )
-		{
-			if( overlay.numIndexes != numIndices )
-			{
-				Mem_Free( overlay.indexes );
-				overlay.numIndexes = numIndices;
-				overlay.indexes = ( triIndex_t* )Mem_Alloc( overlay.numIndexes * sizeof( triIndex_t ), TAG_MODEL );
-			}
-
-			f->Read( overlay.indexes, sizeof( triIndex_t ) * overlay.numIndexes );
-		}
-	}
-}
-
-/*
-====================
-idRenderModelOverlay::WriteToDemoFile
-====================
-*/
-void idRenderModelOverlay::WriteToDemoFile( idDemoFile* f ) const
-{
-	f->WriteUnsignedInt( firstOverlay );
-	f->WriteUnsignedInt( nextOverlay );
-
-	for( unsigned int i = firstOverlay; i < nextOverlay; i++ )
-	{
-		const overlay_t& overlay = overlays[ i & ( MAX_OVERLAYS - 1 ) ];
-
-		if( overlay.writtenToDemo )
-		{
-			f->WriteBool( false );
-			continue;
-		}
-
-		f->WriteBool( true );
-		f->WriteInt( overlay.surfaceNum );
-		f->WriteInt( overlay.surfaceId );
-		f->WriteInt( overlay.maxReferencedVertex );
-		f->WriteHashString( overlay.material ? overlay.material->GetName() : "" );
-
-		f->WriteInt( overlay.numVerts );
-		for( int j = 0; j < overlay.numVerts; j++ )
-		{
-			f->Write( &overlay.verts[ j ], sizeof( overlayVertex_t ) );
-		}
-
-		f->WriteInt( overlay.numIndexes );
-		for( int j = 0; j < overlay.numIndexes; j++ )
-		{
-			f->Write( &overlay.indexes[ j ], sizeof( triIndex_t ) );
-		}
-
-		// so it won't be written again
-		overlay.writtenToDemo = true;
-	}
-}

@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../snd_local.h"
 
 idCVar s_skipHardwareSets( "s_skipHardwareSets", "0", CVAR_BOOL, "Do all calculation, but skip XA2 calls" );
@@ -206,10 +206,13 @@ void idSoundVoice_OpenAL::DestroyInternal()
 			idLib::Printf( "%dms: %i destroyed\n", Sys_Milliseconds(), openalSource );
 		}
 
+		// SRS - Make sure the source is stopped before detaching buffers
+		alSourceStop( openalSource );
+		alSourcei( openalSource, AL_BUFFER, 0 );
+
+		// SRS - Delete source only after detaching buffers above
 		alDeleteSources( 1, &openalSource );
 		openalSource = 0;
-
-		alSourcei( openalSource, AL_BUFFER, 0 );
 
 		if( openalStreamingBuffer[0] && openalStreamingBuffer[1] && openalStreamingBuffer[2] )
 		{

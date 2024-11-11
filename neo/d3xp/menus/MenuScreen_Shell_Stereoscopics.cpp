@@ -25,9 +25,11 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../Game_local.h"
+
+#if VR_OPTIONS
 
 const static int NUM_SYSTEM_OPTIONS_OPTIONS = 4;
 
@@ -475,3 +477,5 @@ bool idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::IsRestar
 	}
 	return false;
 }
+
+#endif

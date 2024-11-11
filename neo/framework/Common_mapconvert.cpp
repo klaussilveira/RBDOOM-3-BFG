@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2015-2021 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -276,6 +276,29 @@ void OBJExporter::ConvertBrushToOBJ( OBJGroup& group, const idMapBrush* mapBrush
 			idVec2 st;
 			st.x = ( xyz * texVec[0].ToVec3() ) + texVec[0][3];
 			st.y = ( xyz * texVec[1].ToVec3() ) + texVec[1][3];
+
+			// RB: support Valve 220 projection
+			if( ( mapSide->GetProjectionType() == idMapBrushSide::PROJECTION_VALVE220 ) )
+			{
+				const idMaterial* material = declManager->FindMaterial( mapSide->GetMaterial() );
+
+				// RB: TODO
+				idVec2i texSize;
+
+				idImage* image = material->GetEditorImage();
+				if( image != NULL )
+				{
+					texSize.x = image->GetUploadWidth();
+					texSize.y = image->GetUploadHeight();
+				}
+				else
+				{
+					texSize = mapSide->GetTextureSize();
+				}
+
+				st.x /= texSize.x;
+				st.y /= texSize.y;
+			}
 
 			// flip y
 			st.y = 1.0f - st.y;
@@ -584,7 +607,7 @@ CONSOLE_COMMAND( exportMapToOBJ, "Convert .map file to .obj/.mtl ", idCmdSystem:
 
 
 
-CONSOLE_COMMAND( convertMap, "Convert .map file to new map format with polygons instead of brushes ", idCmdSystem::ArgCompletion_MapNameNoJson )
+CONSOLE_COMMAND( convertMap, "Convert .map file to new map format with polygons instead of brushes", idCmdSystem::ArgCompletion_MapNameNoJson )
 {
 	common->SetRefreshOnPrint( true );
 
@@ -605,7 +628,7 @@ CONSOLE_COMMAND( convertMap, "Convert .map file to new map format with polygons 
 	sprintf( mapName, "maps/%s.map", filename.c_str() );
 
 	idMapFile map;
-	if( map.Parse( mapName, false, false ) )
+	if( map.Parse( mapName, true, false ) )
 	{
 		map.ConvertToPolygonMeshFormat();
 
@@ -627,7 +650,7 @@ CONSOLE_COMMAND( convertMap, "Convert .map file to new map format with polygons 
 }
 
 
-CONSOLE_COMMAND( convertMapToJSON, "Convert .map file to new map format with polygons instead of brushes ", idCmdSystem::ArgCompletion_MapNameNoJson )
+CONSOLE_COMMAND( convertMapToJSON, "Convert .map file to new .json map format with polygons instead of brushes", idCmdSystem::ArgCompletion_MapNameNoJson )
 {
 	common->SetRefreshOnPrint( true );
 
@@ -648,7 +671,7 @@ CONSOLE_COMMAND( convertMapToJSON, "Convert .map file to new map format with pol
 	sprintf( mapName, "maps/%s.map", filename.c_str() );
 
 	idMapFile map;
-	if( map.Parse( mapName, false, false ) )
+	if( map.Parse( mapName, true, false ) )
 	{
 		map.ConvertToPolygonMeshFormat();
 
@@ -664,6 +687,154 @@ CONSOLE_COMMAND( convertMapToJSON, "Convert .map file to new map format with pol
 		//convertedFileName += "_converted";
 
 		map.WriteJSON( convertedFileName, ".json" );
+	}
+
+	common->SetRefreshOnPrint( false );
+}
+
+CONSOLE_COMMAND_SHIP( convertMapToValve220, "Convert .map file to the Valve 220 map format for TrenchBroom", idCmdSystem::ArgCompletion_MapNameNoJson )
+{
+	common->SetRefreshOnPrint( true );
+
+	if( args.Argc() != 2 )
+	{
+		common->Printf( "Usage: convertMapToValve220 <map>\n" );
+		return;
+	}
+
+	idStr filename = args.Argv( 1 );
+	if( !filename.Length() )
+	{
+		return;
+	}
+	filename.StripFileExtension();
+
+	idStr mapName;
+	sprintf( mapName, "maps/%s.map", filename.c_str() );
+
+	idMapFile map;
+	if( map.Parse( mapName, true, false ) )
+	{
+		// make sure we have access to all .bimage files for that map
+		fileSystem->BeginLevelLoad( filename, NULL, 0 );
+
+		map.ConvertToValve220Format();
+
+		fileSystem->EndLevelLoad();
+
+		idStrStatic< MAX_OSPATH > canonical = mapName;
+		canonical.ToLower();
+
+		idStrStatic< MAX_OSPATH > extension;
+		canonical.StripFileExtension();
+
+		idStrStatic< MAX_OSPATH > convertedFileName;
+
+		convertedFileName = canonical;
+		convertedFileName += "_valve220";
+
+		map.Write( convertedFileName, ".map" );
+	}
+
+	common->SetRefreshOnPrint( false );
+}
+
+CONSOLE_COMMAND( checkMapsForBrushEntities, "List all brush entities in all .map files", idCmdSystem::ArgCompletion_MapNameNoJson )
+{
+	//int totalImagesCount = 0;
+
+	idFileList* files = fileSystem->ListFilesTree( "maps/game", ".map", true, true );
+
+	idDict classTypeOverview;
+
+	for( int f = 0; f < files->GetList().Num(); f++ )
+	{
+		idStr mapName = files->GetList()[ f ];
+
+		idMapFile map;
+		if( map.Parse( mapName, true, false ) )
+		{
+			map.ClassifyEntitiesForTrenchBroom( classTypeOverview );
+		}
+	}
+
+	fileSystem->FreeFileList( files );
+
+	int n = classTypeOverview.GetNumKeyVals();
+
+	idLib::Printf( "BrushClasses:\n" );
+	for( int i = 0; i < n; i++ )
+	{
+		const idKeyValue* kv = classTypeOverview.GetKeyVal( i );
+
+		if( kv->GetValue() == "BrushClass" )
+		{
+			idLib::Printf( "'%s'\n", kv->GetKey().c_str() );
+		}
+	}
+
+	/*
+	idLib::Printf( "\nPointClasses:\n" );
+	for( int i = 0; i < n; i++ )
+	{
+		const idKeyValue* kv = classTypeOverview.GetKeyVal( i );
+
+		if( kv->GetValue() == "PointClass" )
+		{
+			idLib::Printf( "'%s'\n", kv->GetKey().c_str() );
+		}
+	}
+	*/
+
+	idLib::Printf( "\nMixedClasses:\n" );
+	for( int i = 0; i < n; i++ )
+	{
+		const idKeyValue* kv = classTypeOverview.GetKeyVal( i );
+
+		if( kv->GetValue() == "Mixed" )
+		{
+			idLib::Printf( "'%s'\n", kv->GetKey().c_str() );
+		}
+	}
+}
+
+
+CONSOLE_COMMAND_SHIP( convertMapQuakeToDoom, "Convert Quake .map in Valve 220 map format for Doom 3 BFG", idCmdSystem::ArgCompletion_MapNameNoJson )
+{
+	common->SetRefreshOnPrint( true );
+
+	if( args.Argc() != 2 )
+	{
+		common->Printf( "Usage: convertMapQuakeToDoom <map>\n" );
+		return;
+	}
+
+	idStr filename = args.Argv( 1 );
+	if( !filename.Length() )
+	{
+		return;
+	}
+	filename.StripFileExtension();
+
+	idStr mapName;
+	sprintf( mapName, "maps/%s.map", filename.c_str() );
+
+	idMapFile map;
+	if( map.Parse( mapName, true, false ) )
+	{
+		map.ConvertQuakeToDoom();
+
+		idStrStatic< MAX_OSPATH > canonical = mapName;
+		canonical.ToLower();
+
+		idStrStatic< MAX_OSPATH > extension;
+		canonical.StripFileExtension();
+
+		//idStrStatic< MAX_OSPATH > convertedFileName;
+		//convertedFileName = canonical;
+		//convertedFileName += "_valve220";
+
+		map.Write( canonical, ".map" );
 	}
 
 	common->SetRefreshOnPrint( false );

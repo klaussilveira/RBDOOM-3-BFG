@@ -98,7 +98,8 @@ typedef enum
 
 //#define AL_ALEXT_PROTOTYPES
 
-#ifdef __APPLE__
+// SRS - Added check on OSX for OpenAL Soft headers vs macOS SDK headers
+#if defined(__APPLE__) && !defined(USE_OPENAL_SOFT_INCLUDES)
 	#include <OpenAL/al.h>
 	#include <OpenAL/alc.h>
 #else
@@ -178,6 +179,33 @@ struct AudioDevice
 // just a stub for now
 #include "stub/SoundStub.h"
 #endif // _MSC_VER ; DG end
+
+
+#include "../libs/oggvorbis/ogg/ogg.h"
+#include "../libs/oggvorbis/vorbis/vorbisfile.h"
+
+//
+// idSoundDecoder_Vorbis
+//
+class idSoundDecoder_Vorbis
+{
+public:
+	idSoundDecoder_Vorbis();
+	~idSoundDecoder_Vorbis();
+
+	virtual bool				Open( const char* fileName );
+	virtual bool				IsEOS( void );
+	virtual void				Seek( int samplePos );
+	virtual int					Read( void* buffer, int bufferSize );
+	virtual int64_t				Size( void );
+	virtual int64_t				CompressedSize( void );
+	virtual void				GetFormat( idWaveFile::waveFmt_t& format );
+
+private:
+	idSoundSample* sample;
+	OggVorbis_File* vorbisFile;
+	idFile* mhmmio;
+};
 
 //------------------------
 // Listener data
@@ -296,18 +324,9 @@ public:
 	// where is the camera
 	virtual void			PlaceListener( const idVec3& origin, const idMat3& axis, const int listenerId );
 
-	virtual void			WriteSoundShaderLoad( const idSoundShader* snd );
-
 	// fade all sounds in the world with a given shader soundClass
 	// to is in Db, over is in seconds
 	virtual void			FadeSoundClasses( const int soundClass, const float to, const float over );
-
-	// dumps the current state and begins archiving commands
-	virtual void			StartWritingDemo( idDemoFile* demo );
-	virtual void			StopWritingDemo();
-
-	// read a sound command from a demo file
-	virtual void			ProcessDemoCommand( idDemoFile* readDemo );
 
 	// menu sounds
 	virtual int				PlayShaderDirectly( const char* name, int channel = -1 );
@@ -322,10 +341,6 @@ public:
 	}
 
 	virtual int				GetSoundTime();
-
-	// avidump
-	virtual void			AVIOpen( const char* path, const char* name );
-	virtual void			AVIClose();
 
 	// SaveGame Support
 	virtual void			WriteToSaveGame( idFile* savefile );
@@ -353,7 +368,6 @@ public:
 	idSoundFade			soundClassFade[SOUND_MAX_CLASSES];
 
 	idRenderWorld* 		renderWorld;	// for debug visualization and light amplitude sampling
-	idDemoFile* 		writeDemo;		// if not NULL, archive commands here
 
 	float				currentCushionDB;	// channels at or below this level will be faded to 0
 	float				shakeAmp;			// last calculated shake amplitude

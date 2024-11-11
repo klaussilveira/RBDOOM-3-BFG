@@ -50,7 +50,7 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 #if defined(__APPLE__)
-	#include <SDL2/SDL.h>
+	#include <SDL.h>
 #endif
 
 #include <sys/statvfs.h>
@@ -100,11 +100,20 @@ const char* Sys_DefaultSavePath()
 	char* base_path = SDL_GetPrefPath( "", "RBDOOM-3-BFG" );
 	if( base_path )
 	{
-		savepath = SDL_strdup( base_path );
+		savepath = base_path;
+		savepath.StripTrailing( '/' );
 		SDL_free( base_path );
 	}
 #else
-	sprintf( savepath, "%s/.rbdoom3bfg", getenv( "HOME" ) );
+	const char* xdg_data_home = getenv( "XDG_DATA_HOME" );
+	if( xdg_data_home != NULL )
+	{
+		sprintf( savepath, "%s/rbdoom3bfg", xdg_data_home );
+	}
+	else
+	{
+		sprintf( savepath, "%s/.local/share/rbdoom3bfg", getenv( "HOME" ) );
+	}
 #endif
 
 	return savepath.c_str();
@@ -253,16 +262,20 @@ double Sys_GetClockTicks()
 		"pop %%ebx\n"
 		: "=r"( lo ), "=r"( hi ) );
 	return ( double ) lo + ( double ) 0xFFFFFFFF * hi;
-#else
-//#error unsupported CPU
 // RB begin
+#elif defined( __x86_64__ )
+	uint32_t lo, hi;
+	__asm__ __volatile__( "rdtsc" : "=a"( lo ), "=d"( hi ) );
+	return ( ( ( uint64_t )hi ) << 32 ) | lo;
+#else
+	//#error unsupported CPU
 	struct timespec now;
 
 	clock_gettime( CLOCK_MONOTONIC, &now );
 
 	return now.tv_sec * 1000000000LL + now.tv_nsec;
-// RB end
 #endif
+// RB end
 }
 
 /*
@@ -274,9 +287,9 @@ double MeasureClockTicks()
 {
 	double t0, t1;
 
-	t0 = Sys_GetClockTicks( );
+	t0 = Sys_GetClockTicks();
 	Sys_Sleep( 1000 );
-	t1 = Sys_GetClockTicks( );
+	t1 = Sys_GetClockTicks();
 	return t1 - t0;
 }
 
@@ -399,6 +412,8 @@ Sys_DefaultBasePath
 Get the default base path
 - binary image path
 - current directory
+- macOS app bundle resources directory path			// SRS - added macOS app bundle resources path
+- build directory path								// SRS - added build directory path
 - hardcoded
 Try to be intelligent: if there is no BASE_GAMEDIR, try the next path
 ================
@@ -406,11 +421,11 @@ Try to be intelligent: if there is no BASE_GAMEDIR, try the next path
 const char* Sys_DefaultBasePath()
 {
 	struct stat st;
-	idStr testbase;
+	idStr testbase, exepath = {};
 	basepath = Sys_EXEPath();
 	if( basepath.Length() )
 	{
-		basepath.StripFilename();
+		exepath = basepath.StripFilename();
 		testbase = basepath;
 		testbase += "/";
 		testbase += BASE_GAMEDIR;
@@ -436,6 +451,42 @@ const char* Sys_DefaultBasePath()
 		else
 		{
 			common->Printf( "no '%s' directory in cwd path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
+		}
+	}
+	if( exepath.Length() )
+	{
+#if defined(__APPLE__)
+		// SRS - Check for macOS app bundle resources path (up one dir level and down to Resources dir)
+		basepath = exepath;
+		basepath = basepath.StripFilename() + "/Resources";
+		testbase = basepath;
+		testbase += "/";
+		testbase += BASE_GAMEDIR;
+		if( stat( testbase.c_str(), &st ) != -1 && S_ISDIR( st.st_mode ) )
+		{
+			return basepath.c_str();
+		}
+		else
+		{
+			common->Printf( "no '%s' directory in macOS app bundle resources path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
+		}
+#endif
+		// SRS - Check for linux/macOS build path (directory structure with build dir and possible config suffix)
+		basepath = exepath;
+		basepath.StripFilename();						// up 1st dir level for single-config dev builds
+#if !defined( NO_MULTI_CONFIG )
+		basepath.StripFilename();						// up 2nd dir level for multi-config dev builds with Debug/Release/etc suffix
+#endif
+		testbase = basepath;
+		testbase += "/";
+		testbase += BASE_GAMEDIR;
+		if( stat( testbase.c_str(), &st ) != -1 && S_ISDIR( st.st_mode ) )
+		{
+			return basepath.c_str();
+		}
+		else
+		{
+			common->Printf( "no '%s' directory in build path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
 		}
 	}
 	common->Printf( "WARNING: using hardcoded default base path %s\n", DEFAULT_BASEPATH );
@@ -543,23 +594,25 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 
 	// DG: use readdir_r instead of readdir for thread safety
 	// the following lines are from the readdir_r manpage.. fscking ugly.
-	int nameMax = pathconf( directory, _PC_NAME_MAX );
-	if( nameMax == -1 )
-	{
-		nameMax = 255;
-	}
-	int direntLen = offsetof( struct dirent, d_name ) + nameMax + 1;
+	//int nameMax = pathconf( directory, _PC_NAME_MAX );
+	//if( nameMax == -1 )
+	//{
+	//	nameMax = 255;
+	//}
+	//int direntLen = offsetof( struct dirent, d_name ) + nameMax + 1;
 
-	struct dirent* entry = ( struct dirent* )Mem_Alloc( direntLen, TAG_CRAP );
+	//struct dirent* entry = ( struct dirent* )Mem_Alloc( direntLen, TAG_CRAP );
 
-	if( entry == NULL )
-	{
-		common->Warning( "Sys_ListFiles: Mem_Alloc for entry failed!" );
-		closedir( fdir );
-		return 0;
-	}
+	//if( entry == NULL )
+	//{
+	//	common->Warning( "Sys_ListFiles: Mem_Alloc for entry failed!" );
+	//	closedir( fdir );
+	//	return 0;
+	//}
 
-	while( readdir_r( fdir, entry, &d ) == 0 && d != NULL )
+	//while( readdir_r( fdir, entry, &d ) == 0 && d != NULL )
+	// SRS - readdir_r() is deprecated on linux, readdir() is thread safe with different dir streams
+	while( ( d = readdir( fdir ) ) != NULL )
 	{
 		// DG end
 		idStr::snPrintf( search, sizeof( search ), "%s/%s", directory, d->d_name );
@@ -589,7 +642,7 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 	}
 
 	closedir( fdir );
-	Mem_Free( entry );
+	//Mem_Free( entry );
 
 	if( debug )
 	{
@@ -999,7 +1052,7 @@ void Posix_LateInit()
 	//common->Printf( "%d MB Video Memory\n", Sys_GetVideoRam() );
 //#endif
 
-	//Posix_StartAsyncThread( );
+	//Posix_StartAsyncThread();
 }
 
 /*

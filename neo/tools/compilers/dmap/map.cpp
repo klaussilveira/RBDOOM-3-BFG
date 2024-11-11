@@ -3,7 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2013-2021 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -343,10 +343,33 @@ static void ParseBrush( const idMapBrush* mapBrush, int primitiveNum )
 		memset( s, 0, sizeof( *s ) );
 		s->planenum = FindFloatPlane( ms->GetPlane(), &fixedDegeneracies );
 		s->material = declManager->FindMaterial( ms->GetMaterial() );
+
 		ms->GetTextureVectors( s->texVec.v );
+
+		// RB: Valve 220 projection support
+		s->texValve220 = ( ms->GetProjectionType() == idMapBrushSide::PROJECTION_VALVE220 );
+
+		// RB: we don't need this info if we are actually compiling maps in the original format
+		// we only load this for the engine in the case we want to convert it to the Valve 220 format
+		if( s->texValve220 )
+		{
+			s->texSize = ms->GetTextureSize();
+
+			idImage* image = s->material->GetEditorImage();
+			if( image != NULL )
+			{
+				s->texSize.x = image->GetUploadWidth();
+				s->texSize.y = image->GetUploadHeight();
+			}
+		}
+		// RB end
+
 		// remove any integral shift, which will help with grouping
-		s->texVec.v[0][3] -= floor( s->texVec.v[0][3] );
-		s->texVec.v[1][3] -= floor( s->texVec.v[1][3] );
+		if( !s->texValve220 )
+		{
+			s->texVec.v[0][3] -= floor( s->texVec.v[0][3] );
+			s->texVec.v[1][3] -= floor( s->texVec.v[1][3] );
+		}
 	}
 
 	// if there are mirrored planes, the entire brush is invalid
@@ -473,19 +496,22 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 
 		// TODO use WindingToTriList instead ?
 
-		for( int j = 1; j < indexes.Num() - 1; j++ )
-			//for( int j = indexes.Num() -2; j >= 1; j-- )
+		if( indexes.Num() == 3 )
 		{
+			// RB: glTF2 workflow insists to use triangles instead of n-gons or quads
 			mapTri_t* tri = AllocTri();
 
-#if 1
-			tri->v[0] = verts[ indexes[ j + 1] ];
-			tri->v[1] = verts[ indexes[ j + 0] ];
+			tri->v[0] = verts[ indexes[ 2 ] ];
+			tri->v[1] = verts[ indexes[ 1 ] ];
 			tri->v[2] = verts[ indexes[ 0 ] ];
-#else
-			tri->v[2] = verts[ indexes[ j + 1] ];
-			tri->v[1] = verts[ indexes[ j + 0] ];
-			tri->v[0] = verts[ indexes[ 0 ] ];
+
+#if 0
+			idLib::Printf( "indices: ( %i %i %i )\n", indexes[ 0 ], indexes[ 1 ], indexes[ 2 ] );
+
+			idLib::Printf( "verts: ( %i %i %i ) ( %i %i %i ) ( %i %i %i )\n",
+						   int( tri->v[0].xyz.x ), int( tri->v[0].xyz.y ), int( tri->v[0].xyz.z ),
+						   int( tri->v[1].xyz.x ), int( tri->v[1].xyz.y ), int( tri->v[1].xyz.z ),
+						   int( tri->v[2].xyz.x ), int( tri->v[2].xyz.y ), int( tri->v[2].xyz.z ) );
 #endif
 
 			idPlane plane;
@@ -509,6 +535,41 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 				for( tri = prim->bsptris ; tri ; tri = tri->next )
 				{
 					tri->mergeGroup = ( void* )mesh;
+				}
+			}
+		}
+		else
+		{
+			for( int j = 1; j < indexes.Num() - 1; j++ )
+			{
+				mapTri_t* tri = AllocTri();
+
+				tri->v[0] = verts[ indexes[ j + 1] ];
+				tri->v[1] = verts[ indexes[ j + 0] ];
+				tri->v[2] = verts[ indexes[ 0 ] ];
+
+				idPlane plane;
+				plane.FromPoints( tri->v[0].xyz, tri->v[1].xyz, tri->v[2].xyz );
+
+				bool fixedDegeneracies = false;
+				tri->planeNum = FindFloatPlane( plane, &fixedDegeneracies );
+
+				tri->polygonId = numPolygons + i;
+
+				tri->material = mat;
+				tri->next = prim->bsptris;
+				prim->bsptris = tri;
+
+				tri->originalMapMesh = mesh;
+
+				// set merge groups if needed, to prevent multiple sides from being
+				// merged into a single surface in the case of gui shaders, mirrors, and autosprites
+				if( mat->IsDiscrete() )
+				{
+					for( tri = prim->bsptris ; tri ; tri = tri->next )
+					{
+						tri->mergeGroup = ( void* )mesh;
+					}
 				}
 			}
 		}
@@ -565,6 +626,134 @@ static bool	ProcessMapEntity( idMapEntity* mapEnt )
 
 //===================================================================
 
+#if defined( DMAP )
+/*
+================
+idGameEdit::ParseSpawnArgsToRenderLight
+
+parse the light parameters
+this is the canonical renderLight parm parsing,
+which should be used by dmap and the editor
+================
+*/
+static void ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t* renderLight )
+{
+	bool	gotTarget, gotUp, gotRight;
+	const char*	texture;
+	idVec3	color;
+
+	memset( renderLight, 0, sizeof( *renderLight ) );
+
+	if( !args->GetVector( "light_origin", "", renderLight->origin ) )
+	{
+		args->GetVector( "origin", "", renderLight->origin );
+	}
+
+	gotTarget = args->GetVector( "light_target", "", renderLight->target );
+	gotUp = args->GetVector( "light_up", "", renderLight->up );
+	gotRight = args->GetVector( "light_right", "", renderLight->right );
+	args->GetVector( "light_start", "0 0 0", renderLight->start );
+	if( !args->GetVector( "light_end", "", renderLight->end ) )
+	{
+		renderLight->end = renderLight->target;
+	}
+
+	// we should have all of the target/right/up or none of them
+	if( ( gotTarget || gotUp || gotRight ) != ( gotTarget && gotUp && gotRight ) )
+	{
+		idLib::Printf( "Light at (%f,%f,%f) has bad target info\n",
+					   renderLight->origin[0], renderLight->origin[1], renderLight->origin[2] );
+		return;
+	}
+
+	if( !gotTarget )
+	{
+		renderLight->pointLight = true;
+
+		// allow an optional relative center of light and shadow offset
+		args->GetVector( "light_center", "0 0 0", renderLight->lightCenter );
+
+		// create a point light
+		if( !args->GetVector( "light_radius", "300 300 300", renderLight->lightRadius ) )
+		{
+			float radius;
+
+			args->GetFloat( "light", "300", radius );
+			renderLight->lightRadius[0] = renderLight->lightRadius[1] = renderLight->lightRadius[2] = radius;
+		}
+	}
+
+	// get the rotation matrix in either full form, or single angle form
+	idAngles angles;
+	idMat3 mat;
+	if( !args->GetMatrix( "light_rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+	{
+		if( !args->GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+		{
+			// RB: light_angles is specific for lights that have been modified by the editLights command
+			// these lights have a static model and are not proper grouped using func_group
+			if( args->GetAngles( "light_angles", "0 0 0", angles ) )
+			{
+				angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+				angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+				angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+				mat = angles.ToMat3();
+			}
+			// RB: TrenchBroom interop
+			// support "angles" like in Quake 3
+			else if( args->GetAngles( "angles", "0 0 0", angles ) )
+			{
+				angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+				angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+				angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+				mat = angles.ToMat3();
+			}
+			else
+			{
+				args->GetFloat( "angle", "0", angles[ 1 ] );
+				angles[ 0 ] = 0;
+				angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+				angles[ 2 ] = 0;
+				mat = angles.ToMat3();
+			}
+		}
+	}
+
+	// fix degenerate identity matrices
+	mat[0].FixDegenerateNormal();
+	mat[1].FixDegenerateNormal();
+	mat[2].FixDegenerateNormal();
+
+	renderLight->axis = mat;
+
+	// check for other attributes
+	args->GetVector( "_color", "1 1 1", color );
+	renderLight->shaderParms[ SHADERPARM_RED ]		= color[0];
+	renderLight->shaderParms[ SHADERPARM_GREEN ]	= color[1];
+	renderLight->shaderParms[ SHADERPARM_BLUE ]		= color[2];
+	args->GetFloat( "shaderParm3", "1", renderLight->shaderParms[ SHADERPARM_TIMESCALE ] );
+	if( !args->GetFloat( "shaderParm4", "0", renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] ) )
+	{
+		// offset the start time of the shader to sync it to the game time
+		renderLight->shaderParms[ SHADERPARM_TIMEOFFSET ] = 0; //-MS2SEC( gameLocal.time );
+	}
+
+	args->GetFloat( "shaderParm5", "0", renderLight->shaderParms[5] );
+	args->GetFloat( "shaderParm6", "0", renderLight->shaderParms[6] );
+	args->GetFloat( "shaderParm7", "0", renderLight->shaderParms[ SHADERPARM_MODE ] );
+	args->GetBool( "noshadows", "0", renderLight->noShadows );
+	args->GetBool( "nospecular", "0", renderLight->noSpecular );
+	args->GetBool( "parallel", "0", renderLight->parallel );
+
+	args->GetString( "texture", "lights/squarelight1", &texture );
+
+	// allow this to be NULL
+	renderLight->shader = declManager->FindMaterial( texture, false );
+}
+#endif
+
 /*
 ==============
 CreateMapLight
@@ -586,13 +775,15 @@ static void CreateMapLight( const idMapEntity* mapEnt )
 	}
 
 	light = new mapLight_t;
-	light->name[0] = '\0';
-	light->shadowTris = NULL;
 
 	// parse parms exactly as the game do
 	// use the game's epair parsing code so
 	// we can use the same renderLight generation
+#if defined( DMAP )
+	ParseSpawnArgsToRenderLight( &mapEnt->epairs, &light->def.parms );
+#else
 	gameEdit->ParseSpawnArgsToRenderLight( &mapEnt->epairs, &light->def.parms );
+#endif
 
 	R_DeriveLightData( &light->def );
 
@@ -606,17 +797,6 @@ static void CreateMapLight( const idMapEntity* mapEnt )
 	}
 	// RB end
 
-	// get the name for naming the shadow surfaces
-	const char*	name;
-
-	mapEnt->epairs.GetString( "name", "", &name );
-
-	idStr::Copynz( light->name, name, sizeof( light->name ) );
-	if( !light->name[0] )
-	{
-		common->Error( "Light at (%f,%f,%f) didn't have a name",
-					   light->def.parms.origin[0], light->def.parms.origin[1], light->def.parms.origin[2] );
-	}
 #if 0
 	// use the renderer code to get the bounding planes for the light
 	// based on all the parameters

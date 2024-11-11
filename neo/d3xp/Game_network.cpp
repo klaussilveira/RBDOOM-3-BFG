@@ -984,8 +984,8 @@ void idGameLocal::ClientReadSnapshot( const idSnapShot& ss )
 
 			ent->FlagNewSnapshot();
 
-			// read the class specific data from the snapshot
-			if( msg.GetRemainingReadBits() > 0 )
+			// read the class specific data from the snapshot; SRS - only if network-synced
+			if( msg.GetRemainingReadBits() > 0 && ent->fl.networkSync )
 			{
 				ent->ReadFromSnapshot_Ex( msg );
 				ent->snapshotBits = msg.GetSize();
@@ -1098,8 +1098,8 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 		{
 			idMultiplayerGame::msg_evt_t msg_evt = ( idMultiplayerGame::msg_evt_t )msg.ReadByte();
 			int parm1, parm2;
-			parm1 = msg.ReadByte( );
-			parm2 = msg.ReadByte( );
+			parm1 = msg.ReadByte();
+			parm2 = msg.ReadByte();
 			mpGame.PrintMessageEvent( msg_evt, parm1, parm2 );
 			break;
 		}
@@ -1133,7 +1133,7 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 		}
 		case GAME_RELIABLE_MESSAGE_TOURNEYLINE:
 		{
-			int line = msg.ReadByte( );
+			int line = msg.ReadByte();
 			idPlayer* p = static_cast< idPlayer* >( entities[ GetLocalClientNum() ] );
 			if( !p )
 			{
@@ -1233,8 +1233,6 @@ void idGameLocal::ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, g
 
 	slow.Set( time, previousTime, realClientTime );
 	fast.Set( time, previousTime, realClientTime );
-
-	DemoWriteGameInfo();
 
 	// run prediction on all active entities
 	for( ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )

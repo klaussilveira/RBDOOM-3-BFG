@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -64,11 +66,11 @@ ID_INLINE int MSEC_ALIGN_TO_FRAME( int msec )
 }
 
 class idGame;
+class idEntity;
 class idRenderWorld;
 class idSoundWorld;
 class idSession;
 class idCommonDialog;
-class idDemoFile;
 class idUserInterface;
 class idSaveLoadParms;
 class idMatchParameters;
@@ -100,7 +102,11 @@ public:
 	}
 };
 
-#define SCOPED_PROFILE_EVENT( x ) idScopedProfileEvent scopedProfileEvent_##__LINE__( x )
+#if USE_OPTICK
+	#define SCOPED_PROFILE_EVENT( x ) OPTICK_EVENT( x )
+#else
+	#define SCOPED_PROFILE_EVENT( x ) idScopedProfileEvent scopedProfileEvent_##__LINE__( x )
+#endif
 
 ID_INLINE bool BeginTraceRecording( const char* szName )
 {
@@ -125,10 +131,9 @@ typedef enum
 	EDITOR_PARTICLE				= BIT( 8 ),
 	EDITOR_PDA					= BIT( 9 ),
 	EDITOR_AAS					= BIT( 10 ),
-	EDITOR_MATERIAL				= BIT( 11 )
+	EDITOR_MATERIAL				= BIT( 11 ),
+	EDITOR_EXPORTDEFS			= BIT( 12 ), // RB
 } toolFlag_t;
-
-extern int			com_editors;			// currently opened editor(s)
 
 #define STRTABLE_ID				"#str_"
 #define STRTABLE_ID_LENGTH		5
@@ -142,6 +147,7 @@ extern idCVar		com_showMemoryUsage;
 extern idCVar		com_updateLoadSize;
 extern idCVar		com_productionMode;
 
+extern int			com_editors;			// currently opened editor(s)
 struct MemInfo_t
 {
 	idStr			filebase;
@@ -164,6 +170,7 @@ struct MemInfo_t
 
 struct mpMap_t
 {
+	mpMap_t& operator=( mpMap_t&& src ) = default;
 
 	void operator=( const mpMap_t& src )
 	{
@@ -222,12 +229,20 @@ public:
 	// DG end
 
 	virtual void				UpdateLevelLoadPacifier() = 0;
-
+	// RB begin
+	virtual void				LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+	virtual void				LoadPacifierProgressTotal( int total ) = 0;
+	virtual void				LoadPacifierProgressIncrement( int step ) = 0;
+	virtual bool				LoadPacifierRunning() = 0;
+	// RB end
 
 	// Checks for and removes command line "+set var arg" constructs.
 	// If match is NULL, all set commands will be executed, otherwise
 	// only a set with the exact name.
 	virtual void				StartupVariable( const char* match ) = 0;
+
+	// Initializes a tool with the given dictionary.
+	virtual void				InitTool( const toolFlag_t tool, const idDict* dict, idEntity* entity ) = 0;
 
 	// Begins redirection of console output to the given buffer.
 	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) = 0;
@@ -247,6 +262,9 @@ public:
 	// Prints message that only shows up if the "developer" cvar is set,
 	// and NEVER forces a screen update, which could cause reentrancy problems.
 	virtual void				DPrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+
+	// Same as Printf but tool specific to discard most of dmap's output
+	virtual void				VerbosePrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
 
 	// Prints WARNING %s message and adds the warning message to a queue for printing later on.
 	virtual void				Warning( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
@@ -302,9 +320,6 @@ public:
 	virtual bool				LoadGame( const char* saveName ) = 0;
 	virtual bool				SaveGame( const char* saveName ) = 0;
 
-	virtual idDemoFile* 		ReadDemo() = 0;
-	virtual idDemoFile* 		WriteDemo() = 0;
-
 	virtual idGame* 			Game() = 0;
 	virtual idRenderWorld* 		RW() = 0;
 	virtual idSoundWorld* 		SW() = 0;
@@ -340,6 +355,19 @@ public:
 	virtual void				SwitchToGame( currentGame_t newGame ) = 0;
 #endif
 	// RB end
+
+	virtual void				LoadPacifierBinarizeFilename( const char* filename, const char* reason ) = 0;
+	virtual void				LoadPacifierBinarizeInfo( const char* info ) = 0;
+	virtual void				LoadPacifierBinarizeMiplevel( int level, int maxLevel ) = 0;
+	virtual void				LoadPacifierBinarizeProgress( float progress ) = 0;
+	virtual void				LoadPacifierBinarizeEnd() = 0;
+	virtual void				LoadPacifierBinarizeProgressTotal( int total ) = 0;
+	virtual void				LoadPacifierBinarizeProgressIncrement( int step ) = 0;
+
+	virtual void				DmapPacifierFilename( const char* filename, const char* reason ) = 0;
+	virtual void				DmapPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+	virtual void				DmapPacifierCompileProgressTotal( int total ) = 0;
+	virtual void				DmapPacifierCompileProgressIncrement( int step ) = 0;
 };
 
 extern idCommon* 		common;

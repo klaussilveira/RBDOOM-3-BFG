@@ -34,9 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
-
+#pragma hdrstop
 
 #include "CollisionModel_local.h"
 
@@ -873,6 +872,8 @@ void idCollisionModelManagerLocal::Translation( trace_t* results, const idVec3& 
 	tw.trace.fraction = 1.0f;
 	tw.trace.c.contents = 0;
 	tw.trace.c.type = CONTACT_NONE;
+	tw.trace.c.material = NULL;
+	tw.trace.c.id = 0;
 	tw.contents = contentMask;
 	tw.isConvex = true;
 	tw.rotation = false;

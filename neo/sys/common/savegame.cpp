@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../sys_session_local.h"
 #include "../sys_savegame.h"
 
@@ -525,6 +525,7 @@ int idSaveGameThread::Enumerate()
 				// DG: just use the idFile object's timestamp - the windows code gets file attributes and
 				//  other complicated stuff like that.. I'm wonderin what that was good for.. this seems to work.
 				details->date = file->Timestamp();
+				delete file;
 #endif // DG end
 			}
 			else

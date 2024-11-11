@@ -36,8 +36,8 @@ Note that other POSIX systems may need some small changes, e.g. in Sys_InitNetwo
 ================================================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #ifdef _WIN32
 
@@ -1021,6 +1021,7 @@ void Sys_InitNetworking()
 		// DG end
 		num_interfaces++;
 	}
+	free( ifap );
 #else // not _WIN32, OSX or FreeBSD
 	int		s;
 	char	buf[ MAX_INTERFACES * sizeof( ifreq ) ];

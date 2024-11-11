@@ -48,6 +48,7 @@ struct gameReturn_t
 {
 
 	gameReturn_t() :
+		sessionCommand( "" ),       // SRS - Explicitly init sessionCommand otherwise can be optimized out and skipped with gcc or Apple clang
 		syncNextGameFrame( false ),
 		vibrationLow( 0 ),
 		vibrationHigh( 0 )
@@ -187,11 +188,6 @@ public:
 	virtual void				Shell_SetGameComplete() = 0;
 	virtual bool				SkipCinematicScene() = 0;
 	virtual bool				CheckInCinematic() = 0;
-
-	// Demo helper functions
-	virtual void				StartDemoPlayback( idRenderWorld* renderworld ) = 0;
-
-	virtual bool				ProcessDemoCommand( idDemoFile* readDemo ) = 0;
 };
 
 extern idGame* 					game;
@@ -239,12 +235,13 @@ public:
 
 	// These are the canonical idDict to parameter parsing routines used by both the game and tools.
 	virtual void				ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t* renderLight );
-	virtual void				ParseSpawnArgsToRenderEntity( const idDict* args, renderEntity_t* renderEntity );
+	virtual void				ParseSpawnArgsToRenderEntity( const idDict* args, renderEntity_t* renderEntity, const idDeclEntityDef* def = NULL );
+	virtual void				ParseSpawnArgsToRenderEnvprobe( const idDict* args, renderEnvironmentProbe_t* renderEnvprobe ); // RB
 	virtual void				ParseSpawnArgsToRefSound( const idDict* args, refSound_t* refSound );
 
 	// Animation system calls for non-game based skeletal rendering.
 	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const char* classname );
-	virtual const idVec3&		 ANIM_GetModelOffsetFromEntityDef( const char* classname );
+	virtual const idVec3&		ANIM_GetModelOffsetFromEntityDef( const char* classname );
 	virtual idRenderModel* 		ANIM_GetModelFromEntityDef( const idDict* args );
 	virtual idRenderModel* 		ANIM_GetModelFromName( const char* modelName );
 	virtual const idMD5Anim* 	ANIM_GetAnimFromEntityDef( const char* classname, const char* animname );
@@ -298,12 +295,14 @@ public:
 	virtual void				PlayerGetAxis( idMat3& axis ) const;
 	virtual void				PlayerGetViewAngles( idAngles& angles ) const;
 	virtual void				PlayerGetEyePosition( idVec3& org ) const;
+	virtual bool				PlayerGetRenderView( renderView_t& rv ) const;
 
 	// In game map editing support.
 	virtual const idDict* 		MapGetEntityDict( const char* name ) const;
 	virtual void				MapSave( const char* path = NULL ) const;
 	virtual void				MapSetEntityKeyVal( const char* name, const char* key, const char* val ) const ;
 	virtual void				MapCopyDictToEntity( const char* name, const idDict* dict ) const;
+	virtual void				MapCopyDictToEntityAtOrigin( const idVec3& org, const idDict* dict ) const;
 	virtual int					MapGetUniqueMatchingKeyVals( const char* key, const char* list[], const int max ) const;
 	virtual void				MapAddEntity( const idDict* dict ) const;
 	virtual int					MapGetEntitiesMatchingClassWithString( const char* classname, const char* match, const char* list[], const int max ) const;

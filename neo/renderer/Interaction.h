@@ -73,17 +73,12 @@ struct surfaceInteraction_t
 	// generated in static vertex memory.
 	int						numLightTrisIndexes;
 	vertCacheHandle_t		lightTrisIndexCache;
-
-	// shadow volume triangle surface
-	int						numShadowIndexes;
-	int						numShadowIndexesNoCaps;	// if the view is outside the shadow, this can be used
-	triIndex_t* 			shadowIndexes;			// only != NULL if KEEP_INTERACTION_CPU_DATA is defined
-	vertCacheHandle_t		shadowIndexCache;
 };
 
 
 class idRenderEntityLocal;
 class idRenderLightLocal;
+class RenderEnvprobeLocal;
 
 class idInteraction
 {
@@ -144,7 +139,7 @@ public:
 	bool					HasShadows() const;
 
 	// called by GenerateAllInteractions
-	void					CreateStaticInteraction();
+	void					CreateStaticInteraction( nvrhi::ICommandList* commandList );
 
 private:
 	// unlink from entity and light lists

@@ -666,9 +666,11 @@ void idEditEntities::DisplayEntities()
 
 	idStr textKey;
 
+	r_singleLight.SetInteger( -1 );
+	r_showLights.SetInteger( 0 );
+
 	for( ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
 	{
-
 		idVec4 color;
 
 		textKey = "";
@@ -704,13 +706,55 @@ void idEditEntities::DisplayEntities()
 				drawArrows = true;
 			}
 		}
+		else if( ent->GetType() == &idLight::Type )
+		{
+			// RB: use renderer backend to display light properties
+			if( ent->fl.selected )
+			{
+				//drawArrows = true;
 
-		if( !viewBounds.ContainsPoint( ent->GetPhysics()->GetOrigin() ) )
+				idLight* light = static_cast<idLight*>( ent );
+
+				r_singleLight.SetInteger( light->GetLightDefHandle() );
+				r_showLights.SetInteger( 3 );
+
+				renderLight_t renderLight = light->GetRenderLight();
+
+				// draw arrow from entity origin to globalLightOrigin
+
+				idVec3 globalLightOrigin;
+				if( renderLight.parallel )
+				{
+					idVec3 dir = renderLight.lightCenter;
+					if( dir.Normalize() == 0.0f )
+					{
+						// make point straight up if not specified
+						dir[2] = 1.0f;
+					}
+					globalLightOrigin = renderLight.origin + dir * 100000.0f;
+				}
+				else
+				{
+					globalLightOrigin = renderLight.origin + renderLight.axis * renderLight.lightCenter;
+				}
+
+				idVec3 start = ent->GetEditOrigin();
+				idVec3 end = globalLightOrigin;
+				gameRenderWorld->DebugArrow( colorYellow, start, end, 2 );
+
+				if( !renderLight.parallel )
+				{
+					gameRenderWorld->DrawText( "globalLightOrigin", end + idVec3( 4, 0, 0 ), 0.15f, colorYellow, axis );
+				}
+			}
+		}
+
+		if( !viewBounds.ContainsPoint( ent->GetEditOrigin() ) )
 		{
 			continue;
 		}
 
-		gameRenderWorld->DebugBounds( color, idBounds( ent->GetPhysics()->GetOrigin() ).Expand( 8 ) );
+		gameRenderWorld->DebugBounds( color, idBounds( ent->GetEditOrigin() ).Expand( 8 ) );
 		if( drawArrows )
 		{
 			idVec3 start = ent->GetPhysics()->GetOrigin();
@@ -737,9 +781,9 @@ void idEditEntities::DisplayEntities()
 		if( textKey.Length() )
 		{
 			const char* text = ent->spawnArgs.GetString( textKey );
-			if( viewTextBounds.ContainsPoint( ent->GetPhysics()->GetOrigin() ) )
+			if( viewTextBounds.ContainsPoint( ent->GetEditOrigin() ) )
 			{
-				gameRenderWorld->DrawText( text, ent->GetPhysics()->GetOrigin() + idVec3( 0, 0, 12 ), 0.25, colorWhite, axis, 1 );
+				gameRenderWorld->DrawText( text, ent->GetEditOrigin() + idVec3( 0, 0, 12 ), 0.25, colorWhite, axis, 1 );
 			}
 		}
 	}
@@ -1115,6 +1159,18 @@ void idGameEdit::PlayerGetEyePosition( idVec3& org ) const
 	org = gameLocal.GetLocalPlayer()->GetEyePosition();
 }
 
+// RB
+bool idGameEdit::PlayerGetRenderView( renderView_t& rv ) const
+{
+	renderView_t* view = gameLocal.GetLocalPlayer()->GetRenderView();
+	if( view )
+	{
+		rv = *view;
+		return true;
+	}
+
+	return false;
+}
 
 /*
 ================
@@ -1185,12 +1241,57 @@ void idGameEdit::MapCopyDictToEntity( const char* name, const idDict* dict ) con
 				const idKeyValue* kv = dict->GetKeyVal( i );
 				const char* key = kv->GetKey();
 				const char* val = kv->GetValue();
-				mapent->epairs.Set( key, val );
+
+				// DG: if val is "", delete key from the entity
+				//     => same behavior as EntityChangeSpawnArgs()
+				if( val[0] == '\0' )
+				{
+					mapent->epairs.Delete( key );
+				}
+				else
+				{
+					mapent->epairs.Set( key, val );
+				}
+				// DG end
 			}
 		}
 	}
 }
 
+/*
+================
+RB idGameEdit::MapCopyDictToEntityAtOrigin
+================
+*/
+void idGameEdit::MapCopyDictToEntityAtOrigin( const idVec3& origin, const idDict* dict ) const
+{
+	idMapFile* mapFile = gameLocal.GetLevelMap();
+	if( mapFile )//&& name && *name )
+	{
+		idMapEntity* mapent = mapFile->FindEntityAtOrigin( origin );
+		if( mapent )
+		{
+			for( int i = 0; i < dict->GetNumKeyVals(); i++ )
+			{
+				const idKeyValue* kv = dict->GetKeyVal( i );
+				const char* key = kv->GetKey();
+				const char* val = kv->GetValue();
+
+				// DG: if val is "", delete key from the entity
+				//     => same behavior as EntityChangeSpawnArgs()
+				if( val[0] == '\0' )
+				{
+					mapent->epairs.Delete( key );
+				}
+				else
+				{
+					mapent->epairs.Set( key, val );
+				}
+				// DG end
+			}
+		}
+	}
+}
 
 
 /*

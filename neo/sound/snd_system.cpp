@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "snd_local.h"
 
@@ -532,6 +532,7 @@ cinData_t idSoundSystemLocal::ImageForTime( const int milliseconds, const bool w
 	cd.imageY = NULL;
 	cd.imageCr = NULL;
 	cd.imageCb = NULL;
+	cd.image = NULL;
 	cd.imageWidth = 0;
 	cd.imageHeight = 0;
 	cd.status = FMV_IDLE;

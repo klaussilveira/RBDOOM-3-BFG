@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -222,17 +224,10 @@ Exits with mapSpawned = false
 */
 void idCommonLocal::UnloadMap()
 {
-	StopPlayingRenderDemo();
-
 	// end the current map in the game
 	if( game )
 	{
 		game->MapShutdown();
-	}
-
-	if( writeDemo )
-	{
-		StopRecordingRenderDemo();
 	}
 
 	mapSpawned = false;
@@ -245,7 +240,6 @@ idCommonLocal::LoadLoadingGui
 */
 void idCommonLocal::LoadLoadingGui( const char* mapName, bool& hellMap )
 {
-
 	defaultLoadscreen = false;
 	loadGUI = new idSWF( "loading/default", NULL );
 
@@ -778,11 +772,172 @@ void idCommonLocal::UpdateLevelLoadPacifier()
 			}
 			txtVal->SetStrokeInfo( true, 1.75f, 0.75f );
 		}
+
 		UpdateScreen( false );
+
 		if( autoswapsRunning )
 		{
 			renderSystem->BeginAutomaticBackgroundSwaps( icon );
 		}
+	}
+}
+
+// RB begin
+void idCommonLocal::LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... )
+{
+	char msg[256];
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, 256 - 1, fmt, argptr );
+	msg[ sizeof( msg ) - 1 ] = '\0';
+	va_end( argptr );
+
+	loadPacifierStatus = msg;
+
+	//if( com_refreshOnPrint )
+	//{
+	//	UpdateScreen( false );
+	//}
+}
+
+void idCommonLocal::LoadPacifierProgressTotal( int total )
+{
+	loadPacifierCount = 0;
+	loadPacifierExpectedCount = total;
+	loadPacifierTics = 0;
+	loadPacifierNextTicCount = 0;
+}
+
+void idCommonLocal::LoadPacifierProgressIncrement( int step )
+{
+	loadPacifierCount += step;
+
+	// don't refresh the UI with every step if there are e.g. 1300 steps
+	if( ( ( loadPacifierCount + 1 ) >= loadPacifierNextTicCount ) && loadPacifierExpectedCount > 0 )
+	{
+		size_t ticsNeeded = ( size_t )( ( ( double )( loadPacifierCount + 1 ) / loadPacifierExpectedCount ) * 50.0 );
+
+		//do
+		//{
+		//common->Printf( "*" );
+		//}
+		//while( ++loadPacifierTics < ticsNeeded );
+		loadPacifierTics = ticsNeeded;
+
+		loadPacifierNextTicCount = ( size_t )( ( loadPacifierTics / 50.0 ) * loadPacifierExpectedCount );
+		if( loadPacifierCount == ( loadPacifierExpectedCount - 1 ) )
+		{
+			// reset
+
+			//if( tics < 51 )
+			//{
+			//	common->Printf( "*" );
+			//}
+			//common->Printf( "\n" );
+
+			//stateUI.progress = 1;
+
+			//loadPacifierCount = 0;
+			//loadPacifierExpectedCount = 0;
+			//loadPacifierTics = 0;
+			//loadPacifierNextTicCount = 0;
+		}
+
+		UpdateLevelLoadPacifier();
+	}
+
+	if( loadPacifierCount >= loadPacifierExpectedCount )
+	{
+		loadPacifierExpectedCount = 0;
+	}
+}
+
+bool idCommonLocal::LoadPacifierRunning()
+{
+	return loadPacifierExpectedCount > 0;
+}
+// RB end
+
+// foresthale 2014-05-30: loading progress pacifier for binarize operations only
+void idCommonLocal::LoadPacifierBinarizeFilename( const char* filename, const char* reason )
+{
+	idLib::Printf( "Binarize File: '%s' - reason '%s'\n", filename, reason );
+
+	// we won't actually show updates on very quick files (<16ms), so keep this false until the first progress
+	loadPacifierBinarizeActive = false;
+	loadPacifierBinarizeFilename = filename;
+	loadPacifierBinarizeInfo = "";
+	loadPacifierBinarizeProgress = 0.0f;
+	loadPacifierBinarizeStartTime = Sys_Milliseconds();
+	loadPacifierBinarizeMiplevel = 0;
+	loadPacifierBinarizeMiplevelTotal = 0;
+}
+
+void idCommonLocal::LoadPacifierBinarizeInfo( const char* info )
+{
+	loadPacifierBinarizeInfo = info;
+}
+
+void idCommonLocal::LoadPacifierBinarizeMiplevel( int level, int maxLevel )
+{
+	loadPacifierBinarizeMiplevel = level;
+	loadPacifierBinarizeMiplevelTotal = maxLevel;
+}
+
+// foresthale 2014-05-30: loading progress pacifier for binarize operations only
+void idCommonLocal::LoadPacifierBinarizeProgress( float progress )
+{
+	static int lastUpdateTime = 0;
+	int time = Sys_Milliseconds();
+	if( progress == 0.0f )
+	{
+		// restart the progress, so that if multiple images have to be
+		// binarized for one filename, we don't give bogus estimates...
+		loadPacifierBinarizeStartTime = Sys_Milliseconds();
+	}
+
+	loadPacifierBinarizeProgress = progress;
+
+	// RB: update every 2 milliseconds have passed
+	if( ( time - lastUpdateTime ) >= 2 )
+	{
+		lastUpdateTime = time;
+		loadPacifierBinarizeActive = true;
+
+		UpdateLevelLoadPacifier();
+	}
+}
+
+// foresthale 2014-05-30: loading progress pacifier for binarize operations only
+void idCommonLocal::LoadPacifierBinarizeEnd()
+{
+	loadPacifierBinarizeActive = false;
+	loadPacifierBinarizeStartTime = 0;
+	loadPacifierBinarizeProgress = 0.0f;
+	loadPacifierBinarizeTimeLeft = 0.0f;
+	loadPacifierBinarizeFilename = "";
+	loadPacifierBinarizeProgressTotal = 0;
+	loadPacifierBinarizeProgressCurrent = 0;
+	loadPacifierBinarizeMiplevel = 0;
+	loadPacifierBinarizeMiplevelTotal = 0;
+}
+
+// foresthale 2014-05-30: loading progress pacifier for binarize operations only
+void idCommonLocal::LoadPacifierBinarizeProgressTotal( int total )
+{
+	loadPacifierBinarizeProgressTotal = total;
+	loadPacifierBinarizeProgressCurrent = 0;
+}
+
+// foresthale 2014-05-30: loading progress pacifier for binarize operations only
+void idCommonLocal::LoadPacifierBinarizeProgressIncrement( int step )
+{
+	loadPacifierBinarizeProgressCurrent += step;
+
+	if( loadPacifierBinarizeProgressTotal > 0 )
+	{
+		LoadPacifierBinarizeProgress( ( float )loadPacifierBinarizeProgressCurrent / loadPacifierBinarizeProgressTotal );
 	}
 }
 
@@ -1343,3 +1498,33 @@ CONSOLE_COMMAND( testmap, "tests a map", idCmdSystem::ArgCompletion_MapName )
 	sprintf( string, "devmap %s", map.c_str() );
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 }
+
+
+/*
+==================
+Common_TestMap_f
+
+// TODO finish this
+==================
+*/
+#if 0
+CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSystem::ArgCompletion_MapName )
+{
+	idStr map, string;
+
+	map = args.Argv( 1 );
+	if( !map.Length() )
+	{
+		return;
+	}
+	map.StripFileExtension();
+
+	cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
+
+	sprintf( string, "devmap %s.map", map.c_str() );
+	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
+
+	sprintf( string, "bakeEnvironmentProbes" );
+	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
+}
+#endif

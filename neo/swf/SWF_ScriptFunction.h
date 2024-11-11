@@ -112,7 +112,7 @@ public:
 		}
 	}
 private:
-	int refCount;
+	std::atomic<int> refCount;
 };
 
 /*
@@ -285,7 +285,7 @@ private:
 	// RB end
 
 private:
-	int					refCount;
+	std::atomic<int>	refCount;
 
 	uint16				flags;
 	const  byte* 		data;

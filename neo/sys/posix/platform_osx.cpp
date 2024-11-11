@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-//#include "../../idlib/precompiled.h"
+#include "../../idlib/precompiled.h"
 #include "../posix/posix_public.h"
 //#include "../sys_local.h"
 
@@ -97,7 +97,8 @@ double Sys_ClockTicksPerSecond()
 {
 	static bool		init = false;
 	static double	ret;
-	size_t len = sizeof( ret );
+	int64_t temp;
+	size_t len = sizeof( temp );
 	int status;
 
 	if( init )
@@ -105,7 +106,8 @@ double Sys_ClockTicksPerSecond()
 		return ret;
 	}
 
-	status = sysctlbyname( "hw.cpufrequency", &ret, &len, NULL, 0 );
+	status = sysctlbyname( "hw.cpufrequency", &temp, &len, NULL, 0 );
+	ret = double( temp );
 
 	if( status == -1 )
 	{
@@ -343,9 +345,11 @@ void Sys_ReLaunch()
 		DIR* devfd = opendir( "/dev/fd" );
 		if( devfd != NULL )
 		{
-			struct dirent entry;
+			//struct dirent entry;
 			struct dirent* result;
-			while( readdir_r( devfd, &entry, &result ) == 0 )
+			//while( readdir_r( devfd, &entry, &result ) == 0 )
+			// SRS - readdir_r() is deprecated on linux, readdir() is thread safe with different dir streams
+			while( ( result = readdir( devfd ) ) != NULL )
 			{
 				const char* filename = result->d_name;
 				char* endptr = NULL;
@@ -396,8 +400,8 @@ void Sys_ReLaunch()
 	// DG end
 }
 
-// OS X doesn't have clock_gettime()
-int clock_gettime( clk_id_t clock, struct timespec* tp )
+// OS X 10.11 or earlier doesn't have native clock_gettime()
+int clock_gettime( /*clk_id_t*/ clockid_t clock, struct timespec* tp )   // SRS - use APPLE clockid_t
 {
 	switch( clock )
 	{
@@ -448,12 +452,27 @@ main
 */
 int main( int argc, const char** argv )
 {
+	extern idCVar r_useGPUSkinning;
+
 	// DG: needed for Sys_ReLaunch()
 	cmdargc = argc;
 	cmdargv = argv;
 	// DG end
 
-	Posix_EarlyInit( );
+	// Setting memory allocators
+	OPTICK_SET_MEMORY_ALLOCATOR(
+		[]( size_t size ) -> void* { return operator new( size ); },
+		[]( void* p )
+	{
+		operator delete( p );
+	},
+	[]()
+	{
+		/* Do some TLS initialization here if needed */
+	}
+	);
+
+	Posix_EarlyInit();
 
 	if( argc > 1 )
 	{
@@ -464,10 +483,27 @@ int main( int argc, const char** argv )
 		common->Init( 0, NULL, NULL );
 	}
 
-	Posix_LateInit( );
+	// SRS - Determine the machine name, e.g. "x86_64" or "arm64"
+	// Might be cleaner in posix Sys_Init(), but only needed on
+	// macOS and all the required sys includes are located here.
+	size_t size;
+	sysctlbyname( "hw.machine", NULL, &size, NULL, 0 );
+	char* machineName = ( char* )Mem_Alloc( size, TAG_SYSTEM );
+	sysctlbyname( "hw.machine", machineName, &size, NULL, 0 );
+
+	// FIXME: On Apple Silicon disable GPU skinning to eliminate rendering artifacts
+	if( strcmp( machineName, "arm64" ) == 0 )
+	{
+		r_useGPUSkinning.SetInteger( 0 );
+	}
+	Mem_Free( machineName );
+
+	Posix_LateInit();
 
 	while( 1 )
 	{
+		OPTICK_FRAME( "MainThread" );
+
 		common->Frame();
 	}
 }

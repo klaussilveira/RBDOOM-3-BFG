@@ -26,10 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 #include "Model_local.h"
 
 static const char* parametricParticle_SnapshotName = "_ParametricParticle_Snapshot_";
@@ -49,7 +49,7 @@ idRenderModelPrt::idRenderModelPrt()
 idRenderModelPrt::InitFromFile
 ====================
 */
-void idRenderModelPrt::InitFromFile( const char* fileName )
+void idRenderModelPrt::InitFromFile( const char* fileName, const idImportOptions* options )
 {
 	name = fileName;
 	particleSystem = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, fileName ) );

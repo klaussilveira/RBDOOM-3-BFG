@@ -112,7 +112,7 @@ created using the CONSOLE_COMMAND_SHIP macro.
 ================================================
 */
 
-#if defined ( ID_RETAIL ) && !defined( ID_RETAIL_INTERNAL )
+#if defined( ID_RETAIL ) && !defined( ID_RETAIL_INTERNAL )
 	#define CONSOLE_COMMAND_SHIP			CONSOLE_COMMAND_COMPILE
 	#define CONSOLE_COMMAND					CONSOLE_COMMAND_NO_COMPILE
 	// We need to disable this warning to get commands that were made friends
@@ -170,7 +170,7 @@ public:
 	virtual void		ExecuteCommandBuffer() = 0;
 
 	// Base for path/file auto-completion.
-	virtual void		ArgCompletion_FolderExtension( const idCmdArgs& args, void( *callback )( const char* s ), const char* folder, bool stripFolder, ... ) = 0;
+	virtual void		ArgCompletion_FolderExtension( const idCmdArgs& args, void( *callback )( const char* s ), const char* folder, int stripFolder, ... ) = 0;
 	// Base for decl name auto-completion.
 	virtual void		ArgCompletion_DeclName( const idCmdArgs& args, void( *callback )( const char* s ), int type ) = 0;
 
@@ -182,6 +182,7 @@ public:
 	virtual bool		PostReloadEngine() = 0;
 
 	// Default argument completion functions.
+	static void			ArgCompletion_DefFile( const idCmdArgs& args, void( *callback )( const char* s ) );
 	static void			ArgCompletion_Boolean( const idCmdArgs& args, void( *callback )( const char* s ) );
 	template<int min, int max>
 	static void			ArgCompletion_Integer( const idCmdArgs& args, void( *callback )( const char* s ) );
@@ -203,6 +204,10 @@ public:
 
 extern idCmdSystem* 	cmdSystem;
 
+ID_INLINE void idCmdSystem::ArgCompletion_DefFile( const idCmdArgs& args, void( *callback )( const char* s ) )
+{
+	cmdSystem->ArgCompletion_FolderExtension( args, callback, "def/", true, ".def", NULL );
+}
 
 ID_INLINE void idCmdSystem::ArgCompletion_Boolean( const idCmdArgs& args, void( *callback )( const char* s ) )
 {
@@ -238,7 +243,7 @@ ID_INLINE void idCmdSystem::ArgCompletion_FileName( const idCmdArgs& args, void(
 
 ID_INLINE void idCmdSystem::ArgCompletion_MapName( const idCmdArgs& args, void( *callback )( const char* s ) )
 {
-	cmdSystem->ArgCompletion_FolderExtension( args, callback, "maps/", true, ".map", ".json", NULL );
+	cmdSystem->ArgCompletion_FolderExtension( args, callback, "maps/", true, ".map", ".json", ".gltf", ".glb", NULL );
 }
 
 ID_INLINE void idCmdSystem::ArgCompletion_MapNameNoJson( const idCmdArgs& args, void( *callback )( const char* s ) )
@@ -258,7 +263,7 @@ ID_INLINE void idCmdSystem::ArgCompletion_SoundName( const idCmdArgs& args, void
 
 ID_INLINE void idCmdSystem::ArgCompletion_ImageName( const idCmdArgs& args, void( *callback )( const char* s ) )
 {
-	cmdSystem->ArgCompletion_FolderExtension( args, callback, "/", false, ".tga", ".dds", ".jpg", ".pcx", NULL );
+	cmdSystem->ArgCompletion_FolderExtension( args, callback, "/", false, ".tga", ".png", ".jpg", ".exr", NULL );
 }
 
 ID_INLINE void idCmdSystem::ArgCompletion_VideoName( const idCmdArgs& args, void( *callback )( const char* s ) )

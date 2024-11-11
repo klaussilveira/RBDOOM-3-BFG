@@ -27,13 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "win_local.h"
-#include "../../renderer/tr_local.h"
+#include "../../renderer/RenderCommon.h"
 
 #include <windowsx.h>
+#include <sys/DeviceManager.h>
 
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
@@ -97,7 +98,7 @@ static void WIN_EnableAltTab()
 
 void WIN_Sizing( WORD side, RECT* rect )
 {
-	if( !R_IsInitialized() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
+	if( !renderSystem->IsInitialized() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
 	{
 		return;
 	}
@@ -163,6 +164,8 @@ void WIN_Sizing( WORD side, RECT* rect )
 	}
 }
 
+extern DeviceManager* deviceManager;
+
 /*
 ====================
 MainWndProc
@@ -176,24 +179,29 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	switch( uMsg )
 	{
 		case WM_WINDOWPOSCHANGED:
-			if( R_IsInitialized() )
+			// SRS - Needed by ResizeImages() to resize before the start of a frame
+			// SRS - Aspect ratio constraints are controlled by WIN_Sizing() above
+			if( renderSystem->IsInitialized() && win32.hDC != NULL )
 			{
 				RECT rect;
 				if( ::GetClientRect( win32.hWnd, &rect ) )
 				{
-
 					if( rect.right > rect.left && rect.bottom > rect.top )
 					{
 						glConfig.nativeScreenWidth = rect.right - rect.left;
 						glConfig.nativeScreenHeight = rect.bottom - rect.top;
 
 						// save the window size in cvars if we aren't fullscreen
+						// SRS - also check renderSystem state to make sure WM doesn't fool us when exiting fullscreen
 						int style = GetWindowLong( hWnd, GWL_STYLE );
-						if( ( style & WS_POPUP ) == 0 )
+						if( ( style & WS_POPUP ) == 0 && !renderSystem->IsFullScreen() )
 						{
 							r_windowWidth.SetInteger( glConfig.nativeScreenWidth );
 							r_windowHeight.SetInteger( glConfig.nativeScreenHeight );
 						}
+
+						// SRS - Inform ImGui that the window size has changed
+						ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 					}
 				}
 			}
@@ -204,8 +212,9 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			RECT r;
 
 			// save the window origin in cvars if we aren't fullscreen
+			// SRS - also check renderSystem state to make sure WM doesn't fool us when exiting fullscreen
 			int style = GetWindowLong( hWnd, GWL_STYLE );
-			if( ( style & WS_POPUP ) == 0 )
+			if( ( style & WS_POPUP ) == 0 && !renderSystem->IsFullScreen() )
 			{
 				xPos = ( short ) LOWORD( lParam ); // horizontal position
 				yPos = ( short ) HIWORD( lParam ); // vertical position
@@ -234,10 +243,6 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			{
 				WIN_EnableAltTab();
 			}
-
-			// do the OpenGL setup
-			void GLW_WM_CREATE( HWND hWnd );
-			GLW_WM_CREATE( hWnd );
 
 			break;
 
@@ -308,7 +313,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			break;
 		}
 		case WM_SYSCOMMAND:
-			if( wParam == SC_SCREENSAVE || wParam == SC_KEYMENU )
+			if( wParam == SC_SCREENSAVE || wParam == SC_KEYMENU || wParam == SC_MAXIMIZE )
 			{
 				return 0;
 			}
@@ -317,7 +322,17 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 		case WM_SYSKEYDOWN:
 			if( wParam == 13 )  	// alt-enter toggles full-screen
 			{
-				cvarSystem->SetCVarBool( "r_fullscreen", !renderSystem->IsFullScreen() );
+				// SRS - Use same functionality and logic as with SDL on linux and macOS
+				// DG: go to fullscreen on current display, instead of always first display
+				int fullscreen = 0;
+				if( !renderSystem->IsFullScreen() )
+				{
+					// this will be handled as "fullscreen on current window"
+					// r_fullscreen 1 means "fullscreen on first window" in d3 bfg
+					fullscreen = -2;
+				}
+				cvarSystem->SetCVarInteger( "r_fullscreen", fullscreen );
+				// DG end
 				cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "vid_restart\n" );
 				return 0;
 			}

@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2015 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -26,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 
 
 /*
@@ -55,6 +56,9 @@ void idRenderWorldLocal::FreeWorld()
 			delete portal->w;
 			R_StaticFree( portal );
 		}
+
+		// SRS - release the lightGridPoints idList or it will leak
+		area->lightGrid.lightGridPoints.Clear();
 
 		// there shouldn't be any remaining lightRefs or entityRefs
 		if( area->lightRefs.areaNext != &area->lightRefs )
@@ -246,10 +250,10 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 		// center the texture coordinates for each island for maximum 16-bit precision
 		for( int j = 1; j <= numIslands; j++ )
 		{
-			float minS = idMath::INFINITY;
-			float minT = idMath::INFINITY;
-			float maxS = -idMath::INFINITY;
-			float maxT = -idMath::INFINITY;
+			float minS = idMath::INFINITUM;
+			float minT = idMath::INFINITUM;
+			float maxS = -idMath::INFINITUM;
+			float maxT = -idMath::INFINITUM;
 			for( int k = 0; k < tri->numVerts; k++ )
 			{
 				if( vertIslands[k] == j )
@@ -296,7 +300,8 @@ idRenderModel* idRenderWorldLocal::ParseModel( idLexer* src, const char* mapName
 
 	src->ExpectTokenString( "}" );
 
-	model->FinishSurfaces();
+	// RB: FIXME add check for mikktspace
+	model->FinishSurfaces( false );
 
 	if( fileOut != NULL && model->SupportsBinaryModel() && binaryLoadRenderModels.GetBool() )
 	{
@@ -326,6 +331,9 @@ idRenderModel* idRenderWorldLocal::ReadBinaryShadowModel( idFile* fileIn )
 /*
 ================
 idRenderWorldLocal::ParseShadowModel
+
+NOTE: The dmap of RBDOOM-3-BFG won't generate shadowmodels.
+This parsing code only applies to parse correctly legacy .proc files
 ================
 */
 idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileOut )
@@ -349,33 +357,35 @@ idRenderModel* idRenderWorldLocal::ParseShadowModel( idLexer* src, idFile* fileO
 
 	srfTriangles_t* tri = R_AllocStaticTriSurf();
 
+	// RB: keep compat with vanilla Doom 3 .proc files
 	tri->numVerts = src->ParseInt();
-	tri->numShadowIndexesNoCaps = src->ParseInt();
-	tri->numShadowIndexesNoFrontCaps = src->ParseInt();
+	src->ParseInt(); // tri->numShadowIndexesNoCaps = src->ParseInt();
+	src->ParseInt(); //tri->numShadowIndexesNoFrontCaps = src->ParseInt();
 	tri->numIndexes = src->ParseInt();
-	tri->shadowCapPlaneBits = src->ParseInt();
+	src->ParseInt(); //tri->shadowCapPlaneBits = src->ParseInt();
 
 	assert( ( tri->numVerts & 1 ) == 0 );
 
-	R_AllocStaticTriSurfPreLightShadowVerts( tri, ALIGN( tri->numVerts, 2 ) );
-	tri->bounds.Clear();
+	//R_AllocStaticTriSurfPreLightShadowVerts( tri, ALIGN( tri->numVerts, 2 ) );
+	//tri->bounds.Clear();
 	for( int j = 0; j < tri->numVerts; j++ )
 	{
 		float vec[8];
 
 		src->Parse1DMatrix( 3, vec );
-		tri->preLightShadowVertexes[j].xyzw[0] = vec[0];
-		tri->preLightShadowVertexes[j].xyzw[1] = vec[1];
-		tri->preLightShadowVertexes[j].xyzw[2] = vec[2];
-		tri->preLightShadowVertexes[j].xyzw[3] = 1.0f;		// no homogenous value
+		//tri->preLightShadowVertexes[j].xyzw[0] = vec[0];
+		//tri->preLightShadowVertexes[j].xyzw[1] = vec[1];
+		//tri->preLightShadowVertexes[j].xyzw[2] = vec[2];
+		//tri->preLightShadowVertexes[j].xyzw[3] = 1.0f;		// no homogenous value
 
-		tri->bounds.AddPoint( tri->preLightShadowVertexes[j].xyzw.ToVec3() );
+		//tri->bounds.AddPoint( tri->preLightShadowVertexes[j].xyzw.ToVec3() );
 	}
 	// clear the last vertex if it wasn't stored
-	if( ( tri->numVerts & 1 ) != 0 )
-	{
-		tri->preLightShadowVertexes[ALIGN( tri->numVerts, 2 ) - 1].xyzw.Zero();
-	}
+	//if( ( tri->numVerts & 1 ) != 0 )
+	//{
+	//	tri->preLightShadowVertexes[ALIGN( tri->numVerts, 2 ) - 1].xyzw.Zero();
+	//}
+	// RB end
 
 	// to be consistent set the number of vertices to half the number of shadow vertices
 	tri->numVerts = ALIGN( tri->numVerts, 2 ) / 2;
@@ -417,10 +427,15 @@ void idRenderWorldLocal::SetupAreaRefs()
 	for( int i = 0; i < numPortalAreas; i++ )
 	{
 		portalAreas[i].areaNum = i;
+
 		portalAreas[i].lightRefs.areaNext =
 			portalAreas[i].lightRefs.areaPrev = &portalAreas[i].lightRefs;
+
 		portalAreas[i].entityRefs.areaNext =
 			portalAreas[i].entityRefs.areaPrev = &portalAreas[i].entityRefs;
+
+		portalAreas[i].envprobeRefs.areaNext =
+			portalAreas[i].envprobeRefs.areaPrev = &portalAreas[i].envprobeRefs;
 	}
 }
 
@@ -781,6 +796,18 @@ void idRenderWorldLocal::FreeDefs()
 		}
 	}
 
+	// RB: free all envprobeDefs
+	for( int i = 0; i < envprobeDefs.Num(); i++ )
+	{
+		RenderEnvprobeLocal* ep = envprobeDefs[i];
+		if( ep != NULL && ep->world == this )
+		{
+			FreeEnvprobeDef( i );
+			envprobeDefs[i] = NULL;
+		}
+	}
+	// RB end
+
 	// Reset decals and overlays
 	for( int i = 0; i < decals.Num(); i++ )
 	{
@@ -839,6 +866,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			TouchWorldModels();
 			AddWorldModelEntities();
 			ClearPortalStates();
+			SetupLightGrid();
 			return true;
 		}
 		common->Printf( "idRenderWorldLocal::InitFromMap: timestamp has changed, reloading.\n" );
@@ -907,7 +935,6 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 
 	if( !loaded )
 	{
-
 		src = new( TAG_RENDER ) idLexer( filename, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE );
 		if( !src->IsLoaded() )
 		{
@@ -919,12 +946,6 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 
 		mapName = name;
 		mapTimeStamp = currentTimeStamp;
-
-		// if we are writing a demo, archive the load command
-		if( common->WriteDemo() )
-		{
-			WriteLoadMap();
-		}
 
 		if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
 		{
@@ -1028,6 +1049,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 
 	AddWorldModelEntities();
 	ClearPortalStates();
+	SetupLightGrid();
 
 	// done!
 	return true;
@@ -1071,7 +1093,6 @@ void idRenderWorldLocal::AddWorldModelEntities()
 	{
 		common->UpdateLevelLoadPacifier();
 
-
 		idRenderEntityLocal*	 def = new( TAG_RENDER_ENTITY ) idRenderEntityLocal;
 
 		// try and reuse a free spot
@@ -1100,7 +1121,8 @@ void idRenderWorldLocal::AddWorldModelEntities()
 		{
 			const modelSurface_t* surf = hModel->Surface( j );
 
-			if( surf->shader->GetName() == idStr( "textures/smf/portal_sky" ) )
+			if( surf->shader->GetName() == idStr( "textures/smf/portal_sky" ) ||
+					surf->shader->IsPortalSky() )
 			{
 				def->needsPortalSky = true;
 			}
@@ -1123,7 +1145,11 @@ void idRenderWorldLocal::AddWorldModelEntities()
 
 		R_DeriveEntityData( def );
 
-		AddEntityRefToArea( def, &portalAreas[i] );
+		portalArea_t* area = &portalAreas[i];
+		AddEntityRefToArea( def, area );
+
+		// RB: remember BSP area AABB for quick lookup later
+		area->globalBounds = def->globalReferenceBounds;
 	}
 }
 

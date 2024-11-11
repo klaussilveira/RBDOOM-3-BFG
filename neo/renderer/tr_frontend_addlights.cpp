@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2014 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -27,10 +27,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#if defined(USE_INTRINSICS_SSE)
+	#if MOC_MULTITHREADED
+		#include "CullingThreadPool.h"
+	#else
+		#include "../libs/moc/MaskedOcclusionCulling.h"
+	#endif
+#endif
+
+#include "RenderCommon.h"
 
 extern idCVar r_useAreasConnectedForShadowCulling;
 extern idCVar r_useParallelAddShadows;
@@ -38,7 +46,7 @@ extern idCVar r_forceShadowCaps;
 extern idCVar r_useShadowPreciseInsideTest;
 
 idCVar r_useAreasConnectedForShadowCulling( "r_useAreasConnectedForShadowCulling", "2", CVAR_RENDERER | CVAR_INTEGER, "cull entities cut off by doors" );
-idCVar r_useParallelAddLights( "r_useParallelAddLights", "1", CVAR_RENDERER | CVAR_BOOL, "aadd all lights in parallel with jobs" );
+idCVar r_useParallelAddLights( "r_useParallelAddLights", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NOCHEAT, "aadd all lights in parallel with jobs" );
 
 /*
 ============================
@@ -104,7 +112,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// until proven otherwise
 	vLight->removeFromList = true;
 	vLight->shadowOnlyViewEntities = NULL;
-	vLight->preLightShadowVolumes = NULL;
 
 	// globals we really should pass in...
 	const viewDef_t* viewDef = tr.viewDef;
@@ -265,15 +272,125 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		vLight->scissorRect.zmin = projected[0][2];
 		vLight->scissorRect.zmax = projected[1][2];
 
-		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
-		vLight->shadowLOD = 0;
+		const bool viewInsideLight = !idRenderMatrix::CullPointToMVP( light->baseLightProject, viewDef->renderView.vieworg, true );
 
-		if( r_useShadowMapping.GetBool() && lightCastsShadows )
+		// RB: test surface visibility by drawing the triangles of the bounds
+#if defined(USE_INTRINSICS_SSE)
+
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && !viewDef->isMirror && !viewDef->isSubview )
+		{
+			idVec4 triVerts[8];
+			unsigned int triIndices[] = { 0, 1, 2 };
+
+			tr.pc.c_mocIndexes += 36;
+			tr.pc.c_mocVerts += 8;
+
+			idRenderMatrix invProjectMVPMatrix;
+
+			// draw light volume 1 percentage bigger to avoid flickering
+			// right before entering the volume with the camera
+			const float mocLightScale = 0.99f;
+			idRenderMatrix scaledInverseBaseLightProject = light->inverseBaseLightProject;
+			scaledInverseBaseLightProject[0][0] *= mocLightScale;
+			scaledInverseBaseLightProject[0][1] *= mocLightScale;
+			scaledInverseBaseLightProject[0][2] *= mocLightScale;
+
+			scaledInverseBaseLightProject[1][0] *= mocLightScale;
+			scaledInverseBaseLightProject[1][1] *= mocLightScale;
+			scaledInverseBaseLightProject[1][2] *= mocLightScale;
+
+			scaledInverseBaseLightProject[2][0] *= mocLightScale;
+			scaledInverseBaseLightProject[2][1] *= mocLightScale;
+			scaledInverseBaseLightProject[2][2] *= mocLightScale;
+
+			idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, scaledInverseBaseLightProject, invProjectMVPMatrix );
+
+			tr.pc.c_mocTests += 1;
+
+			float wmin = idMath::INFINITUM;
+
+			// NOTE: zeroToOne cube is only for lights and models need the unit cube
+			idVec4* verts = tr.maskedZeroOneCubeVerts;
+			for( int i = 0; i < 8; i++ )
+			{
+				// transform to clip space
+				invProjectMVPMatrix.TransformPoint( verts[i], triVerts[i] );
+
+				float w = triVerts[i].w;
+				if( i == 0 )
+				{
+					wmin = w;
+				}
+				else if( w < wmin )
+				{
+					wmin = w;
+				}
+			}
+
+			if( vLight->pointLight || vLight->parallel )
+			{
+#if 1
+				// backface none so objects are still visible where we run into
+#if MOC_MULTITHREADED
+				tr.maskedOcclusionThreaded->SetMatrix( NULL );
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionThreaded->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, MaskedOcclusionCulling::BACKFACE_NONE );
+#else
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+#endif
+				if( result != MaskedOcclusionCulling::VISIBLE )
+				{
+					tr.pc.c_mocCulledLights += 1;
+					return;
+				}
+#else
+				// draw for debugging
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+				maskVisible = true;
+#endif
+			}
+			else
+			{
+				// scissor test alternative
+
+				// source scissor rectangle has GL convention and starts in the lower left corner
+				// convert to NDC values
+				float x1 = -1.0f + ( float( vLight->scissorRect.x1 ) / screenWidth ) * 2.0f;
+				float x2 = -1.0f + ( float( vLight->scissorRect.x2 ) / screenWidth ) * 2.0f;
+				float y1 = -1.0f + ( float( vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
+				float y2 = -1.0f + ( float( vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
+
+				float zmin = vLight->scissorRect.zmin;
+				//zmin = 2.0f * zmin -1.0f;
+				zmin = 1.0 - zmin; // reverse depth
+				float wmin2 = ( 1.0 / zmin );
+				wmin2 *= wmin;
+				wmin2 = Max( wmin2, 0.0f );
+
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestRect( x1, y1, x2, y2, wmin2 );
+				if( result != MaskedOcclusionCulling::VISIBLE )
+				{
+					tr.pc.c_mocCulledLights += 1;
+					return;
+				}
+			}
+		}
+#endif
+		// RB end
+
+		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
+
+		// -1 means no shadows
+		vLight->shadowLOD = -1;
+		vLight->shadowFadeOut = 0;
+
+		if( lightCastsShadows )
 		{
 			float           flod, lodscale;
 			float           projectedRadius;
 			int             lod;
 			int             numLods;
+
+			vLight->shadowLOD = 0;
 
 			numLods = MAX_SHADOWMAP_RESOLUTIONS;
 
@@ -303,7 +420,8 @@ static void R_AddSingleLight( viewLight_t* vLight )
 				flod = 0;
 			}
 
-			flod *= numLods;
+			// +1 allow to be so distant so we turn off shadow mapping
+			flod *= ( numLods + 1 );
 
 			if( flod < 0 )
 			{
@@ -311,12 +429,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			}
 
 			lod = idMath::Ftoi( flod );
-
-			if( lod >= numLods )
-			{
-				//lod = numLods - 1;
-			}
-
 			lod += r_shadowMapLodBias.GetInteger();
 
 			if( lod < 0 )
@@ -327,9 +439,13 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			if( lod >= numLods )
 			{
 				// don't draw any shadow
-				//lod = -1;
+				lod = -1;
+			}
 
-				lod = numLods - 1;
+			if( lod == ( numLods - 1 ) )
+			{
+				// blend shadows smoothly in
+				vLight->shadowFadeOut = idMath::Frac( flod );
 			}
 
 			// 2048^2 ultra quality is only for cascaded shadow mapping with sun lights
@@ -386,6 +502,8 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			vLight->entityInteractionState[ edef->index ] = viewLight_t::INTERACTION_NO;
 
 			// The table is updated at interaction::AllocAndLink() and interaction::UnlinkAndFree()
+
+			// TODO(Stephen): interactionTableRow is null if renderDef is used in a gui.sub
 			const idInteraction* inter = interactionTableRow[ edef->index ];
 
 			const renderEntity_t& eParms = edef->parms;
@@ -504,80 +622,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			vLight->shadowOnlyViewEntities = shadEnt;
 		}
 	}
-
-	//--------------------------------------------
-	// add the prelight shadows for the static world geometry
-	//--------------------------------------------
-	if( light->parms.prelightModel != NULL && !r_useShadowMapping.GetBool() )
-	{
-		srfTriangles_t* tri = light->parms.prelightModel->Surface( 0 )->geometry;
-
-		// these shadows will have valid bounds, and can be culled normally,
-		// but they will typically cover most of the light's bounds
-		if( idRenderMatrix::CullBoundsToMVP( viewDef->worldSpace.mvp, tri->bounds ) )
-		{
-			return;
-		}
-
-		// prelight models should always have static data that never gets purged
-		assert( vertexCache.CacheIsCurrent( tri->shadowCache ) );
-		assert( vertexCache.CacheIsCurrent( tri->indexCache ) );
-
-		drawSurf_t* shadowDrawSurf = ( drawSurf_t* )R_FrameAlloc( sizeof( *shadowDrawSurf ), FRAME_ALLOC_DRAW_SURFACE );
-
-		shadowDrawSurf->frontEndGeo = tri;
-		shadowDrawSurf->ambientCache = 0;
-		shadowDrawSurf->indexCache = tri->indexCache;
-		shadowDrawSurf->shadowCache = tri->shadowCache;
-		shadowDrawSurf->jointCache = 0;
-		shadowDrawSurf->numIndexes = 0;
-		shadowDrawSurf->space = &viewDef->worldSpace;
-		shadowDrawSurf->material = NULL;
-		shadowDrawSurf->extraGLState = 0;
-		shadowDrawSurf->shaderRegisters = NULL;
-		shadowDrawSurf->scissorRect = vLight->scissorRect;		// default to the light scissor and light depth bounds
-		shadowDrawSurf->shadowVolumeState = SHADOWVOLUME_DONE;	// assume the shadow volume is done in case r_skipPrelightShadows is set
-
-		if( !r_skipPrelightShadows.GetBool() )
-		{
-			preLightShadowVolumeParms_t* shadowParms = ( preLightShadowVolumeParms_t* )R_FrameAlloc( sizeof( shadowParms[0] ), FRAME_ALLOC_SHADOW_VOLUME_PARMS );
-
-			shadowParms->verts = tri->preLightShadowVertexes;
-			shadowParms->numVerts = tri->numVerts * 2;
-			shadowParms->indexes = tri->indexes;
-			shadowParms->numIndexes = tri->numIndexes;
-			shadowParms->triangleBounds = tri->bounds;
-			shadowParms->triangleMVP = viewDef->worldSpace.mvp;
-			shadowParms->localLightOrigin = vLight->globalLightOrigin;
-			shadowParms->localViewOrigin = viewDef->renderView.vieworg;
-			shadowParms->zNear = r_znear.GetFloat();
-			shadowParms->lightZMin = vLight->scissorRect.zmin;
-			shadowParms->lightZMax = vLight->scissorRect.zmax;
-			shadowParms->forceShadowCaps = r_forceShadowCaps.GetBool();
-			shadowParms->useShadowPreciseInsideTest = r_useShadowPreciseInsideTest.GetBool();
-			shadowParms->useShadowDepthBounds = r_useShadowDepthBounds.GetBool();
-			shadowParms->numShadowIndices = & shadowDrawSurf->numIndexes;
-			shadowParms->renderZFail = & shadowDrawSurf->renderZFail;
-			shadowParms->shadowZMin = & shadowDrawSurf->scissorRect.zmin;
-			shadowParms->shadowZMax = & shadowDrawSurf->scissorRect.zmax;
-			shadowParms->shadowVolumeState = & shadowDrawSurf->shadowVolumeState;
-
-			// the pre-light shadow volume "_prelight_light_3297" in "d3xpdm2" is malformed in that it contains the light origin so the precise inside test always fails
-			if( tr.primaryWorld->mapName.IcmpPath( "maps/game/mp/d3xpdm2.map" ) == 0 && idStr::Icmp( light->parms.prelightModel->Name(), "_prelight_light_3297" ) == 0 )
-			{
-				shadowParms->useShadowPreciseInsideTest = false;
-			}
-
-			shadowDrawSurf->shadowVolumeState = SHADOWVOLUME_UNFINISHED;
-
-			shadowParms->next = vLight->preLightShadowVolumes;
-			vLight->preLightShadowVolumes = shadowParms;
-		}
-
-		// actually link it in
-		shadowDrawSurf->nextOnLight = vLight->globalShadows;
-		vLight->globalShadows = shadowDrawSurf;
-	}
 }
 
 REGISTER_PARALLEL_JOB( R_AddSingleLight, "R_AddSingleLight" );
@@ -644,38 +688,6 @@ void R_AddLights()
 		{
 			R_ShowColoredScreenRect( vLight->scissorRect, vLight->lightDef->index );
 		}
-	}
-
-	//-------------------------------------------------
-	// Add jobs to setup pre-light shadow volumes.
-	//-------------------------------------------------
-
-	if( r_useParallelAddShadows.GetInteger() == 1 )
-	{
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
-		{
-			for( preLightShadowVolumeParms_t* shadowParms = vLight->preLightShadowVolumes; shadowParms != NULL; shadowParms = shadowParms->next )
-			{
-				tr.frontEndJobList->AddJob( ( jobRun_t )PreLightShadowVolumeJob, shadowParms );
-			}
-			vLight->preLightShadowVolumes = NULL;
-		}
-	}
-	else
-	{
-		int start = Sys_Microseconds();
-
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
-		{
-			for( preLightShadowVolumeParms_t* shadowParms = vLight->preLightShadowVolumes; shadowParms != NULL; shadowParms = shadowParms->next )
-			{
-				PreLightShadowVolumeJob( shadowParms );
-			}
-			vLight->preLightShadowVolumes = NULL;
-		}
-
-		int end = Sys_Microseconds();
-		backEnd.pc.shadowMicroSec += end - start;
 	}
 }
 

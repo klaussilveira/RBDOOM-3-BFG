@@ -27,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 
 /*
 ==========================================================================================
@@ -40,7 +40,6 @@ FRAME MEMORY ALLOCATION
 ==========================================================================================
 */
 
-static const unsigned int NUM_FRAME_DATA = 2;
 static const unsigned int FRAME_ALLOC_ALIGNMENT = 128;
 static const unsigned int MAX_FRAME_MEMORY = 64 * 1024 * 1024;	// larger so that we can noclip on PC for dev purposes
 
@@ -286,17 +285,17 @@ static void R_SortDrawSurfs( drawSurf_t** drawSurfs, const int numDrawSurfs )
 	int64 hi[MAX_LEVELS];
 
 	// Keep the top of the stack in registers to avoid load-hit-stores.
-	register int64 st_lo = 0;
-	register int64 st_hi = numDrawSurfs - 1;
-	register int64 level = 0;
+	int64 st_lo = 0;
+	int64 st_hi = numDrawSurfs - 1;
+	int64 level = 0;
 
 	for( ; ; )
 	{
-		register int64 i = st_lo;
-		register int64 j = st_hi;
+		int64 i = st_lo;
+		int64 j = st_hi;
 		if( j - i >= 4 && level < MAX_LEVELS - 1 )
 		{
-			register uint64 pivot = indices[( i + j ) / 2];
+			uint64 pivot = indices[( i + j ) / 2];
 			do
 			{
 				while( indices[i] > pivot )
@@ -331,7 +330,7 @@ static void R_SortDrawSurfs( drawSurf_t** drawSurfs, const int numDrawSurfs )
 		{
 			for( ; i < j; j-- )
 			{
-				register int64 m = i;
+				int64 m = i;
 				for( int64 k = i + 1; k <= j; k++ )
 				{
 					if( indices[k] < indices[m] )
@@ -410,7 +409,7 @@ static void R_SetupSplitFrustums( viewDef_t* viewDef )
 
 	for( int i = 0; i < 6; i++ )
 	{
-		tr.viewDef->frustumSplitDistances[i] = idMath::INFINITY;
+		tr.viewDef->frustumSplitDistances[i] = idMath::INFINITUM;
 	}
 
 	for( int i = 1; i <= ( r_shadowMapSplits.GetInteger() + 1 ) && i < MAX_FRUSTUMS; i++ )
@@ -455,6 +454,213 @@ static void R_SetupSplitFrustums( viewDef_t* viewDef )
 		}
 	}
 }
+
+class idSort_CompareEnvprobe : public idSort_Quick< RenderEnvprobeLocal*, idSort_CompareEnvprobe >
+{
+	idVec3	viewOrigin;
+
+public:
+	idSort_CompareEnvprobe( const idVec3& origin )
+	{
+		viewOrigin = origin;
+	}
+
+	int Compare( RenderEnvprobeLocal* const& a, RenderEnvprobeLocal* const& b ) const
+	{
+		float adist = ( viewOrigin - a->parms.origin ).LengthSqr();
+		float bdist = ( viewOrigin - b->parms.origin ).LengthSqr();
+
+		if( adist < bdist )
+		{
+			return -1;
+		}
+
+		if( adist > bdist )
+		{
+			return 1;
+		}
+
+		return 0;
+	}
+};
+
+static void R_FindClosestEnvironmentProbes()
+{
+	// set safe defaults
+	tr.viewDef->globalProbeBounds.Clear();
+
+	tr.viewDef->irradianceImage = globalImages->defaultUACIrradianceCube;
+	tr.viewDef->radianceImageBlends.Set( 1, 0, 0, 0 );
+	for( int i = 0; i < 3; i++ )
+	{
+		tr.viewDef->radianceImages[i] = globalImages->defaultUACRadianceCube;
+	}
+
+	// early out
+	if( tr.viewDef->areaNum == -1 || tr.viewDef->isSubview )
+	{
+		return;
+	}
+
+	idList<RenderEnvprobeLocal*, TAG_RENDER_ENVPROBE> viewEnvprobes;
+	for( int i = 0; i < tr.primaryWorld->envprobeDefs.Num(); i++ )
+	{
+		RenderEnvprobeLocal* vProbe = tr.primaryWorld->envprobeDefs[i];
+		if( vProbe )
+		{
+			// check for being closed off behind a door
+			if( r_useLightAreaCulling.GetBool() && vProbe->areaNum != -1 && !tr.viewDef->connectedAreas[ vProbe->areaNum ] )
+			{
+				continue;
+			}
+
+			viewEnvprobes.AddUnique( vProbe );
+		}
+	}
+
+	if( viewEnvprobes.Num() == 0 )
+	{
+		return;
+	}
+
+	idVec3 testOrigin = tr.viewDef->renderView.vieworg;
+
+	// sort by distance
+	// RB: each Doom 3 level has ~50 - 150 probes so this should be ok for each frame
+	viewEnvprobes.SortWithTemplate( idSort_CompareEnvprobe( testOrigin ) );
+
+	RenderEnvprobeLocal* nearest = viewEnvprobes[0];
+	tr.viewDef->globalProbeBounds = nearest->globalProbeBounds;
+
+	if( nearest->irradianceImage->IsLoaded() && !nearest->irradianceImage->IsDefaulted() )
+	{
+		tr.viewDef->irradianceImage = nearest->irradianceImage;
+	}
+
+	static float oldBarycentricWeights[3] = {0};
+	static int oldIndexes[3] = {0};
+	static int timeInterpolateStart = 0;
+
+	// form a triangle of the 3 closest probes
+	int triIndexes[3];
+	idVec3 verts[3];
+	for( int i = 0; i < 3; i++ )
+	{
+		verts[i] = viewEnvprobes[0]->parms.origin;
+		triIndexes[i] =  viewEnvprobes[0]->index;
+	}
+
+	bool triChanged = false;
+	for( int i = 0; i < viewEnvprobes.Num() && i < 3; i++ )
+	{
+		RenderEnvprobeLocal* vProbe = viewEnvprobes[i];
+
+		verts[i] = vProbe->parms.origin;
+		triIndexes[i] = vProbe->index;
+	}
+
+	// don't assume tri changed if we just moved inside a triangle and only the indixes switched
+	// because one vertex is closer than before
+
+	static int numInterpolantsDuringChange = 0;
+	int numInterpolants = 0;
+	int interpolants[3];
+	int mapIndexes[3] = {0, 1, 2};
+
+	for( int i = 0; i < 3; i++ )
+	{
+		for( int j = 0; j < 3; j++ )
+		{
+			if( oldIndexes[i] == triIndexes[j] && numInterpolants < 3 )
+			{
+				interpolants[numInterpolants] = i;
+				mapIndexes[numInterpolants] = j;
+				numInterpolants++;
+			}
+		}
+	}
+
+	if( numInterpolants != 3 )
+	{
+		triChanged = true;
+		timeInterpolateStart = Sys_Milliseconds();
+		numInterpolantsDuringChange = numInterpolants;
+
+		//idLib::Printf( "env_probe triangle changed!\n" );
+	}
+
+	const int c_interpolationTimeframe = 2000.0f;
+
+	idVec3 closest = R_ClosestPointPointTriangle( testOrigin, verts[0], verts[1], verts[2] );
+	idVec3 barycentricWeights;
+
+	int time = Sys_Milliseconds();
+
+	// find the barycentric coordinates
+	float denom = idWinding::TriangleArea( verts[0], verts[1], verts[2] );
+	if( denom == 0 )
+	{
+		// triangle is a line
+		// this can be the case in long corridors
+		float t;
+
+		R_ClosestPointOnLineSegment( testOrigin, verts[0], verts[1], t );
+
+		barycentricWeights.Set( 1.0f - t, t, 0 );
+
+		oldBarycentricWeights[0] = barycentricWeights[0];
+		oldBarycentricWeights[1] = barycentricWeights[1];
+		oldBarycentricWeights[2] = barycentricWeights[2];
+	}
+	else
+	{
+		float	a, b, c;
+
+		a = idWinding::TriangleArea( closest, verts[1], verts[2] ) / denom;
+		b = idWinding::TriangleArea( closest, verts[2], verts[0] ) / denom;
+		c = idWinding::TriangleArea( closest, verts[0], verts[1] ) / denom;
+
+		barycentricWeights.Set( a, b, c );
+
+		// are there at least 2 old matching indices then interpolate from the old barycentrics over time
+		if( numInterpolantsDuringChange == 2 && ( time < ( timeInterpolateStart + c_interpolationTimeframe ) ) )
+		{
+			float t = -float( timeInterpolateStart - time ) / c_interpolationTimeframe;
+
+			t = idMath::ClampFloat( 0.0f, 1.0f, t );
+
+			barycentricWeights[mapIndexes[0]] = Lerp( oldBarycentricWeights[interpolants[0]], barycentricWeights[mapIndexes[0]], t );
+			barycentricWeights[mapIndexes[1]] = Lerp( oldBarycentricWeights[interpolants[1]], barycentricWeights[mapIndexes[1]], t );
+			barycentricWeights.z = 1.0f - idMath::Sqrt( idMath::Fabs( barycentricWeights.x * barycentricWeights.x + barycentricWeights.y * barycentricWeights.y ) );
+
+#if 0
+			idLib::Printf( "start %i time %i lerp %.2f old[ %.2f %.2f %.2f] new [ %.2f %.2f %.2f]\n", timeInterpolateStart, time, t,
+						   oldBarycentricWeights[0], oldBarycentricWeights[1], oldBarycentricWeights[2],
+						   barycentricWeights.x, barycentricWeights.y, barycentricWeights.z );
+#endif
+		}
+		else
+		{
+			oldBarycentricWeights[0] = barycentricWeights[0];
+			oldBarycentricWeights[1] = barycentricWeights[1];
+			oldBarycentricWeights[2] = barycentricWeights[2];
+		}
+	}
+
+	oldIndexes[0] = triIndexes[0];
+	oldIndexes[1] = triIndexes[1];
+	oldIndexes[2] = triIndexes[2];
+
+	tr.viewDef->radianceImageBlends.Set( barycentricWeights.x, barycentricWeights.y, barycentricWeights.z, 0.0f );
+
+	for( int i = 0; i < viewEnvprobes.Num() && i < 3; i++ )
+	{
+		if( !viewEnvprobes[i]->radianceImage->IsDefaulted() )
+		{
+			tr.viewDef->radianceImages[i] = viewEnvprobes[i]->radianceImage;
+		}
+	}
+}
 // RB end
 
 /*
@@ -474,12 +680,16 @@ void R_RenderView( viewDef_t* parms )
 
 	tr.viewDef = parms;
 
+	// use this same frame index for the projection matrix jittering here and in the backend!
+	tr.viewDef->taaFrameCount = tr.frameCount;
+
 	// setup the matrix for world space to eye space
 	R_SetupViewMatrix( tr.viewDef );
 
 	// we need to set the projection matrix before doing
 	// portal-to-screen scissor calculations
-	R_SetupProjectionMatrix( tr.viewDef );
+	R_SetupProjectionMatrix( tr.viewDef, true );
+	R_SetupProjectionMatrix( tr.viewDef, false );
 
 	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value
 	// for some post process shaders
@@ -491,6 +701,9 @@ void R_RenderView( viewDef_t* parms )
 	idRenderMatrix viewRenderMatrix;
 	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
 	idRenderMatrix::Multiply( tr.viewDef->projectionRenderMatrix, viewRenderMatrix, tr.viewDef->worldSpace.mvp );
+
+	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->unjitteredProjectionMatrix, tr.viewDef->unjitteredProjectionRenderMatrix );
+	idRenderMatrix::Multiply( tr.viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, tr.viewDef->worldSpace.unjitteredMVP );
 
 	// the planes of the view frustum are needed for portal visibility culling
 	idRenderMatrix::GetFrustumPlanes( tr.viewDef->frustums[FRUSTUM_PRIMARY], tr.viewDef->worldSpace.mvp, false, true );
@@ -513,6 +726,9 @@ void R_RenderView( viewDef_t* parms )
 
 	// wait for any shadow volume jobs from the previous frame to finish
 	tr.frontEndJobList->Wait();
+
+	// RB: render worldspawn geometry to the software culling buffer
+	R_FillMaskedOcclusionBufferWithModels( tr.viewDef );
 
 	// make sure that interactions exist for all light / entity combinations that are visible
 	// add any pre-generated light shadows, and calculate the light shader values
@@ -540,11 +756,8 @@ void R_RenderView( viewDef_t* parms )
 		}
 	}
 
-	// write everything needed to the demo file
-	if( common->WriteDemo() )
-	{
-		static_cast<idRenderWorldLocal*>( parms->renderWorld )->WriteVisibleDefs( tr.viewDef );
-	}
+	// RB: find closest environment probes so we can interpolate between them in the ambient shaders
+	R_FindClosestEnvironmentProbes();
 
 	// add the rendering commands for this viewDef
 	R_AddDrawViewCmd( parms, false );
@@ -565,7 +778,10 @@ void R_RenderPostProcess( viewDef_t* parms )
 {
 	viewDef_t* oldView = tr.viewDef;
 
-	R_AddDrawPostProcess( parms );
+	if( !( parms->renderView.rdflags & RDF_IRRADIANCE ) )
+	{
+		R_AddDrawPostProcess( parms );
+	}
 
 	tr.viewDef = oldView;
 }

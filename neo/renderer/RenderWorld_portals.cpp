@@ -27,10 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 
 // if we hit this many planes, we will just stop cropping the
 // view down, which is still correct, just conservative
@@ -370,10 +370,13 @@ void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps
 		idRenderLightLocal* light = lref->light;
 
 		// debug tool to allow viewing of only one light at a time
+		// RB: use this elsewhere in the backend debug drawing code
+#if 0
 		if( r_singleLight.GetInteger() >= 0 && r_singleLight.GetInteger() != light->index )
 		{
 			continue;
 		}
+#endif
 
 		// check for being closed off behind a door
 		// a light that doesn't cast shadows will still light even if it is behind a door
@@ -414,6 +417,7 @@ void idRenderWorldLocal::AddAreaToView( int areaNum, const portalStack_t* ps )
 	// add the models and lights, using more precise culling to the planes
 	AddAreaViewEntities( areaNum, ps );
 	AddAreaViewLights( areaNum, ps );
+	AddAreaViewEnvprobes( areaNum, ps ); // RB
 }
 
 /*
@@ -759,6 +763,7 @@ void idRenderWorldLocal::FindViewLightsAndEntities()
 	// clear the visible lightDef and entityDef lists
 	tr.viewDef->viewLights = NULL;
 	tr.viewDef->viewEntitys = NULL;
+	tr.viewDef->viewEnvprobes = NULL; // RB
 
 	// all areas are initially not visible, but each portal
 	// chain that leads to them will expand the visible rectangle
@@ -1127,14 +1132,6 @@ void idRenderWorldLocal::SetPortalState( qhandle_t portal, int blockTypes )
 			FloodConnectedAreas( &portalAreas[doublePortals[portal - 1].portals[1]->intoArea], i );
 		}
 	}
-
-	if( common->WriteDemo() )
-	{
-		common->WriteDemo()->WriteInt( DS_RENDER );
-		common->WriteDemo()->WriteInt( DC_SET_PORTAL_STATE );
-		common->WriteDemo()->WriteInt( portal );
-		common->WriteDemo()->WriteInt( blockTypes );
-	}
 }
 
 /*
@@ -1157,57 +1154,3 @@ int idRenderWorldLocal::GetPortalState( qhandle_t portal )
 	return doublePortals[portal - 1].blockingBits;
 }
 
-/*
-=====================
-idRenderWorldLocal::ShowPortals
-
-Debugging tool, won't work correctly with SMP or when mirrors are present
-=====================
-*/
-void idRenderWorldLocal::ShowPortals()
-{
-	int			i, j;
-	portalArea_t*	area;
-	portal_t*	p;
-	idWinding*	w;
-
-	// flood out through portals, setting area viewCount
-	for( i = 0; i < numPortalAreas; i++ )
-	{
-		area = &portalAreas[i];
-		if( area->viewCount != tr.viewCount )
-		{
-			continue;
-		}
-		for( p = area->portals; p; p = p->next )
-		{
-			w = p->w;
-			if( !w )
-			{
-				continue;
-			}
-
-			if( portalAreas[ p->intoArea ].viewCount != tr.viewCount )
-			{
-				// red = can't see
-				GL_Color( 1, 0, 0 );
-			}
-			else
-			{
-				// green = see through
-				GL_Color( 0, 1, 0 );
-			}
-
-			// RB begin
-			renderProgManager.CommitUniforms();
-			// RB end
-
-			glBegin( GL_LINE_LOOP );
-			for( j = 0; j < w->GetNumPoints(); j++ )
-			{
-				glVertex3fv( ( *w )[j].ToFloatPtr() );
-			}
-			glEnd();
-		}
-	}
-}

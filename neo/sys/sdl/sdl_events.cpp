@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <SDL.h>
 
-#include "renderer/tr_local.h"
+#include "renderer/RenderCommon.h"
 #include "sdl_local.h"
 #include "../posix/posix_public.h"
 
@@ -852,8 +852,12 @@ void Sys_GrabMouseCursor( bool grabIt )
 	{
 		flags = GRAB_SETSTATE;
 	}
-
+// SRS - Generalized Vulkan SDL platform
+#if defined( VULKAN_USE_PLATFORM_SDL )
+	VKimp_GrabInput( flags );
+#else
 	GLimp_GrabInput( flags );
+#endif
 }
 
 /*
@@ -966,11 +970,31 @@ sysEvent_t Sys_GetEvent()
 					{
 						int w = ev.window.data1;
 						int h = ev.window.data2;
-						r_windowWidth.SetInteger( w );
-						r_windowHeight.SetInteger( h );
+
+						// SRS - Only save window resized events when in windowed mode
+						if( !renderSystem->IsFullScreen() )
+						{
+							// SRS - If window was maximized by window manager set to borderless fullscreen mode = -2
+							SDL_Window* window = SDL_GetWindowFromID( ev.window.windowID );
+							if( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED )
+							{
+								SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN_DESKTOP );
+
+								glConfig.isFullscreen = -2;
+								cvarSystem->SetCVarInteger( "r_fullscreen", glConfig.isFullscreen );
+							}
+							else
+							{
+								r_windowWidth.SetInteger( w );
+								r_windowHeight.SetInteger( h );
+							}
+						}
 
 						glConfig.nativeScreenWidth = w;
 						glConfig.nativeScreenHeight = h;
+
+						// SRS - Make sure ImGui gets new window boundaries
+						ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 						break;
 					}
 
@@ -978,8 +1002,18 @@ sysEvent_t Sys_GetEvent()
 					{
 						int x = ev.window.data1;
 						int y = ev.window.data2;
-						r_windowX.SetInteger( x );
-						r_windowY.SetInteger( y );
+
+						// SRS - Only save window moved events when in windowed mode and not maximized by window manager
+						SDL_Window* window = SDL_GetWindowFromID( ev.window.windowID );
+						if( !renderSystem->IsFullScreen() && !( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED ) )
+						{
+							// SRS - take window border into account when when saving window position cvars
+							int topBorder, leftBorder, bottomBorder, rightBorder;
+							SDL_Window* window = SDL_GetWindowFromID( ev.window.windowID );
+							SDL_GetWindowBordersSize( window, &topBorder, &leftBorder, &bottomBorder, &rightBorder );
+							r_windowX.SetInteger( x - leftBorder );
+							r_windowY.SetInteger( y - topBorder );
+						}
 						break;
 					}
 				}
@@ -1047,7 +1081,7 @@ sysEvent_t Sys_GetEvent()
 				{
 					// DG: go to fullscreen on current display, instead of always first display
 					int fullscreen = 0;
-					if( ! renderSystem->IsFullScreen() )
+					if( !renderSystem->IsFullScreen() )
 					{
 						// this will be handled as "fullscreen on current window"
 						// r_fullscreen 1 means "fullscreen on first window" in d3 bfg
@@ -1182,7 +1216,7 @@ sysEvent_t Sys_GetEvent()
 			case SDL_MOUSEMOTION:
 				// DG: return event with absolute mouse-coordinates when in menu
 				// to fix cursor problems in windowed mode
-				if( game && game->Shell_IsActive() )
+				if( game && ( game->Shell_IsActive() || ImGuiTools::ReleaseMouseForTools() ) )
 				{
 					res.evType = SE_MOUSE_ABSOLUTE;
 					res.evValue = ev.motion.x;
@@ -1704,8 +1738,12 @@ sysEvent_t Sys_GetEvent()
 						common->Warning( "unknown user event %u", ev.user.code );
 				}
 				continue; // just handle next event
+
+			case SDL_KEYMAPCHANGED:
+				continue; // just handle next event
+
 			default:
-				common->Warning( "unknown event %u", ev.type );
+				common->Warning( "unknown event %u = %#x", ev.type, ev.type );
 				continue; // just handle next event
 		}
 	}

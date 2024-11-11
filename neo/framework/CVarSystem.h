@@ -100,7 +100,8 @@ typedef enum
 	CVAR_INIT				= BIT( 15 ),	// can only be set from the command-line
 	CVAR_ROM				= BIT( 16 ),	// display only, cannot be set by user at all
 	CVAR_ARCHIVE			= BIT( 17 ),	// set to cause it to be saved to a config file
-	CVAR_MODIFIED			= BIT( 18 )	// set when the variable is modified
+	CVAR_MODIFIED			= BIT( 18 ),	// set when the variable is modified
+	CVAR_NEW				= BIT( 19 )		// added for RBDoom
 } cvarFlags_t;
 
 
@@ -366,7 +367,7 @@ ID_INLINE void idCVar::Init( const char* name, const char* value, int flags, con
 	this->integerValue = 0;
 	this->floatValue = 0.0f;
 	this->internalVar = this;
-	if( staticVars != ( idCVar* )0xFFFFFFFF )
+	if( staticVars != ( idCVar* )UINTPTR_MAX )
 	{
 		this->next = staticVars;
 		staticVars = this;
@@ -379,13 +380,13 @@ ID_INLINE void idCVar::Init( const char* name, const char* value, int flags, con
 
 ID_INLINE void idCVar::RegisterStaticVars()
 {
-	if( staticVars != ( idCVar* )0xFFFFFFFF )
+	if( staticVars != ( idCVar* )UINTPTR_MAX )
 	{
 		for( idCVar* cvar = staticVars; cvar; cvar = cvar->next )
 		{
 			cvarSystem->Register( cvar );
 		}
-		staticVars = ( idCVar* )0xFFFFFFFF;
+		staticVars = ( idCVar* )UINTPTR_MAX;
 	}
 }
 

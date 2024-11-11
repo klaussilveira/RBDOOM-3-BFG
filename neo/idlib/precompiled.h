@@ -46,6 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // id lib
 #include "../idlib/Lib.h"
+#include "../idlib/gltfProperties.h"
+#include "../idlib/gltfParser.h"
+
 
 #include "sys/sys_filesystem.h"
 
@@ -62,6 +65,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../framework/File_Manifest.h"
 #include "../framework/File_SaveGame.h"
 #include "../framework/File_Resource.h"
+#include "../framework/File_Zip.h"
 #include "../framework/FileSystem.h"
 #include "../framework/UsercmdGen.h"
 #include "../framework/Serializer.h"
@@ -84,10 +88,17 @@ const int MAX_EXPRESSION_OPS = 4096;
 const int MAX_EXPRESSION_REGISTERS = 4096;
 
 // renderer
+// everything that is needed by the backend needs
+// to be double buffered to allow it to run in
+// parallel on a dual cpu machine
+// SRS - use triple buffering for NVRHI with command queue event query sync method
+constexpr uint32 NUM_FRAME_DATA	= 3;
 
-// RB: replaced QGL with GLEW
-#include <GL/glew.h>
-// RB end
+#include "nvrhi/nvrhi.h"
+
+// RB: make Optick profiling available everywhere
+#include "../libs/optick/optick.h"
+
 #include "../renderer/Cinematic.h"
 #include "../renderer/Material.h"
 #include "../renderer/BufferObject.h"
@@ -96,6 +107,8 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../renderer/ModelManager.h"
 #include "../renderer/RenderSystem.h"
 #include "../renderer/RenderWorld.h"
+#include "../renderer/BindingCache.h"
+#include "../renderer/RenderCommon.h"
 
 // sound engine
 #include "../sound/sound.h"
@@ -105,7 +118,7 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../ui/UserInterface.h"
 
 // RB: required for SWF extensions
-#include "../libs/rapidjson/include/rapidjson/document.h"
+//#include "rapidjson/document.h"
 
 #include "../swf/SWF.h"
 
@@ -136,6 +149,12 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../sys/sys_achievements.h"
 
 // tools
+
+// The editor entry points are always declared, but may just be
+// stubbed out on non-windows platforms.
+#include "../imgui/ImGui_Hooks.h"
+#include "../tools/edit_public.h"
+
 #include "../tools/compilers/compiler_public.h"
 
 //-----------------------------------------------------
@@ -157,7 +176,6 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 		#include "../framework/EditField.h"
 		#include "../framework/DebugGraph.h"
 		#include "../framework/Console.h"
-		#include "../framework/DemoFile.h"
 		#include "../framework/Common_dialog.h"
 
 	#endif /* !GAME_DLL */

@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "dmap.h"
 
+idCVar dmap_verbose( "dmap_verbose", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NEW, "dmap developer mode" );
+
 dmapGlobals_t	dmapGlobals;
 
 /*
@@ -69,13 +71,6 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 	// RB: use mapTri_t by MapPolygonMesh primitives in case we don't use brushes
 	FilterMeshesIntoTree( e );
 
-	// RB: dump BSP for debugging
-	//if( dmapGlobals.glview )
-	//{
-	//WriteGLView( e->tree, "unclipped", dmapGlobals.entityNum );
-	//}
-	// RB end
-
 	// see if the bsp is completely enclosed
 	if( floodFill && !dmapGlobals.noFlood )
 	{
@@ -105,13 +100,6 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 	// determine areas before clipping tris into the
 	// tree, so tris will never cross area boundaries
 	FloodAreas( e );
-
-	// RB: dump BSP for debugging
-	if( dmapGlobals.glview )
-	{
-		WriteGLView( e->tree, "areas", dmapGlobals.entityNum );
-	}
-	// RB end
 
 	// we now have a BSP tree with solid and non-solid leafs marked with areas
 	// all primitives will now be clipped into this, throwing away
@@ -147,21 +135,31 @@ ProcessModels
 */
 bool ProcessModels()
 {
-	bool	oldVerbose;
-	uEntity_t*	entity;
+	bool oldVerbose = dmap_verbose.GetBool();
 
-	oldVerbose = dmapGlobals.verbose;
+	common->DmapPacifierCompileProgressTotal( dmapGlobals.num_entities );
 
-	for( dmapGlobals.entityNum = 0 ; dmapGlobals.entityNum < dmapGlobals.num_entities ; dmapGlobals.entityNum++ )
+	idStrStatic<128> entityInfo;
+
+	for( dmapGlobals.entityNum = 0; dmapGlobals.entityNum < dmapGlobals.num_entities; dmapGlobals.entityNum++, common->DmapPacifierCompileProgressIncrement( 1 ) )
 	{
-
-		entity = &dmapGlobals.uEntities[dmapGlobals.entityNum];
+		uEntity_t* entity = &dmapGlobals.uEntities[dmapGlobals.entityNum];
 		if( !entity->primitives )
 		{
 			continue;
 		}
 
-		common->Printf( "############### entity %i ###############\n", dmapGlobals.entityNum );
+		//ImGui::Text( " Source code      :
+		if( dmapGlobals.entityNum == 0 )
+		{
+			common->DmapPacifierInfo( "Current entity   : worldspawn" );
+		}
+		else
+		{
+			common->DmapPacifierInfo( "Current entity   : %s", entity->mapEntity->epairs.GetString( "name" ) );
+		}
+
+		common->VerbosePrintf( "############### entity %i ###############\n", dmapGlobals.entityNum );
 
 		// if we leaked, stop without any more processing
 		if( !ProcessModel( entity, ( bool )( dmapGlobals.entityNum == 0 ) ) )
@@ -173,11 +171,11 @@ bool ProcessModels()
 		// something strange is going on
 		if( !dmapGlobals.verboseentities )
 		{
-			dmapGlobals.verbose = false;
+			dmap_verbose.SetBool( false );
 		}
 	}
 
-	dmapGlobals.verbose = oldVerbose;
+	dmap_verbose.SetBool( oldVerbose );
 
 	return true;
 }
@@ -214,8 +212,8 @@ void ResetDmapGlobals()
 	dmapGlobals.uEntities = NULL;
 	dmapGlobals.entityNum = 0;
 	dmapGlobals.mapLights.Clear();
-	dmapGlobals.verbose = false;
 	dmapGlobals.glview = false;
+	dmapGlobals.asciiTree = false;
 	dmapGlobals.noOptimize = false;
 	dmapGlobals.verboseentities = false;
 	dmapGlobals.noCurves = false;
@@ -285,10 +283,14 @@ void Dmap( const idCmdArgs& args )
 		{
 			dmapGlobals.glview = true;
 		}
-		else if( !idStr::Icmp( s, "v" ) )
+		else if( !idStr::Icmp( s, "asciiTree" ) )
+		{
+			dmapGlobals.asciiTree = true;
+		}
+		else if( !idStr::Icmp( s, "v" ) || !idStr::Icmp( s, "verbose" ) )
 		{
 			common->Printf( "verbose = true\n" );
-			dmapGlobals.verbose = true;
+			dmap_verbose.SetBool( true );
 		}
 		else if( !idStr::Icmp( s, "draw" ) )
 		{
@@ -382,6 +384,8 @@ void Dmap( const idCmdArgs& args )
 		passedName = "maps/" + passedName;
 	}
 
+	common->DmapPacifierFilename( passedName, "Compiling BSP .proc" );
+
 	idStr stripped = passedName;
 	stripped.StripFileExtension();
 	idStr::Copynz( dmapGlobals.mapFileBase, stripped, sizeof( dmapGlobals.mapFileBase ) );
@@ -390,7 +394,7 @@ void Dmap( const idCmdArgs& args )
 	// if this isn't a regioned map, delete the last saved region map
 	if( passedName.Right( 4 ) != ".reg" )
 	{
-		sprintf( path, "%s.reg", dmapGlobals.mapFileBase );
+		idStr::snPrintf( path, sizeof( path ), "%s.reg", dmapGlobals.mapFileBase );
 		fileSystem->RemoveFile( path );
 	}
 	else
@@ -402,12 +406,20 @@ void Dmap( const idCmdArgs& args )
 	passedName = stripped;
 
 	// delete any old line leak files
-	sprintf( path, "%s.lin", dmapGlobals.mapFileBase );
+	idStr::snPrintf( path, sizeof( path ), "%s.lin", dmapGlobals.mapFileBase );
 	fileSystem->RemoveFile( path );
 
 	// delete any old generated binary proc files
 	idStr generated = va( "generated/%s.bproc", dmapGlobals.mapFileBase );
 	fileSystem->RemoveFile( generated.c_str() );
+
+	// delete any old generated binary cm files
+	generated = va( "generated/%s.bcm", dmapGlobals.mapFileBase );
+	fileSystem->RemoveFile( generated.c_str() );
+
+	// delete any old ASCII collision files
+	idStr::snPrintf( path, sizeof( path ), "%s.cm", dmapGlobals.mapFileBase );
+	fileSystem->RemoveFile( path );
 
 	//
 	// start from scratch
@@ -445,25 +457,30 @@ void Dmap( const idCmdArgs& args )
 	end = Sys_Milliseconds();
 	common->Printf( "-----------------------\n" );
 	common->Printf( "%5.0f seconds for dmap\n", ( end - start ) * 0.001f );
+	common->DmapPacifierInfo( "%5.0f seconds for dmap\n", ( end - start ) * 0.001f );
 
 	if( !leaked )
 	{
-
 		if( !noCM )
 		{
-
+#if !defined( DMAP )
 			// make sure the collision model manager is not used by the game
 			cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
+#endif
+
+			common->DmapPacifierFilename( passedName, "Generating .cm collision map" );
 
 			// create the collision map
 			start = Sys_Milliseconds();
 
-			collisionModelManager->LoadMap( dmapGlobals.dmapFile );
+			// write always a fresh .cm file
+			collisionModelManager->LoadMap( dmapGlobals.dmapFile, true );
 			collisionModelManager->FreeMap();
 
 			end = Sys_Milliseconds();
 			common->Printf( "-------------------------------------\n" );
 			common->Printf( "%5.0f seconds to create collision map\n", ( end - start ) * 0.001f );
+			common->DmapPacifierInfo( "%5.0f seconds to create collision map\n", ( end - start ) * 0.001f );
 		}
 
 		if( !noAAS && !region )
@@ -472,6 +489,8 @@ void Dmap( const idCmdArgs& args )
 			RunAAS_f( args );
 		}
 	}
+
+	common->DmapPacifierFilename( passedName, "Done" );
 
 	// free the common .map representation
 	delete dmapGlobals.dmapFile;
@@ -487,7 +506,6 @@ Dmap_f
 */
 void Dmap_f( const idCmdArgs& args )
 {
-
 	common->ClearWarnings( "running dmap" );
 
 	// refresh the screen each time we print so it doesn't look

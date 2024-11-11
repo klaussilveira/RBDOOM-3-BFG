@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../renderer/Font.h"
 
 idSWFScriptObject_TextInstancePrototype textInstanceScriptObjectPrototype;
@@ -518,7 +518,7 @@ bool idSWFTextInstance::UpdateSubtitle( int time )
 				}
 			}
 
-			if( subNextStartIndex + 1 >= text.Length( ) )
+			if( subNextStartIndex + 1 >= text.Length() )
 			{
 				subForceKillQueued = true;
 			}

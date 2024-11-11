@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2017-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -26,11 +27,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "ConsoleHistory.h"
 #include "../renderer/ResolutionScale.h"
 #include "Common_local.h"
+#include "../imgui/BFGimgui.h"
+
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
 
 #define	CON_TEXTSIZE			0x30000
 #define	NUM_CON_TIMES			4
@@ -196,6 +201,10 @@ void idConsoleLocal::DrawTextRightAlign( float x, float& y, const char* text, ..
 	va_start( argptr, text );
 	int i = idStr::vsnPrintf( string, sizeof( string ), text, argptr );
 	va_end( argptr );
+	if( i < 0 )
+	{
+		i = sizeof( string ) - 1;
+	}
 	renderSystem->DrawSmallStringExt( x - i * SMALLCHAR_WIDTH, y + 2, string, colorWhite, true );
 	y += SMALLCHAR_HEIGHT + 4;
 }
@@ -208,12 +217,23 @@ void idConsoleLocal::DrawTextRightAlign( float x, float& y, const char* text, ..
 idConsoleLocal::DrawFPS
 ==================
 */
+extern bool R_UseTemporalAA();
+
 #define	FPS_FRAMES	6
+#define FPS_FRAMES_HISTORY 90
 float idConsoleLocal::DrawFPS( float y )
 {
-	static int previousTimes[FPS_FRAMES];
-	static int index;
+	extern idCVar r_swapInterval;
+
+	static float previousTimes[FPS_FRAMES];
+	static float previousCpuUsage[FPS_FRAMES] = {};
+	static float previousGpuUsage[FPS_FRAMES] = {};
+	static float previousTimesNormalized[FPS_FRAMES_HISTORY];
+	static int index = 0;
 	static int previous;
+	static int valuesOffset = 0;
+
+	bool renderImGuiPerfWindow = ImGuiHook::IsReadyToRender() && ( com_showFPS.GetInteger() > 1 );
 
 	// don't use serverTime, because that will be drifting to
 	// correct for internet lag changes, timescales, timedemos, etc
@@ -221,7 +241,15 @@ float idConsoleLocal::DrawFPS( float y )
 	int frameTime = t - previous;
 	previous = t;
 
+	int fps = 0;
+	float cpuUsage = 0.0;
+	float gpuUsage = 0.0;
+
+	const float milliSecondsPerFrame = 1000.0f / com_engineHz_latched;
+
 	previousTimes[index % FPS_FRAMES] = frameTime;
+	previousTimesNormalized[index % FPS_FRAMES_HISTORY] = frameTime / milliSecondsPerFrame;
+	valuesOffset = ( valuesOffset + 1 ) % FPS_FRAMES_HISTORY;
 	index++;
 	if( index > FPS_FRAMES )
 	{
@@ -230,81 +258,314 @@ float idConsoleLocal::DrawFPS( float y )
 		for( int i = 0 ; i < FPS_FRAMES ; i++ )
 		{
 			total += previousTimes[i];
+			cpuUsage += previousCpuUsage[i];
+			gpuUsage += previousGpuUsage[i];
 		}
 		if( !total )
 		{
 			total = 1;
 		}
-		int fps = 1000000 * FPS_FRAMES / total;
+		fps = 1000000 * FPS_FRAMES / total;
 		fps = ( fps + 500 ) / 1000;
+		cpuUsage /= FPS_FRAMES;
+		gpuUsage /= FPS_FRAMES;
 
 		const char* s = va( "%ifps", fps );
 		int w = strlen( s ) * BIGCHAR_WIDTH;
 
-		renderSystem->DrawBigStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, s, colorWhite, true );
+		if( com_showFPS.GetInteger() == 1 )
+		{
+			renderSystem->DrawBigStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, s, colorWhite, true );
+		}
 	}
 
 	y += BIGCHAR_HEIGHT + 4;
 
-	// DG: "com_showFPS 2" means: show FPS only, like in classic doom3
-	if( com_showFPS.GetInteger() == 2 )
+	// DG: "com_showFPS 1" means: show FPS only, like in classic doom3
+	if( com_showFPS.GetInteger() == 1 )
 	{
 		return y;
 	}
 	// DG end
 
-	// print the resolution scale so we can tell when we are at reduced resolution
-	idStr resolutionText;
-	resolutionScale.GetConsoleText( resolutionText );
-	int w = resolutionText.Length() * BIGCHAR_WIDTH;
-	renderSystem->DrawBigStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, resolutionText.c_str(), colorWhite, true );
+	// SRS - Shouldn't use these getters since they access and return int-sized variables measured in milliseconds
+	//const uint64 gameThreadTotalTime = commonLocal.GetGameThreadTotalTime();
+	//const uint64 gameThreadGameTime = commonLocal.GetGameThreadGameTime();
+	//const uint64 gameThreadRenderTime = commonLocal.GetGameThreadRenderTime();
 
-	const int gameThreadTotalTime = commonLocal.GetGameThreadTotalTime();
-	const int gameThreadGameTime = commonLocal.GetGameThreadGameTime();
-	const int gameThreadRenderTime = commonLocal.GetGameThreadRenderTime();
-	const int rendererBackEndTime = commonLocal.GetRendererBackEndMicroseconds();
-	const int rendererShadowsTime = commonLocal.GetRendererShadowsMicroseconds();
-	const int rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds();
-	const int rendererGPUTime = commonLocal.GetRendererGPUMicroseconds();
-	const int maxTime = 16;
+	const uint64 gameThreadTotalTime	= commonLocal.mainFrameTiming.finishDrawTime - commonLocal.mainFrameTiming.startGameTime;
+	const uint64 gameThreadGameTime		= commonLocal.mainFrameTiming.finishGameTime - commonLocal.mainFrameTiming.startGameTime;
+	const uint64 gameThreadRenderTime	= commonLocal.mainFrameTiming.finishDrawTime - commonLocal.mainFrameTiming.finishGameTime;
 
-	y += SMALLCHAR_HEIGHT + 4;
-	idStr timeStr;
-	timeStr.Format( "%sG+RF: %4d", gameThreadTotalTime > maxTime ? S_COLOR_RED : "", gameThreadTotalTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	const uint64 rendererBackEndTime = commonLocal.GetRendererBackEndMicroseconds();
+	const uint64 rendererMaskedOcclusionCullingTime = commonLocal.GetRendererMaskedOcclusionRasterizationMicroseconds();
+	const uint64 rendererGPUTime = commonLocal.GetRendererGPUMicroseconds();
+	const uint64 rendererGPUEarlyZTime = commonLocal.GetRendererGpuBeginDrawingMicroseconds() + commonLocal.GetRendererGpuEarlyZMicroseconds() + commonLocal.GetRendererGpuGeometryMicroseconds();
+	const uint64 rendererGPU_SSAOTime = commonLocal.GetRendererGpuSSAOMicroseconds();
+	const uint64 rendererGPU_SSRTime = commonLocal.GetRendererGpuSSRMicroseconds();
+	const uint64 rendererGPUAmbientPassTime = commonLocal.GetRendererGpuAmbientPassMicroseconds();
+	const uint64 rendererGPUShadowAtlasTime = commonLocal.GetRendererGpuShadowAtlasPassMicroseconds();
+	const uint64 rendererGPUInteractionsTime = commonLocal.GetRendererGpuInteractionsMicroseconds();
+	const uint64 rendererGPUShaderPassesTime = commonLocal.GetRendererGpuShaderPassMicroseconds() + commonLocal.GetRendererGpuFogAllLightsMicroseconds() + commonLocal.GetRendererGpuShaderPassPostMicroseconds() + commonLocal.GetRendererGpuDrawGuiMicroseconds();
+	const uint64 rendererGPU_TAATime = commonLocal.GetRendererGpuMotionVectorsMicroseconds() + commonLocal.GetRendererGpuTAAMicroseconds();
+	const uint64 rendererGPUToneMapPassTime = commonLocal.GetRendererGpuToneMapPassMicroseconds();
+	const uint64 rendererGPUPostProcessingTime = commonLocal.GetRendererGpuPostProcessingMicroseconds() + commonLocal.GetRendererGpuCrtPostProcessingMicroseconds();
 
-	timeStr.Format( "%sG: %4d", gameThreadGameTime > maxTime ? S_COLOR_RED : "", gameThreadGameTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	// SRS - Calculate max fps and max frame time based on glConfig.displayFrequency if vsync enabled and lower than engine Hz, otherwise use com_engineHz_latched
+	const int maxFPS = ( r_swapInterval.GetInteger() > 0 && glConfig.displayFrequency > 0 ? std::min( glConfig.displayFrequency, int( com_engineHz_latched ) ) : com_engineHz_latched );
+	const int maxTime = ( 1000.0 / maxFPS ) * 1050; // slight 5% tolerance offset to avoid flickering of the stats
 
-	timeStr.Format( "%sRF: %4d", gameThreadRenderTime > maxTime ? S_COLOR_RED : "", gameThreadRenderTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	// SRS - Frame idle and busy time calculations are based on direct frame-over-frame measurement relative to finishSyncTime
+	const int64 frameIdleTime = int64( commonLocal.mainFrameTiming.startGameTime ) - int64( commonLocal.mainFrameTiming.finishSyncTime );
+	const int64 frameBusyTime = int64( commonLocal.frameTiming.finishSyncTime ) - int64( commonLocal.mainFrameTiming.startGameTime );
 
-	timeStr.Format( "%sRB: %4.1f", rendererBackEndTime > maxTime * 1000 ? S_COLOR_RED : "", rendererBackEndTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	// SRS - Frame sync time represents swap buffer synchronization + other frame time spent outside of game thread and renderer backend
+	const int64 gameThreadWaitTime = int64( commonLocal.mainFrameTiming.finishSyncTime_EndFrame ) - int64( commonLocal.mainFrameTiming.finishRenderTime );
+	const int64 frameSyncTime = int64( commonLocal.frameTiming.finishSyncTime ) - int64( commonLocal.mainFrameTiming.startRenderTime + rendererBackEndTime ) - gameThreadWaitTime;
 
-	timeStr.Format( "%sSV: %4.1f", rendererShadowsTime > maxTime * 1000 ? S_COLOR_RED : "", rendererShadowsTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	// SRS - GPU idle time is simply the difference between measured frame-over-frame time and GPU busy time (directly from GPU timers)
+	const int64 rendererGPUIdleTime = frameBusyTime + frameIdleTime - rendererGPUTime;
 
-	timeStr.Format( "%sIDLE: %4.1f", rendererGPUIdleTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUIdleTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
+	// SRS - Estimate CPU busy time measured from start of game thread until completion of game thread and renderer backend (including excess MoltenVK encoding time if applicable)
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+	const int64 rendererMvkEncodeTime = commonLocal.GetRendererMvkEncodeMicroseconds();
+	const int64 rendererQueueSubmitTime = int64( commonLocal.mainFrameTiming.finishRenderTime - commonLocal.mainFrameTiming.startRenderTime ) - int64( rendererBackEndTime );
+	const int64 rendererCPUBusyTime = int64( commonLocal.mainFrameTiming.finishSyncTime_EndFrame - commonLocal.mainFrameTiming.startGameTime ) + Min( Max( int64( 0 ), rendererMvkEncodeTime - rendererQueueSubmitTime - gameThreadWaitTime ), frameSyncTime - rendererQueueSubmitTime );
+#else
+	const int64 rendererCPUBusyTime = int64( commonLocal.mainFrameTiming.finishSyncTime_EndFrame - commonLocal.mainFrameTiming.startGameTime );
+#endif
 
-	timeStr.Format( "%sGPU: %4.1f", rendererGPUTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
+	// SRS - Save current CPU and GPU usage factors in ring buffer to calculate smoothed averages for future frames
+	previousCpuUsage[( index - 1 ) % FPS_FRAMES] = float( rendererCPUBusyTime ) / float( frameBusyTime + frameIdleTime ) * 100.0;
+	previousGpuUsage[( index - 1 ) % FPS_FRAMES] = float( rendererGPUTime ) / float( rendererGPUTime + rendererGPUIdleTime ) * 100.0;
 
-	return y + BIGCHAR_HEIGHT + 4;
+	// RB: use ImGui to show more detailed stats about the scene loads
+	if( ImGuiHook::IsReadyToRender() )
+	{
+		// start smaller
+		int32 statsWindowWidth = 320;
+		int32 statsWindowHeight = 330;
+
+		if( com_showFPS.GetInteger() > 2 )
+		{
+			statsWindowWidth += 230;
+			statsWindowHeight += 140;
+		}
+
+		ImVec2 pos;
+		pos.x = renderSystem->GetWidth() - statsWindowWidth;
+		pos.y = 0;
+
+		ImGui::SetNextWindowPos( pos );
+		ImGui::SetNextWindowSize( ImVec2( statsWindowWidth, statsWindowHeight ) );
+
+		static ImVec4 colorBlack	= ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+		static ImVec4 colorWhite	= ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
+		static ImVec4 colorRed		= ImVec4( 1.00f, 0.00f, 0.00f, 1.00f );
+		static ImVec4 colorGreen	= ImVec4( 0.00f, 1.00f, 0.00f, 1.00f );
+		static ImVec4 colorBlue		= ImVec4( 0.00f, 0.00f, 1.00f, 1.00f );
+		static ImVec4 colorYellow	= ImVec4( 1.00f, 1.00f, 0.00f, 1.00f );
+		static ImVec4 colorMagenta	= ImVec4( 1.00f, 0.00f, 1.00f, 1.00f );
+		static ImVec4 colorCyan		= ImVec4( 0.00f, 1.00f, 1.00f, 1.00f );
+		static ImVec4 colorOrange	= ImVec4( 1.00f, 0.50f, 0.00f, 1.00f );
+		static ImVec4 colorPurple	= ImVec4( 0.60f, 0.00f, 0.60f, 1.00f );
+		static ImVec4 colorPink		= ImVec4( 0.73f, 0.40f, 0.48f, 1.00f );
+		static ImVec4 colorBrown	= ImVec4( 0.40f, 0.35f, 0.08f, 1.00f );
+		static ImVec4 colorLtGrey	= ImVec4( 0.75f, 0.75f, 0.75f, 1.00f );
+		static ImVec4 colorMdGrey	= ImVec4( 0.50f, 0.50f, 0.50f, 1.00f );
+		static ImVec4 colorDkGrey	= ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+		static ImVec4 colorGold		= ImVec4( 0.68f, 0.63f, 0.36f, 1.00f );
+		static ImVec4 colorPastelMagenta = ImVec4( 1.0f, 0.5f, 1.0f, 1.00f );
+
+		ImGui::Begin( "Performance Stats" );
+
+		static const int gfxNumValues = 3;
+
+		static const char* gfxValues[gfxNumValues] =
+		{
+			"DX11",
+			"DX12",
+			"Vulkan",
+		};
+
+		const char* API = gfxValues[ int( deviceManager->GetGraphicsAPI() ) ];
+
+		extern idCVar r_antiAliasing;
+
+#if ID_MSAA
+		static const int aaNumValues = 5;
+
+		static const char* aaValues[aaNumValues] =
+		{
+			"None",
+			"None",
+			"SMAA 1X",
+			"MSAA 2X",
+			"MSAA 4X",
+		};
+
+		static const char* taaValues[aaNumValues] =
+		{
+			"None",
+			"TAA",
+			"TAA + SMAA 1X",
+			"MSAA 2X",
+			"MSAA 4X",
+		};
+
+		compile_time_assert( aaNumValues == ( ANTI_ALIASING_MSAA_4X + 1 ) );
+#else
+		static const int aaNumValues = 2;
+
+		static const char* aaValues[aaNumValues] =
+		{
+			"None",
+			"None",
+		};
+
+		static const char* taaValues[aaNumValues] =
+		{
+			"None",
+			"TAA",
+		};
+
+		compile_time_assert( aaNumValues == ( ANTI_ALIASING_TAA + 1 ) );
+#endif
+
+		const char* aaMode = NULL;
+		if( R_UseTemporalAA() )
+		{
+			aaMode = taaValues[ r_antiAliasing.GetInteger() ];
+		}
+		else
+		{
+			aaMode = aaValues[ r_antiAliasing.GetInteger() ];
+		}
+
+		static const int rrNumValues = 12;
+		static const char* rrValues[rrNumValues] =
+		{
+			"Doom",
+			"2-bit",
+			"2-bit Hi",
+			"C64",
+			"C64 Hi",
+			"CPC",
+			"CPC Hi",
+			"NES",
+			"NES Hi",
+			"Sega MD",
+			"Sega MD Hi",
+			"Sony PSX",
+		};
+
+		compile_time_assert( rrNumValues == ( RENDERMODE_PSX + 1 ) );
+
+		const char* retroRenderMode = rrValues[ r_renderMode.GetInteger() ];
+
+		//idStr resolutionText;
+		//resolutionScale.GetConsoleText( resolutionText );
+
+		int width = renderSystem->GetWidth();
+		int height = renderSystem->GetHeight();
+
+		ImGui::TextColored( colorCyan, "API: %s, AA[%i, %i]: %s, R: %s", API, width, height, aaMode, retroRenderMode );
+
+		ImGui::TextColored( colorGold, "Device: %s", deviceManager->GetRendererString() );
+		ImGui::TextColored( colorPastelMagenta, "VRAM Usage: %llu MB", commonLocal.GetRendererGpuMemoryMB() );
+
+		ImGui::TextColored( colorLtGrey, "GENERAL: views:%i draws:%i tris:%i",
+							commonLocal.stats_frontend.c_numViews,
+							commonLocal.stats_backend.c_drawElements + commonLocal.stats_backend.c_shadowElements,
+							( commonLocal.stats_backend.c_drawIndexes + commonLocal.stats_backend.c_shadowIndexes ) / 3 );
+
+		if( com_showFPS.GetInteger() > 2 )
+		{
+			int atlasPercentage = idMath::Ftoi( 100.0f * ( commonLocal.stats_backend.c_shadowAtlasUsage / ( float )Square( r_shadowMapAtlasSize.GetInteger() ) ) );
+			ImGui::TextColored( colorLtGrey, "SHADOWS: atlas usage:%2i%% views:%i draws:%i tris:%i",
+								atlasPercentage,
+								commonLocal.stats_backend.c_shadowViews,
+								commonLocal.stats_backend.c_shadowElements,
+								commonLocal.stats_backend.c_shadowIndexes / 3 );
+
+			ImGui::TextColored( colorLtGrey, "DYNAMIC: callback:%-2i md5:%i dfrmVerts:%i dfrmTris:%i tangTris:%i guis:%i",
+								commonLocal.stats_frontend.c_entityDefCallbacks,
+								commonLocal.stats_frontend.c_generateMd5,
+								commonLocal.stats_frontend.c_deformedVerts,
+								commonLocal.stats_frontend.c_deformedIndexes / 3,
+								commonLocal.stats_frontend.c_tangentIndexes / 3,
+								commonLocal.stats_frontend.c_guiSurfs
+							  );
+
+			//ImGui::Text( "Cull: %i box in %i box out\n",
+			//					commonLocal.stats_frontend.c_box_cull_in, commonLocal.stats_frontend.c_box_cull_out );
+
+			ImGui::TextColored( colorLtGrey, "MASKCULL: tests:%-3i lightCulls:%i surfCulls:%i verts:%i tris:%i",
+								commonLocal.stats_frontend.c_mocTests,
+								commonLocal.stats_frontend.c_mocCulledLights,
+								commonLocal.stats_frontend.c_mocCulledSurfaces,
+								commonLocal.stats_frontend.c_mocVerts,
+								commonLocal.stats_frontend.c_mocIndexes );
+
+			ImGui::TextColored( colorLtGrey, "ADDMODEL: callback:%-2i createInteractions:%i createShadowVolumes:%i",
+								commonLocal.stats_frontend.c_entityDefCallbacks,
+								commonLocal.stats_frontend.c_createInteractions,
+								commonLocal.stats_frontend.c_createShadowVolumes );
+
+			ImGui::TextColored( colorLtGrey, "viewEntities:%-3i  shadowEntities:%-3i  viewLights:%i\n",	commonLocal.stats_frontend.c_visibleViewEntities,
+								commonLocal.stats_frontend.c_shadowViewEntities,
+								commonLocal.stats_frontend.c_viewLights );
+
+			ImGui::TextColored( colorLtGrey, "UPDATES: entityUpdates:%-3i  entityRefs:%-3i  lightUpdates:%-2i  lightRefs:%i\n",
+								commonLocal.stats_frontend.c_entityUpdates, commonLocal.stats_frontend.c_entityReferences,
+								commonLocal.stats_frontend.c_lightUpdates, commonLocal.stats_frontend.c_lightReferences );
+		}
+
+		//ImGui::Text( "frameData: %i (%i)\n", frameData->frameMemoryAllocated.GetValue(), frameData->highWaterAllocated );
+
+		//ImGui::Spacing();
+		//ImGui::Spacing();
+		ImGui::Spacing();
+
+		if( com_showFPS.GetInteger() > 2 )
+		{
+			const char* overlay = va( "Average FPS %-4i", fps );
+
+			ImGui::PlotLines( "Relative\nFrametime ms", previousTimesNormalized, FPS_FRAMES_HISTORY, valuesOffset, overlay, -10.0f, 10.0f, ImVec2( 0, 50 ) );
+		}
+		else
+		{
+			ImGui::TextColored( fps < maxFPS ? colorRed : colorYellow, "Average FPS %i", fps );
+		}
+
+		ImGui::Spacing();
+
+		ImGui::TextColored( colorMdGrey,													"CPU                 GPU" );
+		ImGui::TextColored( gameThreadTotalTime > maxTime ? colorRed : colorWhite,			"Game+RF: %5llu us   EarlyZ:       %5llu us", gameThreadTotalTime, rendererGPUEarlyZTime );
+		ImGui::TextColored( gameThreadGameTime > maxTime ? colorRed : colorWhite,			"Game:    %5llu us   SSAO:         %5llu us", gameThreadGameTime, rendererGPU_SSAOTime );
+		ImGui::TextColored( gameThreadRenderTime > maxTime ? colorRed : colorWhite,			"RF:      %5llu us   SSR:          %5llu us", gameThreadRenderTime, rendererGPU_SSRTime );
+		ImGui::TextColored( rendererBackEndTime > maxTime ? colorRed : colorWhite,			"RB:      %5llu us   Ambient Pass: %5llu us", rendererBackEndTime, rendererGPUAmbientPassTime );
+		ImGui::TextColored( rendererMaskedOcclusionCullingTime > maxTime ? colorRed : colorWhite,	"MOC:     %5llu us   Shadow Atlas: %5llu us", rendererMaskedOcclusionCullingTime, rendererGPUShadowAtlasTime );
+#if defined(__APPLE__) && defined( USE_MoltenVK )
+		// SRS - For more recent versions of MoltenVK with enhanced performance statistics (v1.2.6 and later), display the Vulkan to Metal encoding thread time on macOS
+		ImGui::TextColored( rendererMvkEncodeTime > maxTime || rendererGPUInteractionsTime > maxTime ? colorRed : colorWhite,	"Encode:  %5lld us   Interactions: %5llu us", rendererMvkEncodeTime, rendererGPUInteractionsTime );
+		ImGui::TextColored( rendererGPUShaderPassesTime > maxTime ? colorRed : colorWhite,	"Sync:    %5lld us   Shader Pass:  %5llu us", frameSyncTime, rendererGPUShaderPassesTime );
+#else
+		ImGui::TextColored( rendererGPUInteractionsTime > maxTime ? colorRed : colorWhite,	"Sync:    %5lld us   Interactions: %5llu us", frameSyncTime, rendererGPUInteractionsTime );
+		ImGui::TextColored( rendererGPUShaderPassesTime > maxTime ? colorRed : colorWhite,	"                    Shader Pass:  %5llu us", rendererGPUShaderPassesTime );
+#endif
+		ImGui::TextColored( rendererGPU_TAATime > maxTime ? colorRed : colorWhite,			"                    TAA:          %5llu us", rendererGPU_TAATime );
+		//ImGui::TextColored( rendererGPUToneMapPassTime > maxTime ? colorRed : colorWhite,	"                    ToneMap:      %5llu us", rendererGPUToneMapPassTime );
+		ImGui::TextColored( rendererGPUPostProcessingTime > maxTime ? colorRed : colorWhite, "                    PostFX:       %5llu us", rendererGPUPostProcessingTime );
+		ImGui::TextColored( frameBusyTime > maxTime || rendererGPUTime > maxTime ? colorRed : colorWhite, "Total:   %5lld us   Total:        %5lld us", frameBusyTime, rendererGPUTime );
+		ImGui::TextColored( colorWhite,														"Idle:    %5lld us   Idle:         %5lld us", frameIdleTime, rendererGPUIdleTime );
+		// SRS - Show CPU and GPU overall usage statistics
+		//ImGui::TextColored( colorWhite,														"Frame:     %3.0f %%    Frame:          %3.0f %%", cpuUsage, gpuUsage );
+
+		ImGui::End();
+	}
+
+	return y;
 }
 
 /*
@@ -361,7 +622,7 @@ void idConsoleLocal::Init()
 
 	keyCatching = false;
 
-	LOCALSAFE_LEFT		= 32;
+	LOCALSAFE_LEFT		= 0;
 	LOCALSAFE_RIGHT		= SCREEN_WIDTH - LOCALSAFE_LEFT;
 	LOCALSAFE_TOP		= 24;
 	LOCALSAFE_BOTTOM	= SCREEN_HEIGHT - LOCALSAFE_TOP;
@@ -467,7 +728,7 @@ void idConsoleLocal::Clear()
 
 	for( i = 0 ; i < CON_TEXTSIZE ; i++ )
 	{
-		text[i] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' ';
+		text[i] = ( idStr::ColorIndex( C_COLOR_WHITE ) << 8 ) | ' ';
 	}
 
 	Bottom();		// go to end
@@ -560,6 +821,19 @@ void idConsoleLocal::Resize()
 	LOCALSAFE_BOTTOM	= renderSystem->GetVirtualHeight() - LOCALSAFE_TOP;
 	LOCALSAFE_WIDTH		= LOCALSAFE_RIGHT - LOCALSAFE_LEFT;
 	LOCALSAFE_HEIGHT	= LOCALSAFE_BOTTOM - LOCALSAFE_TOP;
+
+#if 0
+	LINE_WIDTH = ( ( LOCALSAFE_WIDTH / SMALLCHAR_WIDTH ) - 2 );
+
+	consoleField.Clear();
+	consoleField.SetWidthInChars( LINE_WIDTH );
+
+	for( int i = 0 ; i < COMMAND_HISTORY ; i++ )
+	{
+		historyEditLines[i].Clear();
+		historyEditLines[i].SetWidthInChars( LINE_WIDTH );
+	}
+#endif
 }
 
 /*
@@ -758,7 +1032,7 @@ Scroll
 deals with scrolling text because we don't have key repeat
 ==============
 */
-void idConsoleLocal::Scroll( )
+void idConsoleLocal::Scroll()
 {
 	if( lastKeyEvent == -1 || ( lastKeyEvent + 200 ) > eventLoop->Milliseconds() )
 	{
@@ -938,7 +1212,7 @@ void idConsoleLocal::Linefeed()
 	for( i = 0; i < LINE_WIDTH; i++ )
 	{
 		int offset = ( ( unsigned int )current % TOTAL_LINES ) * LINE_WIDTH + i;
-		text[offset] = ( idStr::ColorIndex( C_COLOR_CYAN ) << 8 ) | ' ';
+		text[offset] = ( idStr::ColorIndex( C_COLOR_WHITE ) << 8 ) | ' ';
 	}
 }
 
@@ -962,7 +1236,7 @@ void idConsoleLocal::Print( const char* txt )
 		return;
 	}
 
-	color = idStr::ColorIndex( C_COLOR_CYAN );
+	color = idStr::ColorIndex( C_COLOR_WHITE );
 
 	while( ( c = *( const unsigned char* )txt ) != 0 )
 	{
@@ -970,7 +1244,7 @@ void idConsoleLocal::Print( const char* txt )
 		{
 			if( *( txt + 1 ) == C_COLOR_DEFAULT )
 			{
-				color = idStr::ColorIndex( C_COLOR_CYAN );
+				color = idStr::ColorIndex( C_COLOR_WHITE );
 			}
 			else
 			{
@@ -1080,7 +1354,7 @@ void idConsoleLocal::DrawInput()
 		}
 	}
 
-	renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+	renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_WHITE ) );
 
 	renderSystem->DrawSmallChar( LOCALSAFE_LEFT + 1 * SMALLCHAR_WIDTH, y, ']' );
 
@@ -1147,7 +1421,7 @@ void idConsoleLocal::DrawNotify()
 		v += SMALLCHAR_HEIGHT;
 	}
 
-	renderSystem->SetColor( colorCyan );
+	renderSystem->SetColor( colorWhite );
 }
 
 /*
@@ -1189,27 +1463,49 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 		renderSystem->DrawFilled( idVec4( 0.0f, 0.0f, 0.0f, 0.75f ), 0, 0, renderSystem->GetVirtualWidth(), y );
 	}
 
-	renderSystem->DrawFilled( colorCyan, 0, y, renderSystem->GetVirtualWidth(), 2 );
+	renderSystem->DrawFilled( colorGold, 0, y, renderSystem->GetVirtualWidth(), 2 );
 
 	// draw the version number
 
-	renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+	renderSystem->SetColor( colorGold );
 
 	// RB begin
 	//idStr version = va( "%s.%i.%i", ENGINE_VERSION, BUILD_NUMBER, BUILD_NUMBER_MINOR );
-	idStr version = va( "%s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
+	idStr version = va( "%s %s", ENGINE_VERSION, BUILD_STRING );
 	//idStr version = com_version.GetString();
 	// RB end
 
 	i = version.Length();
 
+#define VERSION_LINE_SPACE (SMALLCHAR_HEIGHT + 4)
+
 	for( x = 0; x < i; x++ )
 	{
 		renderSystem->DrawSmallChar( LOCALSAFE_WIDTH - ( i - x ) * SMALLCHAR_WIDTH,
-									 ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 4 ) ), version[x] );
+									 ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 4 ) ) - VERSION_LINE_SPACE - VERSION_LINE_SPACE, version[x] );
+
+	}
+// jmarshall
+	idStr branchVersion = va( "Branch %s", ENGINE_BRANCH );
+	i = branchVersion.Length();
+
+	for( x = 0; x < i; x++ )
+	{
+		renderSystem->DrawSmallChar( LOCALSAFE_WIDTH - ( i - x ) * SMALLCHAR_WIDTH,
+									 ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 2 ) ) - ( VERSION_LINE_SPACE - 2 ), branchVersion[x] );
 
 	}
 
+	idStr builddate = va( "%s %s", __DATE__, __TIME__ );
+	i = builddate.Length();
+
+	for( x = 0; x < i; x++ )
+	{
+		renderSystem->DrawSmallChar( LOCALSAFE_WIDTH - ( i - x ) * SMALLCHAR_WIDTH,
+									 ( lines - ( SMALLCHAR_HEIGHT + SMALLCHAR_HEIGHT / 2 ) ), builddate[x] );
+
+	}
+// jmarshall end
 
 	// draw the text
 	vislines = lines;
@@ -1221,7 +1517,7 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	if( display != current )
 	{
 		// draw arrows to show the buffer is backscrolled
-		renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_CYAN ) );
+		renderSystem->SetColor( idStr::ColorForIndex( C_COLOR_WHITE ) );
 		for( x = 0; x < LINE_WIDTH; x += 4 )
 		{
 			renderSystem->DrawSmallChar( LOCALSAFE_LEFT + ( x + 1 )*SMALLCHAR_WIDTH, idMath::Ftoi( y ), '^' );
@@ -1273,7 +1569,7 @@ void idConsoleLocal::DrawSolidConsole( float frac )
 	// draw the input prompt, user text, and cursor if desired
 	DrawInput();
 
-	renderSystem->SetColor( colorCyan );
+	renderSystem->SetColor( colorWhite );
 }
 
 
@@ -1322,6 +1618,7 @@ void idConsoleLocal::Draw( bool forceFullScreen )
 	float lefty = LOCALSAFE_TOP;
 	float righty = LOCALSAFE_TOP;
 	float centery = LOCALSAFE_TOP;
+
 	if( com_showFPS.GetBool() )
 	{
 		righty = DrawFPS( righty );
@@ -1330,6 +1627,7 @@ void idConsoleLocal::Draw( bool forceFullScreen )
 	{
 		righty = DrawMemoryUsage( righty );
 	}
+
 	DrawOverlayText( lefty, righty, centery );
 	DrawDebugGraphs();
 }

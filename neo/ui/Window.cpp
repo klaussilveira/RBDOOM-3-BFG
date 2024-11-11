@@ -27,8 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "DeviceContext.h"
 #include "Window.h"
@@ -249,7 +249,7 @@ void idWindow::CleanUp()
 	}
 
 	// ensure the register list gets cleaned up
-	regList.Reset( );
+	regList.Reset();
 
 	// Cleanup the named events
 	namedEvents.DeleteContents( true );
@@ -529,7 +529,7 @@ void idWindow::Activate( bool activate,	idStr& act )
 	int n = ( activate ) ? ON_ACTIVATE : ON_DEACTIVATE;
 
 	//  make sure win vars are updated before activation
-	UpdateWinVars( );
+	UpdateWinVars();
 
 	RunScript( n );
 	int c = children.Num();
@@ -693,7 +693,7 @@ void idWindow::RunNamedEvent( const char* eventName )
 	int c;
 
 	// Find and run the event
-	c = namedEvents.Num( );
+	c = namedEvents.Num();
 	for( i = 0; i < c; i ++ )
 	{
 		if( namedEvents[i]->mName.Icmp( eventName ) )
@@ -1138,16 +1138,16 @@ void idWindow::DebugDraw( int time, float x, float y )
 
 			if( str.Length() )
 			{
-				sprintf( buff, "%s\n", str.c_str() );
+				idStr::snPrintf( buff, sizeof( buff ), "%s\n", str.c_str() );
 			}
 
-			sprintf( out, "Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", rect.x(), rect.y(), rect.w(), rect.h() );
+			idStr::snPrintf( out, sizeof( out ), "Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", rect.x(), rect.y(), rect.w(), rect.h() );
 			strcat( buff, out );
-			sprintf( out, "Draw Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", drawRect.x, drawRect.y, drawRect.w, drawRect.h );
+			idStr::snPrintf( out, sizeof( out ), "Draw Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", drawRect.x, drawRect.y, drawRect.w, drawRect.h );
 			strcat( buff, out );
-			sprintf( out, "Client Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", clientRect.x, clientRect.y, clientRect.w, clientRect.h );
+			idStr::snPrintf( out, sizeof( out ), "Client Rect: %0.1f, %0.1f, %0.1f, %0.1f\n", clientRect.x, clientRect.y, clientRect.w, clientRect.h );
 			strcat( buff, out );
-			sprintf( out, "Cursor: %0.1f : %0.1f\n", gui->CursorX(), gui->CursorY() );
+			idStr::snPrintf( out, sizeof( out ), "Cursor: %0.1f : %0.1f\n", gui->CursorX(), gui->CursorY() );
 			strcat( buff, out );
 
 
@@ -2580,7 +2580,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 	while( token != "}" )
 	{
 		// track what was parsed so we can maintain it for the guieditor
-		src->SetMarker( );
+		src->SetMarker();
 
 		if( token == "windowDef" || token == "animationDef" )
 		{
@@ -2760,7 +2760,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 
 			rvNamedEvent* ev = new( TAG_OLD_UI ) rvNamedEvent( token );
 
-			src->SetMarker( );
+			src->SetMarker();
 
 			if( !ParseScript( src, *ev->mEvent ) )
 			{
@@ -2782,7 +2782,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 			ev->time = atoi( token.c_str() );
 
 			// reset the mark since we dont want it to include the time
-			src->SetMarker( );
+			src->SetMarker();
 
 			if( !ParseScript( src, *ev->event, &ev->time ) )
 			{
@@ -2805,7 +2805,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 
 			// add the float to the editors wrapper dict
 			// Set the marker after the float name
-			src->SetMarker( );
+			src->SetMarker();
 
 			// Read in the float
 			regList.AddReg( work, idRegister::FLOAT, src, this, varf );
@@ -2820,7 +2820,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 
 			// set the marker so we can determine what was parsed
 			// set the marker after the vec4 name
-			src->SetMarker( );
+			src->SetMarker();
 
 			// FIXME: how about we add the var to the desktop instead of this window so it won't get deleted
 			//        when this window is destoyed which even happens during parsing with simple windows ?
@@ -2839,7 +2839,7 @@ bool idWindow::Parse( idTokenParser* src, bool rebuild )
 
 			// add the float to the editors wrapper dict
 			// set the marker to after the float name
-			src->SetMarker( );
+			src->SetMarker();
 
 			// Parse the float
 			regList.AddReg( work, idRegister::FLOAT, src, this, varf );
@@ -3605,281 +3605,6 @@ void idWindow::EvaluateRegisters( float* registers )
 		}
 	}
 
-}
-
-/*
-================
-idWindow::ReadFromDemoFile
-================
-*/
-void idWindow::ReadFromDemoFile( class idDemoFile* f, bool rebuild )
-{
-
-	// should never hit unless we re-enable WRITE_GUIS
-#ifndef WRITE_GUIS
-	assert( false );
-#else
-
-	if( rebuild )
-	{
-		CommonInit();
-	}
-
-	f->SetLog( true, "window1" );
-	backGroundName = f->ReadHashString();
-	f->SetLog( true, backGroundName );
-	if( backGroundName[0] )
-	{
-		background = declManager->FindMaterial( backGroundName );
-	}
-	else
-	{
-		background = NULL;
-	}
-	f->ReadUnsignedChar( cursor );
-	f->ReadUnsignedInt( flags );
-	f->ReadInt( timeLine );
-	f->ReadInt( lastTimeRun );
-	idRectangle rct = rect;
-	f->ReadFloat( rct.x );
-	f->ReadFloat( rct.y );
-	f->ReadFloat( rct.w );
-	f->ReadFloat( rct.h );
-	f->ReadFloat( drawRect.x );
-	f->ReadFloat( drawRect.y );
-	f->ReadFloat( drawRect.w );
-	f->ReadFloat( drawRect.h );
-	f->ReadFloat( clientRect.x );
-	f->ReadFloat( clientRect.y );
-	f->ReadFloat( clientRect.w );
-	f->ReadFloat( clientRect.h );
-	f->ReadFloat( textRect.x );
-	f->ReadFloat( textRect.y );
-	f->ReadFloat( textRect.w );
-	f->ReadFloat( textRect.h );
-	f->ReadFloat( xOffset );
-	f->ReadFloat( yOffset );
-	int i, c;
-
-	idStr work;
-	if( rebuild )
-	{
-		f->SetLog( true, ( work + "-scripts" ) );
-		for( i = 0; i < SCRIPT_COUNT; i++ )
-		{
-			bool b;
-			f->ReadBool( b );
-			if( b )
-			{
-				delete scripts[i];
-				scripts[i] = new( TAG_OLD_UI ) idGuiScriptList;
-				scripts[i]->ReadFromDemoFile( f );
-			}
-		}
-
-		f->SetLog( true, ( work + "-timelines" ) );
-		f->ReadInt( c );
-		for( i = 0; i < c; i++ )
-		{
-			idTimeLineEvent* tl = new( TAG_OLD_UI ) idTimeLineEvent;
-			f->ReadInt( tl->time );
-			f->ReadBool( tl->pending );
-			tl->event->ReadFromDemoFile( f );
-			if( rebuild )
-			{
-				timeLineEvents.Append( tl );
-			}
-			else
-			{
-				assert( i < timeLineEvents.Num() );
-				timeLineEvents[i]->time = tl->time;
-				timeLineEvents[i]->pending = tl->pending;
-			}
-		}
-	}
-
-	f->SetLog( true, ( work + "-transitions" ) );
-	f->ReadInt( c );
-	for( i = 0; i < c; i++ )
-	{
-		idTransitionData td;
-		td.data = NULL;
-		f->ReadInt( td.offset );
-
-		float startTime, accelTime, linearTime, decelTime;
-		idVec4 startValue, endValue;
-		f->ReadFloat( startTime );
-		f->ReadFloat( accelTime );
-		f->ReadFloat( linearTime );
-		f->ReadFloat( decelTime );
-		f->ReadVec4( startValue );
-		f->ReadVec4( endValue );
-		td.interp.Init( startTime, accelTime, decelTime, accelTime + linearTime + decelTime, startValue, endValue );
-
-		// read this for correct data padding with the win32 savegames
-		// the extrapolate is correctly initialized through the above Init call
-		int extrapolationType;
-		float duration;
-		idVec4 baseSpeed, speed;
-		float currentTime;
-		idVec4 currentValue;
-		f->ReadInt( extrapolationType );
-		f->ReadFloat( startTime );
-		f->ReadFloat( duration );
-		f->ReadVec4( startValue );
-		f->ReadVec4( baseSpeed );
-		f->ReadVec4( speed );
-		f->ReadFloat( currentTime );
-		f->ReadVec4( currentValue );
-
-		transitions.Append( td );
-	}
-
-	f->SetLog( true, ( work + "-regstuff" ) );
-	if( rebuild )
-	{
-		f->ReadInt( c );
-		for( i = 0; i < c; i++ )
-		{
-			wexpOp_t w;
-			f->ReadInt( ( int& )w.opType );
-			f->ReadInt( w.a );
-			f->ReadInt( w.b );
-			f->ReadInt( w.c );
-			f->ReadInt( w.d );
-			ops.Append( w );
-		}
-
-		f->ReadInt( c );
-		for( i = 0; i < c; i++ )
-		{
-			float ff;
-			f->ReadFloat( ff );
-			expressionRegisters.Append( ff );
-		}
-
-		regList.ReadFromDemoFile( f );
-
-	}
-	f->SetLog( true, ( work + "-children" ) );
-	f->ReadInt( c );
-	for( i = 0; i < c; i++ )
-	{
-		if( rebuild )
-		{
-			idWindow* win = new( TAG_OLD_UI ) idWindow( dc, gui );
-			win->ReadFromDemoFile( f );
-			AddChild( win );
-		}
-		else
-		{
-			for( int j = 0; j < c; j++ )
-			{
-				if( children[j]->childID == i )
-				{
-					children[j]->ReadFromDemoFile( f, rebuild );
-					break;
-				}
-				else
-				{
-					continue;
-				}
-			}
-		}
-	}
-#endif /* WRITE_GUIS */
-}
-
-/*
-================
-idWindow::WriteToDemoFile
-================
-*/
-void idWindow::WriteToDemoFile( class idDemoFile* f )
-{
-	// should never hit unless we re-enable WRITE_GUIS
-#ifndef WRITE_GUIS
-	assert( false );
-#else
-
-	f->SetLog( true, "window" );
-	f->WriteHashString( backGroundName );
-	f->SetLog( true, backGroundName );
-	f->WriteUnsignedChar( cursor );
-	f->WriteUnsignedInt( flags );
-	f->WriteInt( timeLine );
-	f->WriteInt( lastTimeRun );
-	idRectangle rct = rect;
-	f->WriteFloat( rct.x );
-	f->WriteFloat( rct.y );
-	f->WriteFloat( rct.w );
-	f->WriteFloat( rct.h );
-	f->WriteFloat( drawRect.x );
-	f->WriteFloat( drawRect.y );
-	f->WriteFloat( drawRect.w );
-	f->WriteFloat( drawRect.h );
-	f->WriteFloat( clientRect.x );
-	f->WriteFloat( clientRect.y );
-	f->WriteFloat( clientRect.w );
-	f->WriteFloat( clientRect.h );
-	f->WriteFloat( textRect.x );
-	f->WriteFloat( textRect.y );
-	f->WriteFloat( textRect.w );
-	f->WriteFloat( textRect.h );
-	f->WriteFloat( xOffset );
-	f->WriteFloat( yOffset );
-	idStr work;
-	f->SetLog( true, work );
-
-	int i, c;
-
-	f->SetLog( true, ( work + "-transitions" ) );
-	c = transitions.Num();
-	f->WriteInt( c );
-	for( i = 0; i < c; i++ )
-	{
-		f->WriteInt( 0 );
-		f->WriteInt( transitions[i].offset );
-
-		f->WriteFloat( transitions[i].interp.GetStartTime() );
-		f->WriteFloat( transitions[i].interp.GetAccelTime() );
-		f->WriteFloat( transitions[i].interp.GetLinearTime() );
-		f->WriteFloat( transitions[i].interp.GetDecelTime() );
-		f->WriteVec4( transitions[i].interp.GetStartValue() );
-		f->WriteVec4( transitions[i].interp.GetEndValue() );
-
-		// write to keep win32 render demo format compatiblity - we don't actually read them back anymore
-		f->WriteInt( transitions[i].interp.GetExtrapolate()->GetExtrapolationType() );
-		f->WriteFloat( transitions[i].interp.GetExtrapolate()->GetStartTime() );
-		f->WriteFloat( transitions[i].interp.GetExtrapolate()->GetDuration() );
-		f->WriteVec4( transitions[i].interp.GetExtrapolate()->GetStartValue() );
-		f->WriteVec4( transitions[i].interp.GetExtrapolate()->GetBaseSpeed() );
-		f->WriteVec4( transitions[i].interp.GetExtrapolate()->GetSpeed() );
-		f->WriteFloat( transitions[i].interp.GetExtrapolate()->GetCurrentTime() );
-		f->WriteVec4( transitions[i].interp.GetExtrapolate()->GetCurrentValue() );
-	}
-
-	f->SetLog( true, ( work + "-regstuff" ) );
-
-	f->SetLog( true, ( work + "-children" ) );
-	c = children.Num();
-	f->WriteInt( c );
-	for( i = 0; i < c; i++ )
-	{
-		for( int j = 0; j < c; j++ )
-		{
-			if( children[j]->childID == i )
-			{
-				children[j]->WriteToDemoFile( f );
-				break;
-			}
-			else
-			{
-				continue;
-			}
-		}
-	}
-#endif /* WRITE_GUIS */
 }
 
 /*
@@ -4651,7 +4376,7 @@ Returns the number of children
 */
 int idWindow::GetChildCount()
 {
-	return drawWindows.Num( );
+	return drawWindows.Num();
 }
 
 /*
@@ -4835,12 +4560,12 @@ bool idWindow::UpdateFromDictionary( idDict& dict )
 	const idKeyValue*	kv;
 	int					i;
 
-	SetDefaults( );
+	SetDefaults();
 
 	// Clear all registers since they will get recreated
-	regList.Reset( );
-	expressionRegisters.Clear( );
-	ops.Clear( );
+	regList.Reset();
+	expressionRegisters.Clear();
+	ops.Clear();
 
 	for( i = 0; i < dict.GetNumKeyVals(); i ++ )
 	{

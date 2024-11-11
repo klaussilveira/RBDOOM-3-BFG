@@ -130,6 +130,7 @@ class idStr
 
 public:
 	idStr();
+	idStr( idStr&& text ) noexcept; // Admer: added move constructor
 	idStr( const idStr& text );
 	idStr( const idStr& text, int start, int end );
 	idStr( const char* text );
@@ -149,6 +150,7 @@ public:
 	char				operator[]( int index ) const;
 	char& 				operator[]( int index );
 
+	void				operator=( idStr&& text ) noexcept; // Admer: added move operator
 	void				operator=( const idStr& text );
 	void				operator=( const char* text );
 
@@ -260,6 +262,7 @@ public:
 	void				StripTrailing( const char c );					// strip char from end as many times as the char occurs
 	void				StripTrailing( const char* string );			// strip string from end as many times as the string occurs
 	bool				StripTrailingOnce( const char* string );		// strip string from end just once if it occurs
+	bool				IStripTrailingOnce( const char* string );		// RB: case insensitive, strip string from end just once if it occurs
 	void				Strip( const char c );							// strip char from front and end as many times as the char occurs
 	void				Strip( const char* string );					// strip string from front and end as many times as the string occurs
 	void				StripTrailingWhitespace();				// strip trailing white space characters
@@ -477,6 +480,12 @@ ID_INLINE idStr::idStr()
 	Construct();
 }
 
+ID_INLINE idStr::idStr( idStr&& text ) noexcept
+{
+	Construct();
+	*this = std::move( text );
+}
+
 ID_INLINE idStr::idStr( const idStr& text )
 {
 	Construct();
@@ -602,7 +611,7 @@ ID_INLINE idStr::idStr( const int i )
 	char text[ 64 ];
 	int l;
 
-	l = sprintf( text, "%d", i );
+	l = idStr::snPrintf( text, sizeof( text ), "%d", i );
 	EnsureAlloced( l + 1 );
 	strcpy( data, text );
 	len = l;
@@ -614,7 +623,7 @@ ID_INLINE idStr::idStr( const unsigned u )
 	char text[ 64 ];
 	int l;
 
-	l = sprintf( text, "%u", u );
+	l = idStr::snPrintf( text, sizeof( text ), "%u", u );
 	EnsureAlloced( l + 1 );
 	strcpy( data, text );
 	len = l;
@@ -677,6 +686,28 @@ ID_INLINE char& idStr::operator[]( int index )
 	return data[ index ];
 }
 
+ID_INLINE void idStr::operator=( idStr&& text ) noexcept
+{
+	Clear();
+
+	len = text.len;
+	allocedAndFlag = text.allocedAndFlag;
+	memcpy( baseBuffer, text.baseBuffer, sizeof( baseBuffer ) );
+
+	if( text.data == text.baseBuffer )
+	{
+		data = baseBuffer;
+	}
+	else
+	{
+		data = text.data;
+	}
+
+	text.len = 0;
+	text.allocedAndFlag = 0;
+	text.data = nullptr;
+}
+
 ID_INLINE void idStr::operator=( const idStr& text )
 {
 	int l;
@@ -728,7 +759,7 @@ ID_INLINE idStr operator+( const idStr& a, const float b )
 	char	text[ 64 ];
 	idStr	result( a );
 
-	sprintf( text, "%f", b );
+	idStr::snPrintf( text, sizeof( text ), "%f", b );
 	result.Append( text );
 
 	return result;
@@ -739,7 +770,7 @@ ID_INLINE idStr operator+( const idStr& a, const int b )
 	char	text[ 64 ];
 	idStr	result( a );
 
-	sprintf( text, "%d", b );
+	idStr::snPrintf( text, sizeof( text ), "%d", b );
 	result.Append( text );
 
 	return result;
@@ -750,7 +781,7 @@ ID_INLINE idStr operator+( const idStr& a, const unsigned b )
 	char	text[ 64 ];
 	idStr	result( a );
 
-	sprintf( text, "%u", b );
+	idStr::snPrintf( text, sizeof( text ), "%u", b );
 	result.Append( text );
 
 	return result;
@@ -760,7 +791,7 @@ ID_INLINE idStr& idStr::operator+=( const float a )
 {
 	char text[ 64 ];
 
-	sprintf( text, "%f", a );
+	idStr::snPrintf( text, sizeof( text ), "%f", a );
 	Append( text );
 
 	return *this;
@@ -770,7 +801,7 @@ ID_INLINE idStr& idStr::operator+=( const int a )
 {
 	char text[ 64 ];
 
-	sprintf( text, "%d", a );
+	idStr::snPrintf( text, sizeof( text ), "%d", a );
 	Append( text );
 
 	return *this;
@@ -780,7 +811,7 @@ ID_INLINE idStr& idStr::operator+=( const unsigned a )
 {
 	char text[ 64 ];
 
-	sprintf( text, "%u", a );
+	idStr::snPrintf( text, sizeof( text ), "%u", a );
 	Append( text );
 
 	return *this;

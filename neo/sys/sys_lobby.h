@@ -41,6 +41,7 @@ class idLobby : public idLobbyBase
 {
 public:
 	idLobby();
+	~idLobby();
 
 	enum lobbyType_t
 	{
@@ -947,6 +948,8 @@ idSessionCallbacks
 class idSessionCallbacks
 {
 public:
+	virtual                         ~idSessionCallbacks() {}                    // SRS - Added virtual destructor
+
 	virtual idLobby& 				GetPartyLobby() = 0;
 	virtual idLobby& 				GetGameLobby() = 0;
 	virtual idLobby& 				GetActingGameStateLobby() = 0;

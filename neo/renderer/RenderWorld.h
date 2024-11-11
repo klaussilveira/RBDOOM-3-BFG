@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -201,11 +203,6 @@ typedef struct renderLight_s
 	idVec3					start;
 	idVec3					end;
 
-	// Dmap will generate an optimized shadow volume named _prelight_<lightName>
-	// for the light against all the _area* models in the map.  The renderer will
-	// ignore this value if the light has been moved after initial creation
-	idRenderModel* 			prelightModel;
-
 	// muzzle flash lights will not cast shadows from player and weapon world models
 	int						lightId;
 
@@ -215,6 +212,31 @@ typedef struct renderLight_s
 	idSoundEmitter* 		referenceSound;		// for shader sound tables, allowing effects to vary with sounds
 } renderLight_t;
 
+
+// RB begin
+typedef struct
+{
+	idVec3					origin;
+	float					shaderParms[MAX_ENTITY_SHADER_PARMS];
+
+	// if non-zero, the environment probe will not show up in the specific view,
+	// which may be used if we want to have slightly different muzzle
+	// flash lights for the player and other views
+	int						suppressEnvprobeInViewID;
+
+	// if non-zero, the environment probe will only show up in the specific view
+	// which can allow player gun gui lights and such to not effect everyone
+	int						allowEnvprobeInViewID;
+
+} renderEnvironmentProbe_t;
+// RB end
+
+
+// RB: added back refdef flags from Quake 3
+const int RDF_NOSHADOWS		= BIT( 0 ); // force renderer to use faster lighting only path
+const int RDF_NOAMBIENT		= BIT( 1 ); // don't render indirect lighting
+const int RDF_IRRADIANCE	= BIT( 2 ); // render into 256^2 HDR render target for irradiance/radiance GGX calculation
+const int RDF_UNDERWATER	= BIT( 3 ); // TODO enable automatic underwater caustics and fog
 
 typedef struct renderView_s
 {
@@ -278,6 +300,7 @@ public:
 	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
 	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
 
+//	idPlane                 clipPlane;			// SP
 	bool					cramZNear;			// for cinematics, we want to set ZNear much lower
 	bool					flipProjection;
 	bool					forceUpdate;		// for an update
@@ -291,7 +314,9 @@ public:
 	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
 	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
 
-	// for last moment visual correction and reduction of lag
+	int						rdflags;			// RB: RDF_NOSHADOWS, etc
+	
+	// Leyland: for last moment visual correction and reduction of lag
 	bool					vrHadHead;
 	idVec3					vrHeadOrigin;
 	idMat3					vrHeadAxis;
@@ -342,6 +367,12 @@ typedef enum
 	PS_BLOCK_ALL = ( 1 << NUM_PORTAL_ATTRIBUTES ) - 1
 } portalConnection_t;
 
+// Admer: Suppress Windows API DrawText, so IntelliSense can properly highlight idRenderWorld::DrawText
+#ifdef _WIN32
+	#ifdef DrawText
+		#undef DrawText
+	#endif
+#endif
 
 class idRenderWorld
 {
@@ -371,6 +402,13 @@ public:
 	virtual	void			UpdateLightDef( qhandle_t lightHandle, const renderLight_t* rlight ) = 0;
 	virtual	void			FreeLightDef( qhandle_t lightHandle ) = 0;
 	virtual const renderLight_t* GetRenderLight( qhandle_t lightHandle ) const = 0;
+
+	// RB: environment probes for IBL
+	virtual	qhandle_t		AddEnvprobeDef( const renderEnvironmentProbe_t* ep ) = 0;
+	virtual	void			UpdateEnvprobeDef( qhandle_t envprobeHandle, const renderEnvironmentProbe_t* ep ) = 0;
+	virtual	void			FreeEnvprobeDef( qhandle_t envprobeHandle ) = 0;
+	virtual const renderEnvironmentProbe_t* GetRenderEnvprobe( qhandle_t envprobeHandle ) const = 0;
+	// RB end
 
 	// Force the generation of all light / surface interactions at the start of a level
 	// If this isn't called, they will all be dynamically generated
@@ -446,6 +484,9 @@ public:
 	// returns one portal from an area
 	virtual exitPortal_t	GetPortal( int areaNum, int portalNum ) = 0;
 
+	// RB: returns the AABB of a BSP area
+	virtual	idBounds		AreaBounds( int areaNum ) const = 0;
+
 	//-------------- Tracing  -----------------
 
 	// Checks a ray trace against any gui surfaces in an entity, returning the
@@ -464,19 +505,6 @@ public:
 	virtual bool			FastWorldTrace( modelTrace_t& trace, const idVec3& start, const idVec3& end ) const = 0;
 
 	//-------------- Demo Control  -----------------
-
-	// Writes a loadmap command to the demo, and clears archive counters.
-	virtual void			StartWritingDemo( idDemoFile* demo ) = 0;
-	virtual void			StopWritingDemo() = 0;
-
-	// Returns true when demoRenderView has been filled in.
-	// adds/updates/frees entityDefs and lightDefs based on the current demo file
-	// and returns the renderView to be used to render this frame.
-	// a demo file may need to be advanced multiple times if the framerate
-	// is less than 30hz
-	// demoTimeOffset will be set if a new map load command was processed before
-	// the next renderScene
-	virtual bool			ProcessDemoCommand( idDemoFile* readDemo, renderView_t* demoRenderView, int* demoTimeOffset ) = 0;
 
 	// this is used to regenerate all interactions ( which is currently only done during influences ), there may be a less
 	// expensive way to do it

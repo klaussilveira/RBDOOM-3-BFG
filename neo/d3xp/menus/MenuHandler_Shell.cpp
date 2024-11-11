@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "../Game_local.h"
 
 
@@ -71,6 +71,7 @@ void idMenuHandler_Shell::Update()
 			PlaySound( GUI_SOUND_MUSIC );
 		}
 
+#if defined( USE_DOOMCLASSIC )
 		if( nextState == SHELL_STATE_PRESS_START )
 		{
 			HidePacifier();
@@ -82,75 +83,83 @@ void idMenuHandler_Shell::Update()
 				menuBar->ClearSprite();
 			}
 		}
-		else if( nextState == SHELL_STATE_IDLE )
-		{
-			HidePacifier();
-			if( nextScreen == SHELL_AREA_START || nextScreen == SHELL_AREA_PARTY_LOBBY || nextScreen == SHELL_AREA_GAME_LOBBY || nextScreen == SHELL_AREA_INVALID )
+		else
+#endif
+			if( nextState == SHELL_STATE_IDLE )
 			{
-				nextScreen = SHELL_AREA_ROOT;
-			}
+				HidePacifier();
+				if(
+#if defined( USE_DOOMCLASSIC )
+					nextScreen == SHELL_AREA_START ||
+#endif
+					nextScreen == SHELL_AREA_PARTY_LOBBY ||
+					nextScreen == SHELL_AREA_GAME_LOBBY ||
+					nextScreen == SHELL_AREA_INVALID )
+				{
+					nextScreen = SHELL_AREA_ROOT;
+				}
 
-			if( menuBar != NULL && gui != NULL )
-			{
-				idSWFScriptObject& root = gui->GetRootObject();
-				menuBar->BindSprite( root );
-				SetupPCOptions();
-			}
-			transition = MENU_TRANSITION_SIMPLE;
-			state = nextState;
-		}
-		else if( nextState == SHELL_STATE_PARTY_LOBBY )
-		{
-			HidePacifier();
-			nextScreen = SHELL_AREA_PARTY_LOBBY;
-			transition = MENU_TRANSITION_SIMPLE;
-			state = nextState;
-		}
-		else if( nextState == SHELL_STATE_GAME_LOBBY )
-		{
-			HidePacifier();
-			if( state != SHELL_STATE_IN_GAME )
-			{
-				timeRemaining = WAIT_START_TIME_LONG;
-				idMatchParameters matchParameters = session->GetActivePlatformLobbyBase().GetMatchParms();
-				/*if ( MatchTypeIsPrivate( matchParameters.matchFlags ) && ActiveScreen() == SHELL_AREA_PARTY_LOBBY ) {
-					timeRemaining = 0;
-					session->StartMatch();
-					state = SHELL_STATE_IN_GAME;
-				} else {*/
-				nextScreen = SHELL_AREA_GAME_LOBBY;
+				if( menuBar != NULL && gui != NULL )
+				{
+					idSWFScriptObject& root = gui->GetRootObject();
+					menuBar->BindSprite( root );
+					SetupPCOptions();
+				}
 				transition = MENU_TRANSITION_SIMPLE;
-				//}
+				state = nextState;
+			}
+			else if( nextState == SHELL_STATE_PARTY_LOBBY )
+			{
+				HidePacifier();
+				nextScreen = SHELL_AREA_PARTY_LOBBY;
+				transition = MENU_TRANSITION_SIMPLE;
+				state = nextState;
+			}
+			else if( nextState == SHELL_STATE_GAME_LOBBY )
+			{
+				HidePacifier();
+				if( state != SHELL_STATE_IN_GAME )
+				{
+					timeRemaining = WAIT_START_TIME_LONG;
+					idMatchParameters matchParameters = session->GetActivePlatformLobbyBase().GetMatchParms();
+					/*if ( MatchTypeIsPrivate( matchParameters.matchFlags ) && ActiveScreen() == SHELL_AREA_PARTY_LOBBY ) {
+						timeRemaining = 0;
+						session->StartMatch();
+						state = SHELL_STATE_IN_GAME;
+					} else {*/
+					nextScreen = SHELL_AREA_GAME_LOBBY;
+					transition = MENU_TRANSITION_SIMPLE;
+					//}
+
+					state = nextState;
+				}
+			}
+			else if( nextState == SHELL_STATE_PAUSED )
+			{
+				HidePacifier();
+				transition = MENU_TRANSITION_SIMPLE;
+
+				if( gameComplete )
+				{
+					nextScreen = SHELL_AREA_CREDITS;
+				}
+				else
+				{
+					nextScreen = SHELL_AREA_ROOT;
+				}
 
 				state = nextState;
 			}
-		}
-		else if( nextState == SHELL_STATE_PAUSED )
-		{
-			HidePacifier();
-			transition = MENU_TRANSITION_SIMPLE;
-
-			if( gameComplete )
+			else if( nextState == SHELL_STATE_CONNECTING )
 			{
-				nextScreen = SHELL_AREA_CREDITS;
+				ShowPacifier( "#str_dlg_connecting" );
+				state = nextState;
 			}
-			else
+			else if( nextState == SHELL_STATE_SEARCHING )
 			{
-				nextScreen = SHELL_AREA_ROOT;
+				ShowPacifier( "#str_online_mpstatus_searching" );
+				state = nextState;
 			}
-
-			state = nextState;
-		}
-		else if( nextState == SHELL_STATE_CONNECTING )
-		{
-			ShowPacifier( "#str_dlg_connecting" );
-			state = nextState;
-		}
-		else if( nextState == SHELL_STATE_SEARCHING )
-		{
-			ShowPacifier( "#str_online_mpstatus_searching" );
-			state = nextState;
-		}
 	}
 
 	if( activeScreen != nextScreen )
@@ -321,6 +330,34 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 
 	if( showingIntro )
 	{
+		// RB: allow to skip intro videos
+		if( sev->evType == SE_KEY && sev->evValue2 == 1 && ( sev->evValue == K_ESCAPE || sev->evValue == K_JOY9 ) )
+		{
+			if( introGui != NULL && introGui->IsActive() )
+			{
+				gui->StopSound();
+				showingIntro = false;
+				introGui->Activate( false );
+				PlaySound( GUI_SOUND_MUSIC );
+
+				const char* introName = introGui->GetName();
+
+				if( idStr::Cmp( introName, "swf/roeintro.swf" ) == 0 )
+				{
+					StartGame( 1 );
+				}
+				else if( idStr::Cmp( introName, "swf/leintro.swf" ) == 0 )
+				{
+					StartGame( 2 );
+				}
+				else
+				{
+					StartGame( 0 );
+				}
+			}
+		}
+		// RB end
+
 		return true;
 	}
 
@@ -476,7 +513,9 @@ void idMenuHandler_Shell::Initialize( const char* swfFile, idSoundWorld* sw )
 		BIND_SHELL_SCREEN( SHELL_AREA_SYSTEM_OPTIONS, idMenuScreen_Shell_SystemOptions, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_GAME_OPTIONS, idMenuScreen_Shell_GameOptions, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_SAVE, idMenuScreen_Shell_Save, this );
+#if VR_OPTIONS
 		BIND_SHELL_SCREEN( SHELL_AREA_STEREOSCOPICS, idMenuScreen_Shell_Stereoscopics, this );
+#endif
 		BIND_SHELL_SCREEN( SHELL_AREA_CONTROLS, idMenuScreen_Shell_Controls, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_KEYBOARD, idMenuScreen_Shell_Bindings, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_RESOLUTION, idMenuScreen_Shell_Resolution, this );
@@ -488,7 +527,9 @@ void idMenuHandler_Shell::Initialize( const char* swfFile, idSoundWorld* sw )
 	}
 	else
 	{
+#if defined( USE_DOOMCLASSIC )
 		BIND_SHELL_SCREEN( SHELL_AREA_START, idMenuScreen_Shell_PressStart, this );
+#endif
 		BIND_SHELL_SCREEN( SHELL_AREA_ROOT, idMenuScreen_Shell_Root, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_CAMPAIGN, idMenuScreen_Shell_Singleplayer, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_SETTINGS, idMenuScreen_Shell_Settings, this );
@@ -498,7 +539,9 @@ void idMenuHandler_Shell::Initialize( const char* swfFile, idSoundWorld* sw )
 		BIND_SHELL_SCREEN( SHELL_AREA_GAME_OPTIONS, idMenuScreen_Shell_GameOptions, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_PARTY_LOBBY, idMenuScreen_Shell_PartyLobby, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_GAME_LOBBY, idMenuScreen_Shell_GameLobby, this );
+#if VR_OPTIONS
 		BIND_SHELL_SCREEN( SHELL_AREA_STEREOSCOPICS, idMenuScreen_Shell_Stereoscopics, this );
+#endif
 		BIND_SHELL_SCREEN( SHELL_AREA_DIFFICULTY, idMenuScreen_Shell_Difficulty, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_CONTROLS, idMenuScreen_Shell_Controls, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_KEYBOARD, idMenuScreen_Shell_Bindings, this );
@@ -940,10 +983,12 @@ void idMenuHandler_Shell::HandleExitGameBtn()
 			{
 				common->Quit();
 			}
+#if defined( USE_DOOMCLASSIC )
 			else if( accept == -1 )
 			{
 				session->MoveToPressStart();
 			}
+#endif
 			return idSWFScriptVar();
 		}
 	private:
@@ -1025,8 +1070,14 @@ bool idMenuHandler_Shell::HandleAction( idWidgetAction& action, const idWidgetEv
 				session->Cancel();
 			}
 
-			if( cmd != SHELL_CMD_QUIT && ( nextScreen == SHELL_AREA_STEREOSCOPICS || nextScreen == SHELL_AREA_SYSTEM_OPTIONS || nextScreen == SHELL_AREA_GAME_OPTIONS ||
-										   nextScreen == SHELL_AREA_GAMEPAD || nextScreen == SHELL_AREA_MATCH_SETTINGS ) )
+			if( cmd != SHELL_CMD_QUIT && (
+#if VR_OPTIONS
+						nextScreen == SHELL_AREA_STEREOSCOPICS ||
+#endif
+						nextScreen == SHELL_AREA_SYSTEM_OPTIONS ||
+						nextScreen == SHELL_AREA_GAME_OPTIONS ||
+						nextScreen == SHELL_AREA_GAMEPAD ||
+						nextScreen == SHELL_AREA_MATCH_SETTINGS ) )
 			{
 
 				cvarSystem->SetModifiedFlags( CVAR_ARCHIVE );
@@ -1261,7 +1312,15 @@ void idMenuHandler_Shell::UpdateBGState()
 	{
 		if( nextScreen != SHELL_AREA_PLAYSTATION && nextScreen != SHELL_AREA_SETTINGS && nextScreen != SHELL_AREA_CAMPAIGN && nextScreen != SHELL_AREA_DEV )
 		{
-			if( nextScreen != SHELL_AREA_RESOLUTION && nextScreen != SHELL_AREA_GAMEPAD && nextScreen != SHELL_AREA_DIFFICULTY && nextScreen != SHELL_AREA_SYSTEM_OPTIONS && nextScreen != SHELL_AREA_GAME_OPTIONS && nextScreen != SHELL_AREA_NEW_GAME && nextScreen != SHELL_AREA_STEREOSCOPICS &&
+			if( nextScreen != SHELL_AREA_RESOLUTION &&
+					nextScreen != SHELL_AREA_GAMEPAD &&
+					nextScreen != SHELL_AREA_DIFFICULTY &&
+					nextScreen != SHELL_AREA_SYSTEM_OPTIONS &&
+					nextScreen != SHELL_AREA_GAME_OPTIONS &&
+					nextScreen != SHELL_AREA_NEW_GAME &&
+#if VR_OPTIONS
+					nextScreen != SHELL_AREA_STEREOSCOPICS &&
+#endif
 					nextScreen != SHELL_AREA_CONTROLS )
 			{
 				ShowSmallFrame( false );
@@ -1293,7 +1352,11 @@ void idMenuHandler_Shell::UpdateBGState()
 		}
 	}
 
-	if( smallFrameShowing || largeFrameShowing || nextScreen == SHELL_AREA_START )
+	if( smallFrameShowing || largeFrameShowing
+#if defined( USE_DOOMCLASSIC )
+			|| nextScreen == SHELL_AREA_START
+#endif
+	  )
 	{
 		ShowLogo( false );
 	}

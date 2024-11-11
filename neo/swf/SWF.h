@@ -50,6 +50,7 @@ public:
 	idSWFDictionaryEntry();
 	~idSWFDictionaryEntry();
 	idSWFDictionaryEntry& operator=( idSWFDictionaryEntry& other );
+	idSWFDictionaryEntry& operator=( idSWFDictionaryEntry&& other );
 
 	swfDictType_t		type;
 	const idMaterial* 	material;
@@ -85,7 +86,7 @@ This class handles loading and rendering SWF files
 class idSWF
 {
 public:
-	idSWF( const char* filename, idSoundWorld* soundWorld = NULL );
+	idSWF( const char* filename, idSoundWorld* soundWorld, bool exportJSON = false, bool exportSWF = false );
 	~idSWF();
 
 	bool	IsLoaded()
