@@ -159,32 +159,32 @@ private:
 	idMat3 m_seatedAxis;
 	idMat3 m_seatedAxisInverse;
 
-	bool m_LeftControllerWasPressed;
-	bool m_RightControllerWasPressed;
+	bool m_LeftControllerWasPressed = false;
+	bool m_RightControllerWasPressed = false;
 	vr::VRControllerState_t m_LeftControllerState;
 	vr::VRControllerState_t m_RightControllerState;
 	int m_leftControllerPulseDur;
 	int m_rightControllerPulseDur;
 
-	bool	m_HasHeadPose;
+	bool	m_HasHeadPose = false;
 	idVec3	m_HeadOrigin;
 	idMat3	m_HeadAxis;
-	bool	m_HadHead;
+	bool	m_HadHead = false;
 	idVec3	m_HeadLastOrigin;
 	idVec3	m_HeadMoveDelta;
 
-	bool	m_HasLeftControllerPose;
+	bool	m_HasLeftControllerPose = false;
 	idVec3	m_LeftControllerOrigin;
 	idMat3	m_LeftControllerAxis;
 
-	bool	m_HasRightControllerPose;
+	bool	m_HasRightControllerPose = false;
 	idVec3	m_RightControllerOrigin;
 	idMat3	m_RightControllerAxis;
 
-	bool	g_poseReset;
+	bool	g_poseReset = false;
 
 	int			m_UIEventIndex;
-	int			m_UIEventCount;
+	int			m_UIEventCount = 0;
 	sysEvent_t	m_UIEvents[MAX_VREVENTS];
 
 	int m_GameEventCount;
@@ -233,6 +233,7 @@ idStr VRSystem_Valve::GetTrackedDeviceString( vr::TrackedDeviceIndex_t unDevice,
 bool VRSystem_Valve::InitHMD()
 {
 #if 1
+	openVREnabled = false;
 	return false;
 #endif
 

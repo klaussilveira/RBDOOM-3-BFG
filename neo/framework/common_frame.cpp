@@ -612,9 +612,25 @@ void idCommonLocal::Frame()
 		{
 			// RB: don't release the mouse when opening a PDA or menu
 			// SRS - but always release at main menu after exiting game or demo
-			if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() )
+			if( vrSystem->IsActive() )
 			{
-				Sys_GrabMouseCursor( false );
+				// RB: translating absolute mouse coords is broken with the tiny window in VR mode
+				// only leave the window when the console is open
+				if( console->Active() )
+				{
+					Sys_GrabMouseCursor( false );
+				}
+				else
+				{
+					Sys_GrabMouseCursor( true );
+				}
+			}
+			else
+			{
+				if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() )
+				{
+					Sys_GrabMouseCursor( false );
+				}
 			}
 			usercmdGen->InhibitUsercmd( INHIBIT_SESSION, true );
 			chatting = true;
@@ -695,7 +711,6 @@ void idCommonLocal::Frame()
 		int numGameFrames = 0;
 
 		{
-
 			OPTICK_CATEGORY( "Wait for Frame", Optick::Category::Wait );
 
 			for( ;; )
@@ -738,12 +753,11 @@ void idCommonLocal::Frame()
 					break;
 				}
 
-				// Leyland VR: moved this out of the for loop
-				// How much time to wait before running the next frame,
-				// based on com_engineHz
-				const int frameDelay = FRAME_TO_MSEC( gameFrame + 1 ) - FRAME_TO_MSEC( gameFrame );
 				for( ;; )
 				{
+					// How much time to wait before running the next frame,
+					// based on com_engineHz
+					const int frameDelay = FRAME_TO_MSEC( gameFrame + 1 ) - FRAME_TO_MSEC( gameFrame );
 					if( gameTimeResidual < frameDelay )
 					{
 						break;
@@ -757,10 +771,10 @@ void idCommonLocal::Frame()
 				if( numGameFrames > 0 )
 				{
 					// // Leyland VR: debt forgiveness
-					if( gameTimeResidual < frameDelay / 4.0f )
-					{
-						gameTimeResidual = 0;
-					}
+					//if( gameTimeResidual < frameDelay / 4.0f )
+					//{
+					//	gameTimeResidual = 0;
+					//}
 
 					// ready to actually run them
 					break;
