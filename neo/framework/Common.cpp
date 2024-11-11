@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2012-2014 Robert Beckebans
+Copyright (C) 2012-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -869,11 +869,6 @@ idCommonLocal::RenderSplash
 */
 void idCommonLocal::RenderSplash()
 {
-	//const emptyCommand_t* renderCommands = NULL;
-
-	// RB: this is the same as Doom 3 renderSystem->BeginFrame()
-	//renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
-
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -899,8 +894,6 @@ void idCommonLocal::RenderSplash()
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 	renderSystem->RenderCommandBuffers( cmd );
 
-	// RB: this is the same as Doom 3 renderSystem->EndFrame()
-	//renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_moc, &time_gpu );
 }
 
 /*
@@ -1286,6 +1279,9 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 
 		// if any archived cvars are modified after this, we will trigger a writing of the config file
 		cvarSystem->ClearModifiedFlags( CVAR_ARCHIVE );
+
+		// RB: query VR APIs and see if we need to initialize the renderer in VR mode
+		VRSystem::Init();
 
 		// init OpenGL, which will open a window and connect sound and input hardware
 		renderSystem->InitBackend();

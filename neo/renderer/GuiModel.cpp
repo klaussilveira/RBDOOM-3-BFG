@@ -75,8 +75,6 @@ void idGuiModel::Clear()
 	AdvanceSurf();
 }
 
-/*
-================
 // Leyland VR
 /*
 ================
@@ -194,6 +192,8 @@ void idGuiModel::SetVRShell( const idVec3& origin, const idMat3& axis )
 }
 // Leyland end
 
+/*
+================
 idGuiModel::BeginFrame
 ================
 */

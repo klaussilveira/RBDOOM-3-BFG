@@ -146,14 +146,9 @@ void RenderEnvprobeLocal::FreeRenderEnvprobe()
 }
 void RenderEnvprobeLocal::UpdateRenderEnvprobe( const renderEnvironmentProbe_t* ep, bool forceUpdate )
 {
-	{
-	}
-	{
-	}
 }
 void RenderEnvprobeLocal::GetRenderEnvprobe( renderEnvironmentProbe_t* ep )
 {
-		{
 }
 void RenderEnvprobeLocal::ForceUpdate()
 {

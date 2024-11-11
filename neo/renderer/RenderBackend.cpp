@@ -297,7 +297,7 @@ void idRenderBackend::BindVariableStageImage( const textureStage_t* texture, con
 			cin.imageCb->Bind();
 
 			// DG: imageY is only used for bink videos (with libbinkdec), so the bink shader must be used
-			if( viewDef->is2Dgui )
+			if( viewDef->guiMode != GUIMODE_NONE )
 			{
 				renderProgManager.BindShader_BinkGUI();
 			}
@@ -313,7 +313,7 @@ void idRenderBackend::BindVariableStageImage( const textureStage_t* texture, con
 			cin.image->Bind();
 
 			// SRS - Reenable shaders so ffmpeg and RoQ decoder cinematics are rendered with correct colour
-			if( viewDef->is2Dgui )
+			if( viewDef->guiMode != GUIMODE_NONE )
 			{
 				renderProgManager.BindShader_TextureVertexColor_sRGB();
 			}
@@ -799,7 +799,7 @@ void idRenderBackend::FillDepthBufferFast( drawSurf_t** drawSurfs, int numDrawSu
 	}
 
 	// if we are just doing 2D rendering, no need to fill the depth buffer
-	if( backEnd.viewDef->guiMode != GUIMODE_NONE )
+	if( viewDef->guiMode != GUIMODE_NONE )
 	{
 		return;
 	}
@@ -2038,7 +2038,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 	}
 
 	// if we are just doing 2D rendering, no need to fill the depth buffer
-	if( backEnd.viewDef->guiMode != GUIMODE_NONE )
+	if( viewDef->guiMode != GUIMODE_NONE )
 	{
 		return;
 	}
@@ -5490,7 +5490,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//OPTICK_GPU_EVENT( "DrawView" );	// SRS - now in DrawView() for 3D vs. GUI
 
 	// ugly but still faster than building the string
-	if( !_viewDef->viewEntitys || _viewDef->is2Dgui )
+	if( !_viewDef->viewEntitys || _viewDef->guiMode != GUIMODE_NONE )
 	{
 		renderLog.OpenBlock( "Render_DrawView2D", colorRed );
 	}
@@ -5608,7 +5608,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
 
 		// PSX jitter parms
-		if( ( r_renderMode.GetInteger() == RENDERMODE_PSX ) && ( _viewDef->viewEntitys && !_viewDef->is2Dgui ) )
+		if( ( r_renderMode.GetInteger() == RENDERMODE_PSX ) && ( _viewDef->viewEntitys && _viewDef->guiMode == GUIMODE_NONE ) )
 		{
 			int	w = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
 			int	h = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
@@ -5826,7 +5826,6 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 				toneMapPass->SimpleRender( commandList, parms, viewDef, globalImages->currentRenderHDRImage->GetTextureHandle(), globalFramebuffers.ldrFBO->GetApiObject() );
 			}
 		}
-		glEnable( GL_SCISSOR_TEST );
 
 		renderLog.CloseBlock();
 		renderLog.CloseMainBlock();
@@ -6093,7 +6092,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 		cmd->viewDef->renderView.SetFov( vrSystem->GetFOV( targetEye ) );
 		cmd->viewDef->renderView.stereoScreenSeparation = 0.0f;
-		R_SetupProjectionMatrix( cmd->viewDef );
+		R_SetupProjectionMatrix( cmd->viewDef, false );
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
 
 		for( viewEntity_t* viewEntity = cmd->viewDef->viewEntitys; viewEntity; viewEntity = viewEntity->next )

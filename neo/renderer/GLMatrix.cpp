@@ -441,7 +441,7 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
 	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
-	
+
 	float ymax = viewDef->renderView.GetFovTop();
 	float ymin = viewDef->renderView.GetFovBottom();
 

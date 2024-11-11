@@ -293,12 +293,12 @@ static viewDef_t* R_PortalViewBySurface( const drawSurf_t* surf )
 	idMat3 viewaxis = parms->renderView.viewaxis;
 	idMat3 remoteViewAxis = surf->space->entityDef->parms.remoteRenderView->viewaxis;
 	const idVec3 orig = parms->renderView.vieworg;
-	float fov_x = parms->renderView.fov_x;
-	float fov_y = parms->renderView.fov_y;
+	float fov_x;
+	float fov_y;
+	parms->renderView.GetFovXY( fov_x, fov_y );
 
 	parms->renderView = *surf->space->entityDef->parms.remoteRenderView;
-	parms->renderView.fov_x = fov_x;
-	parms->renderView.fov_y = fov_y;
+	parms->renderView.SetFovXY( fov_x, fov_y );
 
 	idAngles ang = viewaxis.ToAngles();
 	idAngles angleDiff;

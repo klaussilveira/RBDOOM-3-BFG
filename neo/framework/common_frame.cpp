@@ -279,7 +279,7 @@ void idCommonLocal::Draw()
 		// (we want to see progress of the loading gui binarize too)
 		if( loadGUI != NULL )
 		{
-		tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
+			tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
 			loadGUI->Render( renderSystem, Sys_Milliseconds() );
 		}
 
@@ -738,12 +738,12 @@ void idCommonLocal::Frame()
 					break;
 				}
 
-			// Leyland VR: moved this out of the for loop
-			// How much time to wait before running the next frame,
-			// based on com_engineHz
-			const int frameDelay = FRAME_TO_MSEC( gameFrame + 1 ) - FRAME_TO_MSEC( gameFrame );
-			for( ;; )
-			{
+				// Leyland VR: moved this out of the for loop
+				// How much time to wait before running the next frame,
+				// based on com_engineHz
+				const int frameDelay = FRAME_TO_MSEC( gameFrame + 1 ) - FRAME_TO_MSEC( gameFrame );
+				for( ;; )
+				{
 					if( gameTimeResidual < frameDelay )
 					{
 						break;
@@ -756,11 +756,11 @@ void idCommonLocal::Frame()
 
 				if( numGameFrames > 0 )
 				{
-				// // Leyland VR: debt forgiveness
-				if( gameTimeResidual < frameDelay / 4.0f )
-				{
-					gameTimeResidual = 0;
-				}
+					// // Leyland VR: debt forgiveness
+					if( gameTimeResidual < frameDelay / 4.0f )
+					{
+						gameTimeResidual = 0;
+					}
 
 					// ready to actually run them
 					break;

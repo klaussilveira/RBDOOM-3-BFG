@@ -32,7 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <openvr.h>
 
-#include "../../renderer/tr_local.h" // TODO remove
 #include "VRSystem.h"
 
 #define MAX_VREVENTS 256
@@ -51,7 +50,7 @@ class VRSystem_Valve : public VRSystem
 	virtual int				PollGameInputEvents();
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value );
 
-	virtual void			PreSwap( GLuint left, GLuint right );
+	virtual void			PreSwap( uint left, uint right );
 	virtual void			PostSwap();
 
 	virtual idVec2i			GetRenderResolution() const
@@ -116,6 +115,7 @@ class VRSystem_Valve : public VRSystem
 
 private:
 	void					ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis );
+	idStr					GetTrackedDeviceString( vr::TrackedDeviceIndex_t unDevice, vr::TrackedDeviceProperty prop, vr::TrackedPropertyError* peError = NULL );
 
 	void					UpdateScaling();
 	void					UpdateControllers();
@@ -135,7 +135,7 @@ private:
 	bool					CalculateView( idVec3& origin, idMat3& axis, const idVec3& eyeOffset, bool overridePitch );
 
 	vr::IVRSystem*	hmd = NULL;
-	bool			openVREnabled;
+	bool			openVREnabled = false;
 	bool			openVRSeated;
 	bool			openVRLeftTouchpad;
 	bool			openVRRightTouchpad;
@@ -215,8 +215,27 @@ void VRSystem_Valve::ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& or
 	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
 }
 
+idStr VRSystem_Valve::GetTrackedDeviceString( vr::TrackedDeviceIndex_t unDevice, vr::TrackedDeviceProperty prop, vr::TrackedPropertyError* peError )
+{
+	uint32_t unRequiredBufferLen = vr::VRSystem()->GetStringTrackedDeviceProperty( unDevice, prop, NULL, 0, peError );
+	if( unRequiredBufferLen == 0 )
+	{
+		return "";
+	}
+
+	char* pchBuffer = new char[ unRequiredBufferLen ];
+	unRequiredBufferLen = vr::VRSystem()->GetStringTrackedDeviceProperty( unDevice, prop, pchBuffer, unRequiredBufferLen, peError );
+	idStr sResult( pchBuffer );
+	delete [] pchBuffer;
+	return sResult;
+}
+
 bool VRSystem_Valve::InitHMD()
 {
+#if 1
+	return false;
+#endif
+
 	vr::EVRInitError error = vr::VRInitError_None;
 	hmd = vr::VR_Init( &error, vr::VRApplication_Scene );
 	if( error != vr::VRInitError_None )
@@ -282,31 +301,33 @@ bool VRSystem_Valve::InitHMD()
 	ConvertMatrix( hmd->GetSeatedZeroPoseToStandingAbsoluteTrackingPose(), m_seatedOrigin, m_seatedAxis );
 	m_seatedAxisInverse = m_seatedAxis.Inverse();
 
+
+	int hmdHz = ( int )( hmd->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float ) + 0.5f );
+	cvarSystem->SetCVarString( "r_swapInterval", "0" );
+	cvarSystem->SetCVarInteger( "com_engineHz", hmdHz );
+
 	return true;
 }
 
 void VRSystem_Valve::ResetPose()
 {
 	g_poseReset = true;
-	hmd->ResetSeatedZeroPose();
+	//hmd->ResetSeatedZeroPose();
 }
 
 void VRSystem_Valve::LogDevices()
 {
-	char modelNumberString[ vr::k_unTrackingStringSize ];
 	int axisType;
 	const char* axisTypeString;
 
-	hmd->GetStringTrackedDeviceProperty(
-		vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_ModelNumber_String,
-		modelNumberString, vr::k_unTrackingStringSize );
+	idStr modelNumberString = GetTrackedDeviceString( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_ModelNumber_String );
+
 	common->Printf( "\nhead  model \"%s\"\n", modelNumberString );
 
 	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		hmd->GetStringTrackedDeviceProperty(
-			m_leftController, vr::Prop_ModelNumber_String,
-			modelNumberString, vr::k_unTrackingStringSize );
+		modelNumberString = GetTrackedDeviceString( m_leftController, vr::Prop_ModelNumber_String );
+
 		axisType = hmd->GetInt32TrackedDeviceProperty( m_leftController, vr::Prop_Axis0Type_Int32 );
 		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
 		common->Printf( "left  model \"%s\" axis %s\n", modelNumberString, axisTypeString );
@@ -318,9 +339,8 @@ void VRSystem_Valve::LogDevices()
 
 	if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
-		hmd->GetStringTrackedDeviceProperty(
-			m_rightController, vr::Prop_ModelNumber_String,
-			modelNumberString, vr::k_unTrackingStringSize );
+		modelNumberString = GetTrackedDeviceString( m_rightController, vr::Prop_ModelNumber_String );
+
 		axisType = hmd->GetInt32TrackedDeviceProperty( m_rightController, vr::Prop_Axis0Type_Int32 );
 		axisTypeString = hmd->GetControllerAxisTypeNameFromEnum( ( vr::EVRControllerAxisType )axisType );
 		common->Printf( "right model \"%s\" axis %s\n", modelNumberString, axisTypeString );
@@ -620,7 +640,7 @@ void VRSystem_Valve::GenJoyAxisEvents()
 	if( m_leftController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		vr::VRControllerState_t& state = m_LeftControllerState;
-		hmd->GetControllerState( m_leftController, &state );
+		hmd->GetControllerState( m_leftController, &state, sizeof( state ) );
 
 		// dpad modes
 		if( !openVRLeftTouchpad )
@@ -651,7 +671,7 @@ void VRSystem_Valve::GenJoyAxisEvents()
 	if( m_rightController != vr::k_unTrackedDeviceIndexInvalid )
 	{
 		vr::VRControllerState_t& state = m_RightControllerState;
-		hmd->GetControllerState( m_rightController, &state );
+		hmd->GetControllerState( m_rightController, &state, sizeof( state ) );
 
 		// dpad modes
 		if( !openVRRightTouchpad )
@@ -812,12 +832,9 @@ void VRSystem_Valve::UpdateControllers()
 		{
 			openVRSeated = false;
 
-			char modelNumberString[ vr::k_unTrackingStringSize ];
 			int axisType;
 
-			hmd->GetStringTrackedDeviceProperty(
-				m_leftController, vr::Prop_ModelNumber_String,
-				modelNumberString, vr::k_unTrackingStringSize );
+			idStr modelNumberString = GetTrackedDeviceString( m_leftController, vr::Prop_ModelNumber_String );
 
 			if( idStr::Icmp( modelNumberString, "Hydra" ) == 0 )
 			{
@@ -829,9 +846,7 @@ void VRSystem_Valve::UpdateControllers()
 				openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 
-			hmd->GetStringTrackedDeviceProperty(
-				m_rightController, vr::Prop_ModelNumber_String,
-				modelNumberString, vr::k_unTrackingStringSize );
+			modelNumberString = GetTrackedDeviceString( m_rightController, vr::Prop_ModelNumber_String );
 
 			if( idStr::Icmp( modelNumberString, "Hydra" ) == 0 )
 			{
@@ -853,14 +868,16 @@ void VRSystem_Valve::UpdateControllers()
 	}
 }
 
-void VRSystem_Valve::PreSwap( GLuint left, GLuint right )
+void VRSystem_Valve::PreSwap( uint left, uint right )
 {
+#if 0
 	GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 
 	vr::Texture_t leftEyeTexture = {( void* )left, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
 	vr::Texture_t rightEyeTexture = {( void* )right, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+#endif
 }
 
 void VRSystem_Valve::PostSwap()

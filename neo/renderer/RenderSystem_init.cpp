@@ -89,9 +89,9 @@ idCVar r_useValidationLayers( "r_useValidationLayers", "1", CVAR_INTEGER | CVAR_
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
 idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional display refresh rate option for vid mode", 0.0f, 240.0f );
 // SRS - redefined mode -2 to be borderless fullscreen, implemented borderless modes -2 and -1 for Windows and linux/macOS (SDL)
-	// DG: add mode -2 for SDL, also defaulting to windowed mode, as that causes less trouble on linux
+// DG: add mode -2 for SDL, also defaulting to windowed mode, as that causes less trouble on linux
 idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "-2 = borderless fullscreen, -1 = borderless window, 0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
-	// DG end
+// DG end
 idCVar r_customWidth( "r_customWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_vidMode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_vidMode to -1 to activate" );
 idCVar r_windowX( "r_windowX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
@@ -166,8 +166,6 @@ idCVar r_offsetFactor( "r_offsetfactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polyg
 #endif
 // RB end
 
-idCVar r_selfShadow( "r_selfShadow", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "allows all materials to cast shadows on themselves" );
-idCVar r_selfShadowAdjust( "r_selfShadowAdjust", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "adjust shaders to work around self shadow popping artifacts" );
 idCVar r_shadowPolygonOffset( "r_shadowPolygonOffset", "-1", CVAR_RENDERER | CVAR_FLOAT, "bias value added to depth test for stencil shadow drawing" );
 idCVar r_shadowPolygonFactor( "r_shadowPolygonFactor", "0", CVAR_RENDERER | CVAR_FLOAT, "scale value for stencil shadow drawing" );
 idCVar r_subviewOnly( "r_subviewOnly", "0", CVAR_RENDERER | CVAR_BOOL, "1 = don't render main view, allowing subviews to be debugged" );
@@ -560,8 +558,6 @@ safeMode:
 	}
 }
 
-	VRSystem::Init();
-
 /*
 =====================
 R_ReloadSurface_f
@@ -822,11 +818,8 @@ bool R_ReadPixelsRGB8( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrh
 
 			tempTexture = device->createTexture( desc );
 			tempFramebuffer = device->createFramebuffer( nvrhi::FramebufferDesc().addColorAttachment( tempTexture ) );
-	{
-	}
 
 			pPasses->BlitTexture( commandList, tempFramebuffer, texture );
-	}
 	}
 
 	nvrhi::StagingTextureHandle stagingTexture = device->createStagingTexture( desc, nvrhi::CpuAccessMode::Read );
@@ -1725,11 +1718,11 @@ void R_TouchGui_f( const idCmdArgs& args )
 	uiManager->Touch( gui );
 }
 
-
+/*
+=================
 VR_ResetPose_f
 =================
 */
-
 void VR_ResetPose_f( const idCmdArgs& args )
 {
 	if( vrSystem->IsActive() )
@@ -2696,9 +2689,9 @@ int idRenderSystemLocal::GetVirtualWidth() const
 {
 	// RB: use lower res for VR guis
 	if( r_useVirtualScreenResolution.GetBool() || vrSystem->IsActive() )
-	//{
-	//	return SCREEN_WIDTH;
-	//}
+	{
+		return SCREEN_WIDTH;
+	}
 // jmarshall end
 	return glConfig.nativeScreenWidth / 2;
 }
@@ -2712,9 +2705,9 @@ int idRenderSystemLocal::GetVirtualHeight() const
 {
 	// RB: use lower res for VR guis
 	if( r_useVirtualScreenResolution.GetBool() || vrSystem->IsActive() )
-	//{
-	//	return SCREEN_HEIGHT;
-	//}
+	{
+		return SCREEN_HEIGHT;
+	}
 // jmarshall end
 	return glConfig.nativeScreenHeight / 2;
 }

@@ -61,7 +61,7 @@ public:
 	virtual int				PollGameInputEvents() = 0;
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value ) = 0;
 
-	virtual void			PreSwap( GLuint left, GLuint right ) = 0;
+	virtual void			PreSwap( uint left, uint right ) = 0;
 	virtual void			PostSwap() = 0;
 
 	virtual idVec2i			GetRenderResolution() const = 0;

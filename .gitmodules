@@ -4,3 +4,6 @@
 [submodule "neo/extern/ShaderMake"]
 	path = neo/extern/ShaderMake
 	url = https://github.com/RobertBeckebans/ShaderMake.git
+[submodule "neo/extern/openvr"]
+	path = neo/extern/openvr
+	url = https://github.com/ValveSoftware/openvr.git

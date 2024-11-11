@@ -1031,7 +1031,7 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			ref = primary.renderView;
 
 			ref.rdflags = RDF_NOAMBIENT | RDF_IRRADIANCE;
-			ref.fov_x = ref.fov_y = 90;
+			ref.SetFovXY( 90, 90 );
 
 			ref.vieworg = def->parms.origin;
 			ref.viewaxis = tr.cubeAxis[j];

@@ -1024,9 +1024,10 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 
 	SCOPED_PROFILE_EVENT( "RenderWorld::RenderScene" );
 
-	if( renderView->fov_x <= 0 || renderView->fov_y <= 0 )
+	if( renderView->GetFovRight() <= renderView->GetFovLeft() || renderView->GetFovTop() <= renderView->GetFovBottom() )
 	{
-		common->Error( "idRenderWorld::RenderScene: bad FOVs: %f, %f", renderView->fov_x, renderView->fov_y );
+		common->Error( "idRenderWorld::RenderScene: bad FOVs: %f, %f, %f, %f",
+					   renderView->GetFovLeft(), renderView->GetFovRight(), renderView->GetFovBottom(), renderView->GetFovTop() );
 	}
 
 	// close any gui drawing
@@ -2511,8 +2512,8 @@ void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRec
 	centery = ( viewDef->viewport.y2 - viewDef->viewport.y1 ) * 0.5f;
 
 	dScale = r_znear.GetFloat() + 1.0f;
-	hScale = dScale * idMath::Tan16( DEG2RAD( viewDef->renderView.fov_x * 0.5f ) );
-	vScale = dScale * idMath::Tan16( DEG2RAD( viewDef->renderView.fov_y * 0.5f ) );
+	hScale = dScale * viewDef->renderView.GetFovRight();
+	vScale = dScale * viewDef->renderView.GetFovTop();
 
 	bounds[0][0] = bounds[1][0] = dScale;
 	bounds[0][1] = -( rect.x1 - centerx ) / centerx * hScale;

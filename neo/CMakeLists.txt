@@ -311,6 +311,15 @@ endif (RAPIDJSON_FOUND)
 include_directories("libs/imgui")
 include_directories("libs/mikktspace")
 
+if(WIN32)
+	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/openvr/lib/win64)
+else()
+	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/openvr/lib/linux64)
+endif()
+
+set(OPENVR_LIBRARY "openvr_api")
+include_directories("extern/openvr/headers")
+
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
 endmacro()
@@ -420,29 +429,6 @@ if(OPTICK)
 	source_group("libs\\optick" FILES ${OPTICK_INCLUDES})
 	source_group("libs\\optick" FILES ${OPTICK_SOURCES})
 endif()
-
-if(WIN32)
-	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-		link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/lib/win32)
-	else()
-		link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/lib/win64)
-	endif()
-endif(WIN32)
-
-if(UNIX)
-	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-		link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/lib/linux32)
-	else()
-		link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/lib/linux64)
-	endif()
-endif(UNIX)
-
-if(APPLE)
-	link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/lib/osx32)
-endif(APPLE)
-
-set(OPENVR_LIBRARY "openvr_api")
-include_directories("libs/openvr/headers")
 
 add_subdirectory(idlib)
 
@@ -1445,7 +1431,7 @@ if(MSVC)
 	add_custom_command(TARGET RBDoom3BFG
 				POST_BUILD
 				COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_CURRENT_SOURCE_DIR}/libs/openvr/bin/win64/openvr_api.dll ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+				${CMAKE_CURRENT_SOURCE_DIR}/extern/openvr/bin/win64/openvr_api.dll ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 		
 	add_dependencies(RBDoom3BFG idlib)
     

@@ -315,7 +315,7 @@ public:
 	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
 
 	int						rdflags;			// RB: RDF_NOSHADOWS, etc
-	
+
 	// Leyland: for last moment visual correction and reduction of lag
 	bool					vrHadHead;
 	idVec3					vrHeadOrigin;
