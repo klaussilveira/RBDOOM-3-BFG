@@ -64,6 +64,11 @@ public:
 	virtual void			PreSwap( GLuint left, GLuint right ) = 0;
 	virtual void			PostSwap() = 0;
 
+	virtual idVec2i			GetRenderResolution() const = 0;
+	virtual float			GetScreenSeparation() const = 0;
+	virtual idVec4			GetFOV( int eye ) const = 0;
+	virtual float			GetHalfIPD() const = 0;	// in world units instead of centimeters
+
 	virtual bool			GetHead( idVec3& origin, idMat3& axis ) = 0;
 	virtual bool			GetLeftController( idVec3& origin, idMat3& axis ) = 0;
 	virtual bool			GetRightController( idVec3& origin, idMat3& axis ) = 0;
@@ -73,9 +78,11 @@ public:
 	virtual bool			GetLeftControllerAxis( idVec2& axis ) = 0;
 	virtual bool			GetRightControllerAxis( idVec2& axis ) = 0;
 
+	virtual bool			HasLeftTouchpad() const = 0;
 	virtual bool			LeftControllerWasPressed() = 0;
 	virtual bool			LeftControllerIsPressed() = 0;
 
+	virtual bool			HasRightTouchpad() const = 0;
 	virtual bool			RightControllerWasPressed() = 0;
 	virtual bool			RightControllerIsPressed() = 0;
 

@@ -201,17 +201,8 @@ struct glconfig_t
 
 	float				pixelAspect;
 
-	bool				openVRLeftTouchpad;
-	bool				openVRRightTouchpad;
-	int					openVRWidth;
-	int					openVRHeight;
-	idVec4				openVRfovEye[2];
-	float				openVRScreenSeparation;
-	float				openVRScale;
-	float				openVRUnscaledEyeForward;
-	float				openVRUnscaledHalfIPD;
-	float				openVREyeForward;
-	float				openVRHalfIPD;
+
+
 
 	// RB begin
 #if !defined(__ANDROID__)

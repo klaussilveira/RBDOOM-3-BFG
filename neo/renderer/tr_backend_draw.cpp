@@ -5656,7 +5656,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 
 		idVec3& vieworg = cmd->viewDef->renderView.vieworg;
 		idMat3& viewaxis = cmd->viewDef->renderView.viewaxis;
-		float stereoOffset = -stereoEye * glConfig.openVRHalfIPD;
+		float stereoOffset = -stereoEye * vrSystem->GetHalfIPD();
 		vieworg -= stereoOffset * viewaxis[1];
 
 		vieworg += vrDeltaOrigin;
@@ -5695,7 +5695,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 		// Put 2D GUI in a 3D world
 		const int targetEye = ( stereoEye == -1 ) ? 1 : 0;
 
-		cmd->viewDef->renderView.SetFov( glConfig.openVRfovEye[ targetEye ] );
+		cmd->viewDef->renderView.SetFov( vrSystem->GetFOV( targetEye ) );
 		cmd->viewDef->renderView.stereoScreenSeparation = 0.0f;
 		R_SetupProjectionMatrix( cmd->viewDef );
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
@@ -5754,7 +5754,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 					vrHeadAxis = vrSystem->GetSeatedAxisInverse();
 					vrHeadOrigin = vrHeadAxis * -vrSystem->GetSeatedOrigin();
 				}
-				vrHeadOrigin.y += glConfig.openVRHalfIPD * stereoEye;
+				vrHeadOrigin.y += vrSystem->GetHalfIPD() * stereoEye;
 
 				idVec3 mvpOrigin = guiOrigin * vrHeadAxis + vrHeadOrigin;
 				idMat3 mvpAxis = guiAxis * vrHeadAxis;

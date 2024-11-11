@@ -3139,7 +3139,7 @@ int idRenderSystemLocal::GetWidth() const
 {
 	if( glConfig.stereo3Dmode == STEREO3D_OPENVR )
 	{
-		return glConfig.openVRWidth;
+		return vrSystem->GetRenderResolution().x;
 	}
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE || glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE_COMPRESSED )
 	{
@@ -3157,7 +3157,7 @@ int idRenderSystemLocal::GetHeight() const
 {
 	if( glConfig.stereo3Dmode == STEREO3D_OPENVR )
 	{
-		return glConfig.openVRHeight;
+		return vrSystem->GetRenderResolution().y;
 	}
 	if( glConfig.stereo3Dmode == STEREO3D_HDMI_720 )
 	{

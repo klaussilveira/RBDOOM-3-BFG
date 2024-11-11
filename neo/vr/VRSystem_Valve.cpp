@@ -54,6 +54,26 @@ class VRSystem_Valve : public VRSystem
 	virtual void			PreSwap( GLuint left, GLuint right );
 	virtual void			PostSwap();
 
+	virtual idVec2i			GetRenderResolution() const
+	{
+		return idVec2i( hmdWidth, hmdHeight );
+	}
+
+	virtual float			GetScreenSeparation() const
+	{
+		return openVRScreenSeparation;
+	}
+
+	virtual idVec4			GetFOV( int eye ) const
+	{
+		return openVRfovEye[ eye ];
+	}
+
+	virtual float			GetHalfIPD() const
+	{
+		return openVRHalfIPD;
+	}
+
 	virtual bool			GetHead( idVec3& origin, idMat3& axis );
 	virtual bool			GetLeftController( idVec3& origin, idMat3& axis );
 	virtual bool			GetRightController( idVec3& origin, idMat3& axis );
@@ -84,6 +104,16 @@ class VRSystem_Valve : public VRSystem
 		return openVRSeated;
 	}
 
+	virtual bool			HasLeftTouchpad() const
+	{
+		return openVRLeftTouchpad;
+	}
+
+	virtual bool			HasRightTouchpad() const
+	{
+		return openVRRightTouchpad;
+	}
+
 private:
 	void					ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& origin, idMat3& axis );
 
@@ -107,6 +137,18 @@ private:
 	vr::IVRSystem*	hmd = NULL;
 	bool			openVREnabled;
 	bool			openVRSeated;
+	bool			openVRLeftTouchpad;
+	bool			openVRRightTouchpad;
+	idVec4			openVRfovEye[2];
+	float			openVRScreenSeparation;
+	float			openVRScale;
+	float			openVRUnscaledEyeForward;
+	float			openVRUnscaledHalfIPD;
+	float			openVREyeForward;
+	float			openVRHalfIPD;
+
+	int				hmdWidth;
+	int				hmdHeight;
 
 	float m_ScaleX = 1.0f;
 	float m_ScaleY = 1.0f;
@@ -124,26 +166,26 @@ private:
 	int m_leftControllerPulseDur;
 	int m_rightControllerPulseDur;
 
-	bool m_HasHeadPose;
-	idVec3 m_HeadOrigin;
-	idMat3 m_HeadAxis;
-	bool m_HadHead;
-	idVec3 m_HeadLastOrigin;
-	idVec3 m_HeadMoveDelta;
+	bool	m_HasHeadPose;
+	idVec3	m_HeadOrigin;
+	idMat3	m_HeadAxis;
+	bool	m_HadHead;
+	idVec3	m_HeadLastOrigin;
+	idVec3	m_HeadMoveDelta;
 
-	bool m_HasLeftControllerPose;
-	idVec3 m_LeftControllerOrigin;
-	idMat3 m_LeftControllerAxis;
+	bool	m_HasLeftControllerPose;
+	idVec3	m_LeftControllerOrigin;
+	idMat3	m_LeftControllerAxis;
 
-	bool m_HasRightControllerPose;
-	idVec3 m_RightControllerOrigin;
-	idMat3 m_RightControllerAxis;
+	bool	m_HasRightControllerPose;
+	idVec3	m_RightControllerOrigin;
+	idMat3	m_RightControllerAxis;
 
-	bool g_poseReset;
+	bool	g_poseReset;
 
-	int m_UIEventIndex;
-	int m_UIEventCount;
-	sysEvent_t m_UIEvents[MAX_VREVENTS];
+	int			m_UIEventIndex;
+	int			m_UIEventCount;
+	sysEvent_t	m_UIEvents[MAX_VREVENTS];
 
 	int m_GameEventCount;
 	struct
@@ -167,6 +209,7 @@ void VRSystem_Valve::ConvertMatrix( const vr::HmdMatrix34_t& poseMat, idVec3& or
 		m_ScaleX * poseMat.m[2][3],
 		m_ScaleY * poseMat.m[0][3],
 		m_ScaleZ * poseMat.m[1][3] );
+
 	axis[0].Set( poseMat.m[2][2], poseMat.m[0][2], -poseMat.m[1][2] );
 	axis[1].Set( poseMat.m[2][0], poseMat.m[0][0], -poseMat.m[1][0] );
 	axis[2].Set( -poseMat.m[2][1], -poseMat.m[0][1], poseMat.m[1][1] );
@@ -199,18 +242,18 @@ bool VRSystem_Valve::InitHMD()
 	UpdateResolution();
 
 	hmd->GetProjectionRaw( vr::Eye_Left,
-						   &glConfig.openVRfovEye[1][0], &glConfig.openVRfovEye[1][1],
-						   &glConfig.openVRfovEye[1][2], &glConfig.openVRfovEye[1][3] );
+						   &openVRfovEye[1][0], &openVRfovEye[1][1],
+						   &openVRfovEye[1][2], &openVRfovEye[1][3] );
 
 	hmd->GetProjectionRaw( vr::Eye_Right,
-						   &glConfig.openVRfovEye[0][0], &glConfig.openVRfovEye[0][1],
-						   &glConfig.openVRfovEye[0][2], &glConfig.openVRfovEye[0][3] );
+						   &openVRfovEye[0][0], &openVRfovEye[0][1],
+						   &openVRfovEye[0][2], &openVRfovEye[0][3] );
 
-	glConfig.openVRScreenSeparation =
-		0.5f * ( glConfig.openVRfovEye[1][1] + glConfig.openVRfovEye[1][0] )
-		/ ( glConfig.openVRfovEye[1][1] - glConfig.openVRfovEye[1][0] )
-		- 0.5f * ( glConfig.openVRfovEye[0][1] + glConfig.openVRfovEye[0][0] )
-		/ ( glConfig.openVRfovEye[0][1] - glConfig.openVRfovEye[0][0] );
+	openVRScreenSeparation =
+		0.5f * ( openVRfovEye[1][1] + openVRfovEye[1][0] )
+		/ ( openVRfovEye[1][1] - openVRfovEye[1][0] )
+		- 0.5f * ( openVRfovEye[0][1] + openVRfovEye[0][0] )
+		/ ( openVRfovEye[0][1] - openVRfovEye[0][0] );
 
 	vr::HmdMatrix34_t mat;
 
@@ -226,8 +269,8 @@ bool VRSystem_Valve::InitHMD()
 	MatrixRTInverse( hmdEyeRight );
 #endif
 
-	glConfig.openVRUnscaledHalfIPD = mat.m[0][3];
-	glConfig.openVRUnscaledEyeForward = -mat.m[2][3];
+	openVRUnscaledHalfIPD = mat.m[0][3];
+	openVRUnscaledEyeForward = -mat.m[2][3];
 	UpdateScaling();
 
 	openVRSeated = true;
@@ -492,10 +535,12 @@ void VRSystem_Valve::GenButtonEvent( uint32_t button, bool left, bool pressed )
 				{
 					m_LeftControllerWasPressed = true;
 				}
-				if( !glConfig.openVRLeftTouchpad )
+
+				if( !openVRLeftTouchpad )
 				{
 					break;
 				}
+
 				// dpad modes
 				static int gameLeftLastKey;
 				if( pressed )
@@ -526,7 +571,8 @@ void VRSystem_Valve::GenButtonEvent( uint32_t button, bool left, bool pressed )
 				{
 					m_RightControllerWasPressed = true;
 				}
-				if( !glConfig.openVRRightTouchpad )
+
+				if( !openVRRightTouchpad )
 				{
 					break;
 				}
@@ -577,7 +623,7 @@ void VRSystem_Valve::GenJoyAxisEvents()
 		hmd->GetControllerState( m_leftController, &state );
 
 		// dpad modes
-		if( !glConfig.openVRLeftTouchpad )
+		if( !openVRLeftTouchpad )
 		{
 			static int gameLeftLastKey;
 
@@ -608,7 +654,7 @@ void VRSystem_Valve::GenJoyAxisEvents()
 		hmd->GetControllerState( m_rightController, &state );
 
 		// dpad modes
-		if( !glConfig.openVRRightTouchpad )
+		if( !openVRRightTouchpad )
 		{
 			static int gameRightLastKey;
 
@@ -718,8 +764,8 @@ void VRSystem_Valve::UpdateResolution()
 		height = 8000;
 	}
 
-	glConfig.openVRWidth = width;
-	glConfig.openVRHeight = height;
+	hmdWidth = width;
+	hmdHeight = height;
 }
 
 void VRSystem_Valve::UpdateScaling()
@@ -727,12 +773,12 @@ void VRSystem_Valve::UpdateScaling()
 	const float m2i = 1 / 0.0254f; // meters to inches
 	const float cm2i = 1 / 2.54f; // centimeters to inches
 	float ratio = 76.5f / ( vr_playerHeightCM.GetFloat() * cm2i ); // converts player height to character height
-	glConfig.openVRScale = m2i * ratio;
-	glConfig.openVRHalfIPD = glConfig.openVRUnscaledHalfIPD * glConfig.openVRScale;
-	glConfig.openVREyeForward = glConfig.openVRUnscaledEyeForward * glConfig.openVRScale;
-	m_ScaleX = -glConfig.openVRScale;
-	m_ScaleY = -glConfig.openVRScale;
-	m_ScaleZ = glConfig.openVRScale;
+	openVRScale = m2i * ratio;
+	openVRHalfIPD = openVRUnscaledHalfIPD * openVRScale;
+	openVREyeForward = openVRUnscaledEyeForward * openVRScale;
+	m_ScaleX = -openVRScale;
+	m_ScaleY = -openVRScale;
+	m_ScaleZ = openVRScale;
 }
 
 void VRSystem_Valve::UpdateControllers()
@@ -772,27 +818,29 @@ void VRSystem_Valve::UpdateControllers()
 			hmd->GetStringTrackedDeviceProperty(
 				m_leftController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
-			if( strcmp( modelNumberString, "Hydra" ) == 0 )
+
+			if( idStr::Icmp( modelNumberString, "Hydra" ) == 0 )
 			{
-				glConfig.openVRLeftTouchpad = 0;
+				openVRLeftTouchpad = 0;
 			}
 			else
 			{
 				axisType = hmd->GetInt32TrackedDeviceProperty( m_leftController, vr::Prop_Axis0Type_Int32 );
-				glConfig.openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
+				openVRLeftTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 
 			hmd->GetStringTrackedDeviceProperty(
 				m_rightController, vr::Prop_ModelNumber_String,
 				modelNumberString, vr::k_unTrackingStringSize );
-			if( strcmp( modelNumberString, "Hydra" ) == 0 )
+
+			if( idStr::Icmp( modelNumberString, "Hydra" ) == 0 )
 			{
-				glConfig.openVRRightTouchpad = 0;
+				openVRRightTouchpad = 0;
 			}
 			else
 			{
 				axisType = hmd->GetInt32TrackedDeviceProperty( m_rightController, vr::Prop_Axis0Type_Int32 );
-				glConfig.openVRRightTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
+				openVRRightTouchpad = ( axisType == vr::k_eControllerAxis_TrackPad ) ? 1 : 0;
 			}
 		}
 	}
@@ -807,7 +855,7 @@ void VRSystem_Valve::UpdateControllers()
 
 void VRSystem_Valve::PreSwap( GLuint left, GLuint right )
 {
-	GL_ViewportAndScissor( 0, 0, glConfig.openVRWidth, glConfig.openVRHeight );
+	GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
 
 	vr::Texture_t leftEyeTexture = {( void* )left, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
@@ -842,7 +890,7 @@ void VRSystem_Valve::PostSwap()
 	if( hmdPose.bPoseIsValid )
 	{
 		ConvertPose( hmdPose, m_HeadOrigin, m_HeadAxis );
-		m_HeadOrigin += glConfig.openVREyeForward * m_HeadAxis[0];
+		m_HeadOrigin += openVREyeForward * m_HeadAxis[0];
 
 		if( m_HadHead )
 		{
@@ -1090,7 +1138,7 @@ bool VRSystem_Valve::GetLeftControllerAxis( idVec2& axis )
 
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 
-	if( glConfig.openVRLeftTouchpad )
+	if( openVRLeftTouchpad )
 	{
 		if( !( m_LeftControllerState.ulButtonTouched & mask ) )
 		{
@@ -1122,7 +1170,7 @@ bool VRSystem_Valve::GetRightControllerAxis( idVec2& axis )
 
 	uint64_t mask = vr::ButtonMaskFromId( vr::k_EButton_SteamVR_Touchpad );
 
-	if( glConfig.openVRRightTouchpad )
+	if( openVRRightTouchpad )
 	{
 		if( !( m_RightControllerState.ulButtonTouched & mask ) )
 		{

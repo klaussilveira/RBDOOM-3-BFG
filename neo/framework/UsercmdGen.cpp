@@ -1098,7 +1098,7 @@ void idUsercmdGenLocal::VRControlMove()
 	{
 		wasPressed = vrSystem->LeftControllerWasPressed();
 		isPressed = vrSystem->LeftControllerIsPressed();
-		touchpad = glConfig.openVRLeftTouchpad;
+		touchpad = vrSystem->HasLeftTouchpad();
 		moving = true;
 	}
 
@@ -1106,7 +1106,7 @@ void idUsercmdGenLocal::VRControlMove()
 	{
 		wasPressed |= vrSystem->RightControllerWasPressed();
 		isPressed |= vrSystem->RightControllerIsPressed();
-		touchpad |= glConfig.openVRRightTouchpad;
+		touchpad |= vrSystem->HasRightTouchpad();
 		moving = true;
 	}
 
@@ -1126,10 +1126,12 @@ void idUsercmdGenLocal::VRControlMove()
 				axis -= vrTouchedAxis;
 			}
 		}
+
 		if( wasPressed )
 		{
 			vrClickCount++;
 		}
+
 		bool held = false;
 		if( isPressed )
 		{

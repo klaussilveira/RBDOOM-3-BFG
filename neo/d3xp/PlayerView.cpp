@@ -578,7 +578,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 		if( bfgVision )
 		{
 			tr.guiModel->SetMode( GUIMODE_FULLSCREEN );
-			float extend = -0.5f * glConfig.openVRScreenSeparation * renderSystem->GetVirtualWidth();
+			float extend = -0.5f * vrSystem->GetScreenSeparation() * renderSystem->GetVirtualWidth();
 			float offset = -extend * view->viewEyeBuffer;
 			renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 			renderSystem->DrawStretchPic( offset - extend, 0.0f, renderSystem->GetVirtualWidth() + extend * 2, renderSystem->GetVirtualHeight(), 0.0f, 0.0f, 1.0f, 1.0f, bfgMaterial );
@@ -757,7 +757,7 @@ stereoDistances_t	CaclulateStereoDistances(
 	{
 		// head mounted display mode
 		dists.worldSeparation = CentimetersToInches( interOcularCentimeters * 0.5 );
-		dists.screenSeparation = glConfig.openVRScreenSeparation;
+		dists.screenSeparation = vrSystem->GetScreenSeparation();
 		return dists;
 	}
 	// Leyland end
@@ -807,7 +807,7 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 	if( vrSystem->IsActive() )
 	{
 		const int targetEye = ( eye == 1 ) ? 1 : 0;
-		eyeView.SetFov( glConfig.openVRfovEye[ targetEye ] );
+		eyeView.SetFov( vrSystem->GetFOV( targetEye ) );
 	}
 
 	// first chance update of VR head tracking
@@ -831,9 +831,11 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 										view->GetFovRight() );
 
 	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
+
 	if( vrSystem->IsActive() )
 	{
-		eyeView.vieworg += eye * glConfig.openVRHalfIPD * eyeView.viewaxis[1];
+		eyeView.vieworg += eye * vrSystem->GetHalfIPD() * eyeView.viewaxis[1];
+
 		// we are using fov instead
 		eyeView.stereoScreenSeparation = 0.0f;
 	}
@@ -1507,7 +1509,7 @@ void FullscreenFX_Warp::HighQuality()
 	// Leyland VR
 	if( vrSystem->IsActive() )
 	{
-		center.x += renderSystem->GetVirtualWidth() * glConfig.openVRScreenSeparation * tr.guiModel->GetViewEyeBuffer() * 0.5;
+		center.x += renderSystem->GetVirtualWidth() * vrSystem->GetScreenSeparation() * tr.guiModel->GetViewEyeBuffer() * 0.5;
 	}
 	// Leyland end
 
