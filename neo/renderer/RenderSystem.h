@@ -64,6 +64,24 @@ enum stereo3DMode_t
 	STEREO3D_OPENVR
 };
 
+// In a head mounted display with separate displays for each eye,
+// screen separation will be zero and world separation will be the eye distance.
+struct stereoDistances_t
+{
+	// Offset to projection matrix, positive one eye, negative the other.
+	// Total distance is twice this, so 0.05 would give a 10% of screen width
+	// separation for objects at infinity.
+	float	screenSeparation;
+
+	// Game world units from one eye to the centerline.
+	// Total distance is twice this.
+	float	worldSeparation;
+
+	// RB: offset behind both eyes considering the FOV
+	// see https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues/878
+	float	combinedSeperation;
+};
+
 typedef enum
 {
 	AUTORENDER_DEFAULTICON = 0,
@@ -267,6 +285,8 @@ public:
 	virtual bool			IsFullScreen() const = 0;
 	virtual int				GetWidth() const = 0;
 	virtual int				GetHeight() const = 0;
+	virtual int				GetNativeWidth() const = 0;
+	virtual int				GetNativeHeight() const = 0;
 	virtual int				GetVirtualWidth() const = 0;
 	virtual int				GetVirtualHeight() const = 0;
 

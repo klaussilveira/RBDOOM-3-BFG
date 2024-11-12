@@ -30,6 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "precompiled.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 #include <openvr.h>
 
 #include "VRSystem.h"
@@ -50,7 +53,7 @@ class VRSystem_Valve : public VRSystem
 	virtual int				PollGameInputEvents();
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value );
 
-	virtual void			PreSwap( uint left, uint right );
+	virtual void			SubmitStereoRenders( nvrhi::ICommandList* commandList, idImage* image0, idImage* image1 );
 	virtual void			PostSwap();
 
 	virtual idVec2i			GetRenderResolution() const
@@ -232,7 +235,7 @@ idStr VRSystem_Valve::GetTrackedDeviceString( vr::TrackedDeviceIndex_t unDevice,
 
 bool VRSystem_Valve::InitHMD()
 {
-#if 1
+#if 0
 	openVREnabled = false;
 	return false;
 #endif
@@ -261,11 +264,11 @@ bool VRSystem_Valve::InitHMD()
 
 	UpdateResolution();
 
-	hmd->GetProjectionRaw( vr::Eye_Left,
+	hmd->GetProjectionRaw( vr::Eye_Right,
 						   &openVRfovEye[1][0], &openVRfovEye[1][1],
 						   &openVRfovEye[1][2], &openVRfovEye[1][3] );
 
-	hmd->GetProjectionRaw( vr::Eye_Right,
+	hmd->GetProjectionRaw( vr::Eye_Left,
 						   &openVRfovEye[0][0], &openVRfovEye[0][1],
 						   &openVRfovEye[0][2], &openVRfovEye[0][3] );
 
@@ -728,10 +731,10 @@ void VRSystem_Valve::GenMouseEvents()
 			static int oldX, oldY;
 			float wx = rayStart.y - rayStart.x * rayDir.y / rayDir.x;
 			float wy = rayStart.z - rayStart.x * rayDir.z / rayDir.x;
-			int x = -wx * glConfig.nativeScreenWidth / guiWidth;
-			int y = -wy * glConfig.nativeScreenHeight / guiHeight;
-			if( x >= 0 && x < glConfig.nativeScreenWidth &&
-					y >= 0 && y < glConfig.nativeScreenHeight &&
+			int x = -wx * renderSystem->GetWidth() / guiWidth;
+			int y = -wy * renderSystem->GetHeight() / guiHeight;
+			if( x >= 0 && x < renderSystem->GetWidth() &&
+					y >= 0 && y < renderSystem->GetHeight() &&
 					( x != oldX || y != oldY ) )
 			{
 				oldX = x;
@@ -869,7 +872,7 @@ void VRSystem_Valve::UpdateControllers()
 	}
 }
 
-void VRSystem_Valve::PreSwap( uint left, uint right )
+void VRSystem_Valve::SubmitStereoRenders( nvrhi::ICommandList* commandList, idImage* image0, idImage* image1 )
 {
 #if 0
 	GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
@@ -879,6 +882,63 @@ void VRSystem_Valve::PreSwap( uint left, uint right )
 	vr::Texture_t rightEyeTexture = {( void* )right, vr::API_OpenGL, vr::ColorSpace_Gamma };
 	vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
 #endif
+
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		nvrhi::IDevice* device = deviceManager->GetDevice();
+
+		vr::VRVulkanTextureData_t vulkanData;
+		nvrhi::ITexture* nativeTexture = image0->GetTextureHandle();
+
+		vulkanData.m_nImage = ( uint64_t )( void* )nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+		vulkanData.m_pDevice = ( VkDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Device );
+		vulkanData.m_pPhysicalDevice = ( VkPhysicalDevice_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_PhysicalDevice );
+		vulkanData.m_pInstance = ( VkInstance_T* ) device->getNativeObject( nvrhi::ObjectTypes::VK_Instance );
+		vulkanData.m_pQueue = ( VkQueue_T* ) device->getNativeQueue( nvrhi::ObjectTypes::VK_Queue, nvrhi::CommandQueue::Graphics );
+		vulkanData.m_nQueueFamilyIndex = deviceManager->GetGraphicsFamilyIndex();
+
+		vulkanData.m_nWidth = image0->GetUploadWidth();
+		vulkanData.m_nHeight = image0->GetUploadHeight();
+		vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		vulkanData.m_nSampleCount = 1;
+
+		vr::Texture_t leftEyeTexture = { ( void* )& vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+
+		nativeTexture = image1->GetTextureHandle();
+		vulkanData.m_nImage = ( uint64_t )( void* )nativeTexture->getNativeObject( nvrhi::ObjectTypes::VK_Image );
+		vulkanData.m_nWidth = image1->GetUploadWidth();
+		vulkanData.m_nHeight = image1->GetUploadHeight();
+		vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		vulkanData.m_nSampleCount = 1;
+
+		vr::Texture_t rightEyeTexture = { ( void* )& vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+	}
+	else
+	{
+		vr::D3D12TextureData_t d3d12LeftEyeTexture;
+
+		nvrhi::ITexture* nativeTexture = image0->GetTextureHandle();
+		d3d12LeftEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12LeftEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		d3d12LeftEyeTexture.m_nNodeMask = 0;
+
+		vr::Texture_t leftEyeTexture = { ( void* )& d3d12LeftEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+		vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture );
+
+
+		vr::D3D12TextureData_t d3d12RightEyeTexture;
+
+		nativeTexture = image1->GetTextureHandle();
+		d3d12RightEyeTexture.m_pResource = nativeTexture->getNativeObject( nvrhi::ObjectTypes::D3D12_Resource );
+		d3d12RightEyeTexture.m_pCommandQueue = commandList->getNativeObject( nvrhi::ObjectTypes::D3D12_GraphicsCommandList );
+		d3d12RightEyeTexture.m_nNodeMask = 0;
+
+		vr::Texture_t rightEyeTexture = { ( void* )& d3d12RightEyeTexture, vr::TextureType_DirectX12, vr::ColorSpace_Auto };
+
+		vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture );
+	}
 }
 
 void VRSystem_Valve::PostSwap()

@@ -1120,7 +1120,7 @@ void LightEditor::Draw()
 			//viewDef_t viewDef;
 			//if( gameEdit->PlayerGetRenderView( viewDef.renderView ) )
 			{
-				R_SetupViewMatrix( &viewDef );
+				R_SetupViewMatrix( &viewDef, STEREOPOS_MONO );
 				R_SetupProjectionMatrix( &viewDef, false );
 
 				float* cameraView = viewDef.worldSpace.modelViewMatrix;

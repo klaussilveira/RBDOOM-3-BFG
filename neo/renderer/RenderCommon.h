@@ -884,6 +884,8 @@ public:
 	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const;
 	virtual int				GetWidth() const;
 	virtual int				GetHeight() const;
+	virtual int				GetNativeWidth() const;
+	virtual int				GetNativeHeight() const;
 	virtual int				GetVirtualWidth() const;
 	virtual int				GetVirtualHeight() const;
 	virtual float			GetPixelAspect() const;
@@ -1201,8 +1203,6 @@ extern idCVar r_singleEntity;				// suppress all but one entity
 extern idCVar r_singleEnvprobe;				// suppress all but one envprobe
 extern idCVar r_singleArea;					// only draw the portal area the view is actually in
 extern idCVar r_singleSurface;				// suppress all but one surface on each entity
-extern idCVar r_selfShadow;					// allows all materials to cast shadows on themselves
-extern idCVar r_selfShadowAdjust;			// adjust shaders to work around self shadow popping artifacts
 extern idCVar r_shadowPolygonOffset;		// bias value added to depth test for stencil shadow drawing
 extern idCVar r_shadowPolygonFactor;		// scale value for stencil shadow drawing
 

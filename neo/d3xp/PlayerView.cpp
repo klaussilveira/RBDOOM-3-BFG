@@ -454,7 +454,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	tr.guiModel->SetViewEyeBuffer( view->viewEyeBuffer );
 
 	// place the sound origin for the player
-	gameSoundWorld->PlaceListener( view->vieworg, view->viewaxis, player->entityNumber + 1 );
+	gameSoundWorld->PlaceListener( view->vieworg[STEREOPOS_MONO], view->viewaxis, player->entityNumber + 1 );
 
 	// if the objective system is up, don't do normal drawing
 	if( player->objectiveSystemOpen )
@@ -464,6 +464,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 			tr.guiModel->SetMode( GUIMODE_SHELL );
 			player->pdaMenu->Update();
 		}
+
 		tr.guiModel->SetViewEyeBuffer( 0 );
 		return;
 	}
@@ -478,7 +479,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() )
 	{
 		renderView_t portalView = hackedView;
-		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+		portalView.vieworg[STEREOPOS_MONO] = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
 		gameRenderWorld->RenderScene( &portalView );
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 
@@ -705,19 +706,7 @@ idCVar	stereoRender_convergence( "stereoRender_convergence", "6", CVAR_RENDERER,
 extern	idCVar stereoRender_screenSeparation;	// screen units from center to eyes
 extern	idCVar stereoRender_swapEyes;
 
-// In a head mounted display with separate displays for each eye,
-// screen separation will be zero and world separation will be the eye distance.
-struct stereoDistances_t
-{
-	// Offset to projection matrix, positive one eye, negative the other.
-	// Total distance is twice this, so 0.05 would give a 10% of screen width
-	// separation for objects at infinity.
-	float	screenSeparation;
 
-	// Game world units from one eye to the centerline.
-	// Total distance is twice this.
-	float	worldSeparation;
-};
 
 float CentimetersToInches( const float cm )
 {
@@ -752,22 +741,18 @@ stereoDistances_t	CaclulateStereoDistances(
 	stereoDistances_t	dists = {};
 
 	// Leyland VR
-	if( vrSystem->IsActive() )
+	if( convergenceWorldUnits == 0.0f || vrSystem->IsActive() )
 	{
 		// head mounted display mode
-		dists.worldSeparation = CentimetersToInches( interOcularCentimeters * 0.5 );
+		dists.worldSeparation = vrSystem->GetHalfIPD();// CentimetersToInches( interOcularCentimeters * 0.5 );
 		dists.screenSeparation = vrSystem->GetScreenSeparation();
+
+		// TODO float tanRoverN = Max( vrSystem->hmdEye[1].projectionOpenVR.projLeft, vrSystem->hmdEye[1].projectionOpenVR.projRight );
+		dists.combinedSeperation = 0.0f; //dists.worldSeparation * ( 1.0f / tanRoverN );
+
 		return dists;
 	}
 	// Leyland end
-
-	if( convergenceWorldUnits == 0.0f )
-	{
-		// head mounted display mode
-		dists.worldSeparation = CentimetersToInches( interOcularCentimeters * 0.5 );
-		dists.screenSeparation = 0.0f;
-		return dists;
-	}
 
 	// 3DTV mode
 	dists.screenSeparation = 0.5f * interOcularCentimeters / screenWidthCentimeters;
@@ -779,7 +764,7 @@ stereoDistances_t	CaclulateStereoDistances(
 float	GetScreenSeparationForGuis()
 {
 	const stereoDistances_t dists = CaclulateStereoDistances(
-										stereoRender_interOccularCentimeters.GetFloat(),
+										vrSystem->GetHalfIPD() * 2.0f,
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
 										tan( 80.0f * 0.5f * idMath::M_DEG2RAD ) /* fov */ ); // Leyland VR
@@ -817,30 +802,53 @@ void idPlayerView::EmitStereoEyeView( const int eye, idMenuHandler_HUD* hudManag
 		idVec3 vrDeltaOrigin = ( vrHeadOrigin - player->usercmd.vrHeadOrigin ) * eyeView.vrMoveAxis;
 		idMat3 vrDeltaAxis = vrHeadAxis * player->usercmd.vrHeadAxis.Inverse();
 
-		eyeView.vieworg += vrDeltaOrigin;
+		eyeView.vieworg[STEREOPOS_MONO] += vrDeltaOrigin;
 		eyeView.viewaxis = vrDeltaAxis * eyeView.viewaxis;
 		eyeView.vrHeadOrigin = vrHeadOrigin;
 		eyeView.vrHeadAxis = vrHeadAxis;
 	}
 
 	const stereoDistances_t dists = CaclulateStereoDistances(
-										stereoRender_interOccularCentimeters.GetFloat(),
+										vrSystem->GetHalfIPD() * 2.0f,
 										renderSystem->GetPhysicalScreenWidthInCentimeters(),
 										stereoRender_convergence.GetFloat(),
 										view->GetFovRight() );
 
-	eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
-
 	if( vrSystem->IsActive() )
 	{
-		eyeView.vieworg += eye * vrSystem->GetHalfIPD() * eyeView.viewaxis[1];
+#if VR_EMITSTEREO
+		eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+		eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+
+		if( eye == 1 )
+		{
+			eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_LEFT];
+		}
+		else
+		{
+			eyeView.vieworg[STEREOPOS_MONO] = eyeView.vieworg[STEREOPOS_RIGHT];
+		}
+		eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
+
+		eyeView.viewEyeBuffer = stereoRender_swapEyes.GetBool() ? eye : -eye;
+		//eyeView.viewEyeBuffer = -eye;
+#else
+		eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO] + ( 1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+		eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO] + ( -1 * dists.worldSeparation ) * eyeView.viewaxis[1];
+
+		// offset view origin for combined frustum
+		// see formular https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues/878
+		eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO] - ( dists.combinedSeperation * eyeView.viewaxis[0] );
+
+		//eyeView.vieworg[STEREOPOS_MONO] += eye * vrSystem->GetHalfIPD() * eyeView.viewaxis[1];
+#endif
 
 		// we are using fov instead
 		eyeView.stereoScreenSeparation = 0.0f;
 	}
 	else
 	{
-		eyeView.vieworg += eye * dists.worldSeparation * eyeView.viewaxis[1];
+		eyeView.vieworg[STEREOPOS_MONO] += eye * dists.worldSeparation * eyeView.viewaxis[1];
 		eyeView.stereoScreenSeparation = eye * dists.screenSeparation;
 	}
 	// Leyland end
@@ -884,15 +892,25 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 	const renderView_t* view = player->GetRenderView();
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
+		int eye = 0;
+
 		// render both eye views each frame on the PC
-		for( int eye = 1 ; eye >= -1 ; eye -= 2 )
+#if VR_EMITSTEREO
+		for( eye = 1 ; eye >= -1 ; eye -= 2 )
+#endif
 		{
 			EmitStereoEyeView( eye, hudManager );
 		}
 	}
 	else
 	{
-		SingleView( view, hudManager );
+		renderView_t eyeView = *view;
+
+		eyeView.vieworg[STEREOPOS_RIGHT] = eyeView.vieworg[STEREOPOS_MONO];
+		eyeView.vieworg[STEREOPOS_LEFT] = eyeView.vieworg[STEREOPOS_MONO];
+		eyeView.vieworg[STEREOPOS_CULLING] = eyeView.vieworg[STEREOPOS_MONO];
+
+		SingleView( &eyeView, hudManager );
 	}
 
 	// Leyland VR

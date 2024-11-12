@@ -464,8 +464,8 @@ bool idSWF::HandleEvent( const sysEvent_t* event )
 			// Leyland VR
 			if( vrSystem->IsActive() )
 			{
-				float scaleX = frameWidth / glConfig.nativeScreenWidth;
-				float scaleY = frameHeight / glConfig.nativeScreenHeight;
+				float scaleX = frameWidth / renderSystem->GetWidth();
+				float scaleY = frameHeight / renderSystem->GetHeight();
 				mouseX = idMath::Ftoi( event->evValue * scaleX );
 				mouseY = idMath::Ftoi( event->evValue2 * scaleY );
 			}

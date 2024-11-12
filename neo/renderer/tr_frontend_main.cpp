@@ -523,7 +523,7 @@ static void R_FindClosestEnvironmentProbes()
 		return;
 	}
 
-	idVec3 testOrigin = tr.viewDef->renderView.vieworg;
+	idVec3 testOrigin = tr.viewDef->renderView.vieworg[STEREOPOS_CULLING];
 
 	// sort by distance
 	// RB: each Doom 3 level has ~50 - 150 probes so this should be ok for each frame
@@ -684,7 +684,7 @@ void R_RenderView( viewDef_t* parms )
 	tr.viewDef->taaFrameCount = tr.frameCount;
 
 	// setup the matrix for world space to eye space
-	R_SetupViewMatrix( tr.viewDef );
+	R_SetupViewMatrix( tr.viewDef, STEREOPOS_CULLING );
 
 	// we need to set the projection matrix before doing
 	// portal-to-screen scissor calculations

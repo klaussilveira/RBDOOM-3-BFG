@@ -404,6 +404,8 @@ void idCommonLocal::Draw()
 		SCOPED_PROFILE_EVENT( "Post-Draw" );
 
 		// draw Imgui before the console
+		tr.guiModel->SetMode( GUIMODE_HUD );
+		tr.guiModel->SetViewEyeBuffer( 0 );
 		ImGuiHook::Render();
 
 		// draw the wipe material on top of this if it hasn't completed yet
@@ -414,10 +416,14 @@ void idCommonLocal::Draw()
 
 		// draw the half console / notify console on top of everything
 		tr.guiModel->SetMode( GUIMODE_HUD ); // Leyland VR
+		tr.guiModel->SetViewEyeBuffer( 0 );
 		console->Draw( false );
 
 		// old CRT TV simulation has to be last or it breaks the immersion
-		renderSystem->DrawCRTPostFX();
+		if( !vrSystem->IsActive() )
+		{
+			renderSystem->DrawCRTPostFX();
+		}
 	}
 }
 

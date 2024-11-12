@@ -1081,7 +1081,7 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 
 	parms->isSubview = false;
 	parms->isObliqueProjection = false;
-	parms->initialViewAreaOrigin = renderView->vieworg;
+	parms->initialViewAreaOrigin = renderView->vieworg[STEREOPOS_MONO];
 	parms->renderWorld = this;
 
 	// see if the view needs to reverse the culling sense in mirrors
@@ -2526,7 +2526,7 @@ void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRec
 		p[i].x = bounds[0][0];
 		p[i].y = bounds[( i ^ ( i >> 1 ) ) & 1].y;
 		p[i].z = bounds[( i >> 1 ) & 1].z;
-		p[i] = viewDef->renderView.vieworg + p[i] * viewDef->renderView.viewaxis;
+		p[i] = viewDef->renderView.vieworg[STEREOPOS_MONO] + p[i] * viewDef->renderView.viewaxis;
 	}
 	for( i = 0; i < 4; i++ )
 	{

@@ -238,6 +238,15 @@ const int RDF_NOAMBIENT		= BIT( 1 ); // don't render indirect lighting
 const int RDF_IRRADIANCE	= BIT( 2 ); // render into 256^2 HDR render target for irradiance/radiance GGX calculation
 const int RDF_UNDERWATER	= BIT( 3 ); // TODO enable automatic underwater caustics and fog
 
+enum stereoOrigin_t
+{
+	STEREOPOS_MONO,			// old view origin or in VR, middle between the eyes where it derived from
+	STEREOPOS_LEFT,			// only in VR: left
+	STEREOPOS_RIGHT,		// only in VR: right but both share the same viewaxis
+	STEREOPOS_CULLING,		// only in VR: combined which is behind both eyes
+	STEREOPOS_MAX
+};
+
 typedef struct renderView_s
 {
 private:
@@ -296,8 +305,8 @@ public:
 	// subviews (mirrors, cameras, etc) will always clear it to zero
 	int						viewID;
 
-	idVec3					vieworg;			// has already been adjusted for stereo world seperation
-	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
+	idVec3					vieworg[STEREOPOS_MAX];			// has already been adjusted for stereo world seperation
+	//idVec3				vieworg_weapon;		// has already been adjusted for stereo world seperation
 	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
 
 //	idPlane                 clipPlane;			// SP
@@ -311,7 +320,9 @@ public:
 	const idMaterial*		globalMaterial;							// used to override everything draw
 
 	// the viewEyeBuffer may be of a different polarity than stereoScreenSeparation if the eyes have been swapped
+#if VR_EMITSTEREO
 	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
+#endif
 	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
 
 	int						rdflags;			// RB: RDF_NOSHADOWS, etc

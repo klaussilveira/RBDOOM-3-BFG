@@ -56,8 +56,6 @@ idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | 
 
 extern idCVar stereoRender_swapEyes;
 
-// SRS - flag indicating whether we are drawing a 3d view vs. a 2d-only view (e.g. menu or pda)
-bool drawView3D;
 
 /*
 ================
@@ -1518,7 +1516,7 @@ idRenderBackend::RenderInteractions
 With added sorting and trivial path work.
 =============
 */
-void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds )
+void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const viewLight_t* vLight, int depthFunc, bool performStencilTest, bool useLightDepthBounds, stereoOrigin_t stereoOrigin )
 {
 	if( surfList == NULL )
 	{
@@ -1813,7 +1811,7 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 				idVec4 localLightOrigin( 0.0f );
 				idVec4 localViewOrigin( 1.0f );
 				R_GlobalPointToLocal( surf->space->modelMatrix, vLight->globalLightOrigin, localLightOrigin.ToVec3() );
-				R_GlobalPointToLocal( surf->space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+				R_GlobalPointToLocal( surf->space->modelMatrix, viewDef->renderView.vieworg[ stereoOrigin ], localViewOrigin.ToVec3() );
 
 				// set the local light/view origin
 				SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLightOrigin.ToFloatPtr() );
@@ -2023,7 +2021,7 @@ AMBIENT PASS RENDERING
 idRenderBackend::AmbientPass
 ==================
 */
-void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer )
+void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer, const stereoOrigin_t stereoOrigin )
 {
 	Framebuffer* previousFramebuffer = Framebuffer::GetActiveFramebuffer();
 
@@ -2255,7 +2253,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 			// tranform the view origin into model local space
 			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( drawSurf->space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+			R_GlobalPointToLocal( drawSurf->space->modelMatrix, viewDef->renderView.vieworg[stereoOrigin], localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 
 			// RB: if we want to store the normals in world space so we need the model -> world matrix
@@ -2605,7 +2603,7 @@ void MatrixLookAtRH( float m[16], const idVec3& eye, const idVec3& dir, const id
 idRenderBackend::SetupShadowMapMatrices
 =====================
 */
-void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix )
+void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idRenderMatrix& lightProjectionRenderMatrix, idRenderMatrix& lightViewRenderMatrix, const stereoOrigin_t stereoOrigin )
 {
 	if( vLight->parallel && side >= 0 )
 	{
@@ -2623,10 +2621,10 @@ void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idR
 		//idMat3 rotation = angles.ToMat3();
 
 		const idVec3 viewDir = viewDef->renderView.viewaxis[0];
-		const idVec3 viewPos = viewDef->renderView.vieworg;
+		const idVec3 viewPos = viewDef->renderView.vieworg[stereoOrigin];
 
 #if 1
-		idRenderMatrix::CreateViewMatrix( viewDef->renderView.vieworg, rotation, lightViewRenderMatrix );
+		idRenderMatrix::CreateViewMatrix( viewDef->renderView.vieworg[stereoOrigin], rotation, lightViewRenderMatrix );
 #else
 		float lightViewMatrix[16];
 		MatrixLookAtRH( lightViewMatrix, viewPos, lightDir, viewDir );
@@ -3157,7 +3155,7 @@ void idRenderBackend::ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int
 idRenderBackend::ShadowMapPassFast
 =====================
 */
-void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas )
+void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_t* vLight, int side, bool atlas, const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipShadows.GetBool() )
 	{
@@ -3208,7 +3206,7 @@ void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_
 
 	idRenderMatrix lightProjectionRenderMatrix;
 	idRenderMatrix lightViewRenderMatrix;
-	SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix );
+	SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix, stereoOrigin );
 
 	int slice = Max( 0, side );
 
@@ -3358,7 +3356,7 @@ public:
 	const idList<idVec2i>* inputSizes;
 };
 
-void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
+void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
 	{
@@ -3425,7 +3423,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			continue;
@@ -3563,7 +3561,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			vLight->imageSize.x = vLight->imageSize.y = -1;
@@ -3624,7 +3622,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 				continue;
 			}
 
-			ShadowMapPassFast( vLight->globalShadows, vLight, side, true );
+			ShadowMapPassFast( vLight->globalShadows, vLight, side, true, stereoOrigin );
 		}
 
 		if( !imageFitsIntoAtlas )
@@ -3663,6 +3661,80 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 }
 
 /*
+void idRenderBackend::SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef )
+{
+	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
+	{
+		return;
+	}
+
+	OPTICK_EVENT( "SetupShadowMapMatricesForShadowAtlas" );
+
+	//
+	// for each light, perform shadowing to a big atlas Framebuffer
+	//
+	int shadowIndex = 0;
+	int failedNum = 0;
+
+	for( viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+	{
+		if( vLight->lightShader->IsFogLight() )
+		{
+			continue;
+		}
+
+		if( vLight->lightShader->IsBlendLight() )
+		{
+			continue;
+		}
+
+		if( vLight->localInteractions == NULL && vLight->globalInteractions == NULL && vLight->translucentInteractions == NULL )
+		{
+			continue;
+		}
+
+		if( !vLight->ImageAtlasPlaced() )
+		{
+			continue;
+		}
+
+		int	side, sideStop;
+
+		if( vLight->parallel )
+		{
+			side = 0;
+			sideStop = r_shadowMapSplits.GetInteger() + 1;
+		}
+		else if( vLight->pointLight )
+		{
+			if( r_shadowMapSingleSide.GetInteger() != -1 )
+			{
+				side = r_shadowMapSingleSide.GetInteger();
+				sideStop = side + 1;
+			}
+			else
+			{
+				side = 0;
+				sideStop = 6;
+			}
+		}
+		else
+		{
+			side = -1;
+			sideStop = 0;
+		}
+
+		for( ; side < sideStop ; side++ )
+		{
+			idRenderMatrix lightProjectionRenderMatrix;
+			idRenderMatrix lightViewRenderMatrix;
+			SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix, stereoOrigin );
+		}
+	}
+}
+*/
+
+/*
 ==============================================================================================
 
 DRAW INTERACTIONS
@@ -3674,7 +3746,7 @@ DRAW INTERACTIONS
 idRenderBackend::DrawInteractions
 ==================
 */
-void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
+void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef, stereoOrigin_t stereoOrigin )
 {
 	if( r_skipInteractions.GetBool() || viewDef->viewLights == NULL )
 	{
@@ -3763,7 +3835,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 				{
 					// vLight is const but we make an exception here to store the shadow matrices per vLight
 					// OPTIMIZE: these calculations could be moved to the renderer frontend into the multithreaded job
-					ShadowMapPassFast( vLight->globalShadows, ( viewLight_t* ) vLight, side, false );
+					ShadowMapPassFast( vLight->globalShadows, ( viewLight_t* ) vLight, side, false, stereoOrigin );
 				}
 
 				// go back to main render target
@@ -3788,14 +3860,14 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 			if( vLight->localInteractions != NULL )
 			{
 				renderLog.OpenBlock( "Local Light Interactions", colorPurple );
-				RenderInteractions( vLight->localInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds );
+				RenderInteractions( vLight->localInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds, stereoOrigin );
 				renderLog.CloseBlock();
 			}
 
 			if( vLight->globalInteractions != NULL )
 			{
 				renderLog.OpenBlock( "Global Light Interactions", colorPurple );
-				RenderInteractions( vLight->globalInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds );
+				RenderInteractions( vLight->globalInteractions, vLight, GLS_DEPTHFUNC_EQUAL, false, useLightDepthBounds, stereoOrigin );
 				renderLog.CloseBlock();
 			}
 		}
@@ -3820,7 +3892,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 			// stencil shadows only affect surfaces that contribute to the view depth
 			// buffer and translucent surfaces do not contribute to the view depth buffer.
 
-			RenderInteractions( vLight->translucentInteractions, vLight, GLS_DEPTHFUNC_LESS, false, false );
+			RenderInteractions( vLight->translucentInteractions, vLight, GLS_DEPTHFUNC_LESS, false, false, stereoOrigin );
 
 			renderLog.CloseBlock();
 		}
@@ -3863,7 +3935,7 @@ be multiplied by guiEye for polarity and screenSeparation for scale.
 =====================
 */
 int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const int numDrawSurfs,
-									   const float guiStereoScreenOffset, const int stereoEye )
+									   const float guiStereoScreenOffset, const int stereoEye, const stereoOrigin_t stereoOrigin )
 {
 	// only obey skipAmbient if we are rendering a view
 	if( viewDef->viewEntitys && r_skipAmbient.GetBool() )
@@ -3929,7 +4001,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 		// the current view's eye index then we skip the surface
 		// if the stereoEye value of a surface is 0 then we need to draw it for both eyes.
 		const int shaderStereoEye = shader->GetStereoEye();
-		const bool isEyeValid = stereoRender_swapEyes.GetBool() ? ( shaderStereoEye == stereoEye ) : ( shaderStereoEye != stereoEye );
+		const bool isEyeValid = ( shaderStereoEye != stereoEye );
 		if( ( stereoEye != 0 ) && ( shaderStereoEye != 0 ) && ( isEyeValid ) )
 		{
 			continue;
@@ -3941,9 +4013,9 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 		// guiStereoScreenOffset will always be zero for 3D views, so the !=
 		// check will never force an update due to the current sort value.
 		float thisGuiStereoOffset;
-		if( surf->sort < 0.f || vrSystem->IsActive() )
+		if( surf->sort < 0.0f || vrSystem->IsActive() )
 		{
-			thisGuiStereoOffset = 0.f;
+			thisGuiStereoOffset = 0.0f;
 		}
 		else
 		{
@@ -3962,6 +4034,10 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 			{
 				RB_SetMVPWithStereoOffset( space->mvp, currentGuiStereoOffset );
 			}
+			else if( vrSystem->IsActive() && space->isGuiSurface && viewDef->guiMode != GUIMODE_NONE )
+			{
+				RB_SetMVP( space->unjitteredMVP );
+			}
 			else
 			{
 				RB_SetMVP( space->mvp );
@@ -3969,7 +4045,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 
 			// set eye position in local space
 			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( space->modelMatrix, viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+			R_GlobalPointToLocal( space->modelMatrix, viewDef->renderView.vieworg[ stereoOrigin ], localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 
 			// set model Matrix
@@ -4387,7 +4463,7 @@ Dual texture together the falloff and projection texture with a blend
 mode to the framebuffer, instead of interacting with the surface texture
 =====================
 */
-void idRenderBackend::BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
+void idRenderBackend::BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin )
 {
 	if( drawSurfs == NULL )
 	{
@@ -4533,7 +4609,7 @@ void idRenderBackend::T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fog
 idRenderBackend::FogPass
 ==================
 */
-void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight )
+void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurfs2, const viewLight_t* vLight, const stereoOrigin_t stereoOrigin )
 {
 	renderLog.OpenBlock( vLight->lightShader->GetName(), colorCyan );
 
@@ -4574,7 +4650,7 @@ void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* d
 	globalImages->fogEnterImage->Bind();
 
 	// S is based on the view origin
-	const float s = vLight->fogPlane.Distance( viewDef->renderView.vieworg );
+	const float s = vLight->fogPlane.Distance( viewDef->renderView.vieworg[ stereoOrigin] );
 
 	const float FOG_SCALE = 0.001f;
 
@@ -4631,7 +4707,7 @@ void idRenderBackend::FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* d
 idRenderBackend::FogAllLights
 ==================
 */
-void idRenderBackend::FogAllLights()
+void idRenderBackend::FogAllLights( const stereoOrigin_t stereoOrigin )
 {
 	if( r_skipFogLights.GetBool() || r_showOverDraw.GetInteger() != 0 || viewDef->viewLights == NULL
 			|| viewDef->isXraySubview /* don't fog in xray mode*/ )
@@ -4659,11 +4735,11 @@ void idRenderBackend::FogAllLights()
 	{
 		if( vLight->lightShader->IsFogLight() )
 		{
-			FogPass( vLight->globalInteractions, vLight->localInteractions, vLight );
+			FogPass( vLight->globalInteractions, vLight->localInteractions, vLight, stereoOrigin );
 		}
 		else if( vLight->lightShader->IsBlendLight() )
 		{
-			BlendLight( vLight->globalInteractions, vLight->localInteractions, vLight );
+			BlendLight( vLight->globalInteractions, vLight->localInteractions, vLight, stereoOrigin );
 		}
 	}
 
@@ -4671,7 +4747,7 @@ void idRenderBackend::FogAllLights()
 	renderLog.CloseMainBlock();
 }
 
-void idRenderBackend::DrawMotionVectors()
+void idRenderBackend::DrawMotionVectors( const int stereoEye )
 {
 	if( !viewDef->viewEntitys )
 	{
@@ -4765,28 +4841,28 @@ void idRenderBackend::DrawMotionVectors()
 		DrawElementsWithCounters( surf );
 	}
 
-	globalFramebuffers.taaMotionVectorsFBO->Bind();
-
-	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
-
 	// in stereo rendering, each eye needs to get a separate previous frame mvp
-	int mvpIndex = ( viewDef->renderView.viewEyeBuffer == 1 ) ? 1 : 0;
+	const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+	globalFramebuffers.taaMotionVectorsFBO[ targetEye ]->Bind();
+
+	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage[ targetEye ]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
 
 	// derive the matrix to go from current pixels to previous frame pixels
 	bool cameraMoved = false;
 	idRenderMatrix	motionMatrix;
 
-	if( memcmp( &viewDef->worldSpace.unjitteredMVP[0][0], &prevMVP[mvpIndex][0][0], sizeof( idRenderMatrix ) ) != 0 )
+	if( memcmp( &viewDef->worldSpace.unjitteredMVP[0][0], &prevMVP[ targetEye ][0][0], sizeof( idRenderMatrix ) ) != 0 )
 	{
 		idRenderMatrix	inverseMVP;
 		idRenderMatrix::Inverse( viewDef->worldSpace.unjitteredMVP, inverseMVP );
 
-		idRenderMatrix::Multiply( prevMVP[mvpIndex], inverseMVP, motionMatrix );
+		idRenderMatrix::Multiply( prevMVP[ targetEye ], inverseMVP, motionMatrix );
 
 		cameraMoved = true;
 	}
 
-	prevMVP[mvpIndex] = viewDef->worldSpace.unjitteredMVP;
+	prevMVP[ targetEye ] = viewDef->worldSpace.unjitteredMVP;
 
 	// make sure rpWindowCoord is set even without post processing surfaces in the view
 	int x = viewDef->viewport.x1;
@@ -4802,7 +4878,7 @@ void idRenderBackend::DrawMotionVectors()
 	windowCoordParm[3] = h;
 	SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
-	if( r_taaMotionVectors.GetBool() && prevViewsValid && cameraMoved )
+	if( r_taaMotionVectors.GetBool() && prevViewsValid[ targetEye ] && cameraMoved )
 	{
 		RB_SetMVP( motionMatrix );
 
@@ -4823,7 +4899,7 @@ void idRenderBackend::DrawMotionVectors()
 	renderLog.CloseMainBlock();
 }
 
-void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
+void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef, const int stereoEye )
 {
 	// if we are just doing 2D rendering, no need for HDR TAA
 	if( viewDef->viewEntitys == NULL )
@@ -4866,8 +4942,11 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 		r_taaMaxRadiance.GetFloat(),
 		r_taaEnableHistoryClamping.GetBool()
 	};
-	taaPass->TemporalResolve( commandList, params, prevViewsValid, _viewDef );
-	prevViewsValid = true;
+
+	const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+	taaPass[ targetEye ]->TemporalResolve( commandList, params, prevViewsValid[ targetEye ], _viewDef );
+	prevViewsValid[ targetEye ] = true;
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
@@ -4875,9 +4954,9 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 
 idVec2 idRenderBackend::GetCurrentPixelOffset( int frameIndex ) const
 {
-	if( taaPass )
+	if( taaPass[0] )
 	{
-		return taaPass->GetCurrentPixelOffset( frameIndex );
+		return taaPass[0]->GetCurrentPixelOffset( frameIndex );
 	}
 
 	return idVec2( 0, 0 );
@@ -5334,54 +5413,6 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	GL_StartFrame();
 
-	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
-
-	// RB: we need to load all images left before rendering
-	// this can be expensive here because of the runtime image compression
-	//globalImages->LoadDeferredImages( commandList );
-
-	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
-	{
-		ssaoPass = new SsaoPass(
-			deviceManager->GetDevice(),
-			&commonPasses, globalImages->currentDepthImage->GetTextureHandle(),
-			globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(),
-			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
-	}
-
-	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
-	{
-		if( hiZGenPass )
-		{
-			delete hiZGenPass;
-		}
-
-		hiZGenPass = new MipMapGenPass( deviceManager->GetDevice(), globalImages->hierarchicalZbufferImage->GetTextureHandle() );
-	}
-
-
-	if( !toneMapPass )
-	{
-		TonemapPass::CreateParameters createParms;
-		toneMapPass = new TonemapPass();
-		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
-	}
-
-	if( !taaPass )
-	{
-		TemporalAntiAliasingPass::CreateParameters taaParams;
-		taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
-		taaParams.motionVectors = globalImages->taaMotionVectorsImage->GetTextureHandle();
-		taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
-		taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
-		taaParams.feedback1 = globalImages->taaFeedback1Image->GetTextureHandle();
-		taaParams.feedback2 = globalImages->taaFeedback2Image->GetTextureHandle();
-		taaParams.motionVectorStencilMask = 0; //0x01;
-		taaParams.useCatmullRomFilter = true;
-		taaPass = new TemporalAntiAliasingPass();
-		taaPass->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
-	}
-
 	uint64 backEndStartTime = Sys_Microseconds();
 
 	// needed for editor rendering
@@ -5389,7 +5420,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	// SRS - Save glConfig.timerQueryAvailable state so it can be disabled for RC_DRAW_VIEW_GUI then restored after it is finished
 	const bool timerQueryAvailable = glConfig.timerQueryAvailable;
-	drawView3D = false;
+	bool drawView3D = false;
 
 	for( ; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
 	{
@@ -5403,7 +5434,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				{
 					// SRS - Capture separate timestamps for overlay GUI rendering when RC_DRAW_VIEW_3D timestamps are active
 					renderLog.OpenMainBlock( MRB_DRAW_GUI );
-					renderLog.OpenBlock( "Render_DrawViewGUI", colorBlue );
+					//renderLog.OpenBlock( "Render_DrawViewGUI", colorBlue );
 					// SRS - Disable detailed timestamps during overlay GUI rendering so they do not overwrite timestamps from 3D rendering
 					glConfig.timerQueryAvailable = false;
 
@@ -5411,7 +5442,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 					// SRS - Restore timestamp capture state after overlay GUI rendering is finished
 					glConfig.timerQueryAvailable = timerQueryAvailable;
-					renderLog.CloseBlock();
+					//renderLog.CloseBlock();
 					renderLog.CloseMainBlock( MRB_DRAW_GUI );
 				}
 				else
@@ -5476,7 +5507,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 idRenderBackend::DrawViewInternal
 ==================
 */
-void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int stereoEye )
+void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int stereoEye, const stereoOrigin_t stereoOrigin )
 {
 	//OPTICK_EVENT( "Backend_DrawViewInternal" );
 	//OPTICK_TAG( "stereoEye", stereoEye );
@@ -5492,19 +5523,33 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// ugly but still faster than building the string
 	if( !_viewDef->viewEntitys || _viewDef->guiMode != GUIMODE_NONE )
 	{
-		renderLog.OpenBlock( "Render_DrawView2D", colorRed );
+		if( stereoEye == -1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_LeftEye", colorRed );
+		}
+		else if( stereoEye == 1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_RightEye", colorRed );
+		}
+		else
+		{
+			renderLog.OpenBlock( "Render_DrawView2D", colorRed );
+		}
 	}
-	else if( stereoEye == -1 )
+	else
 	{
-		renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
-	}
-	else if( stereoEye == 1 )
-	{
-		renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
-	}
-	else if( stereoEye == 0 )
-	{
-		renderLog.OpenBlock( "Render_DrawView3D", colorRed );
+		if( stereoEye == -1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
+		}
+		else if( stereoEye == 1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
+		}
+		else
+		{
+			renderLog.OpenBlock( "Render_DrawView3D", colorRed );
+		}
 	}
 
 	//-------------------------------------------------
@@ -5583,9 +5628,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		// set eye position in global space
 		//
 		float parm[4];
-		parm[0] = viewDef->renderView.vieworg[0];
-		parm[1] = viewDef->renderView.vieworg[1];
-		parm[2] = viewDef->renderView.vieworg[2];
+		parm[0] = viewDef->renderView.vieworg[ stereoOrigin ].x;
+		parm[1] = viewDef->renderView.vieworg[ stereoOrigin ].y;
+		parm[2] = viewDef->renderView.vieworg[ stereoOrigin ].z;
 		parm[3] = 1.0f;
 
 		SetVertexParm( RENDERPARM_GLOBALEYEPOS, parm ); // rpGlobalEyePos
@@ -5647,7 +5692,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		//OPTICK_EVENT( "Render_GeometryBuffer" );
 		OPTICK_GPU_EVENT( "Render_GeometryBuffer" );
 
-		AmbientPass( drawSurfs, numDrawSurfs, true );
+		AmbientPass( drawSurfs, numDrawSurfs, true, stereoOrigin );
 	}
 
 	//-------------------------------------------------
@@ -5670,18 +5715,28 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		//OPTICK_EVENT( "Render_AmbientPass" );
 		OPTICK_GPU_EVENT( "Render_AmbientPass" );
 
-		AmbientPass( drawSurfs, numDrawSurfs, false );
+		AmbientPass( drawSurfs, numDrawSurfs, false, stereoOrigin );
 	}
 
 	//-------------------------------------------------
 	// render all light <-> geometry interactions to a depth buffer atlas
 	//-------------------------------------------------
-	ShadowAtlasPass( _viewDef );
+
+#if VR_EMITSTEREO
+	ShadowAtlasPass( _viewDef, stereoOrigin );
+#else
+
+	// only render shadow atlas for the first eye and then reuse the data for the second
+	if( stereoEye == 1 || stereoEye == 0 )
+	{
+		ShadowAtlasPass( _viewDef, stereoOrigin );
+	}
+#endif
 
 	//-------------------------------------------------
 	// main light renderer
 	//-------------------------------------------------
-	DrawInteractions( _viewDef );
+	DrawInteractions( _viewDef, stereoOrigin );
 
 	//-------------------------------------------------
 	// now draw any non-light dependent shading passes
@@ -5702,7 +5757,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		{
 			guiScreenOffset = stereoEye * _viewDef->renderView.stereoScreenSeparation;
 		}
-		processed = DrawShaderPasses( drawSurfs, numDrawSurfs, guiScreenOffset, stereoEye );
+		processed = DrawShaderPasses( drawSurfs, numDrawSurfs, guiScreenOffset, stereoEye, stereoOrigin );
 		renderLog.CloseMainBlock();
 	}
 
@@ -5715,7 +5770,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// fog and blend lights, drawn after emissive surfaces
 	// so they are properly dimmed down
 	//-------------------------------------------------
-	FogAllLights();
+	FogAllLights( stereoOrigin );
 
 	//-------------------------------------------------
 	// now draw any screen warping post-process effects using _currentRender
@@ -5775,7 +5830,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 
 		// render the remaining surfaces
-		DrawShaderPasses( drawSurfs + processed, numDrawSurfs - processed, 0.0f /* definitely not a gui */, stereoEye );
+		DrawShaderPasses( drawSurfs + processed, numDrawSurfs - processed, 0.0f /* definitely not a gui */, stereoEye, stereoOrigin );
 		renderLog.CloseMainBlock();
 	}
 
@@ -5787,7 +5842,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// motion vectors are useful for TAA and motion blur
 	//-------------------------------------------------
-	DrawMotionVectors();
+	DrawMotionVectors( stereoEye );
 
 	//-------------------------------------------------
 	// resolve of HDR target using temporal anti aliasing before any tonemapping and post processing
@@ -5795,7 +5850,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// use this to eat all stochastic noise like from volumetric light sampling or SSAO
 	// runs at full resolution
 	//-------------------------------------------------
-	TemporalAAPass( _viewDef );
+	TemporalAAPass( _viewDef, stereoEye );
 
 	//-------------------------------------------------
 	// tonemapping: convert back from HDR to LDR range
@@ -5848,7 +5903,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// blit envprobe over it for quick review where we are
@@ -5863,12 +5918,54 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		OPTICK_GPU_EVENT( "Blit_Rendered" );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
+#if 0
+		if( vrSystem->IsActive() )
+		{
+			uint32_t swapChainIndex = deviceManager->GetCurrentBackBufferIndex();
 
-		BlitParameters blitParms;
-		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+			globalFramebuffers.swapFramebuffers[ swapChainIndex ]->Bind();
+
+			int width = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetWidth();
+			int height = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetHeight();
+
+			// set the window clipping
+			GL_Viewport( 0, 0, width, width );
+			GL_Scissor( 0, 0, width, height );
+
+			//renderProgManager.BindShader_TextureVertexColor_sRGB();
+			renderProgManager.BindShader_Screen();
+
+			RB_SetMVP( renderMatrix_identity );
+
+			renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+
+			float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+			float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+			float texGenEnabled[4] = { 0, 0, 0, 0 };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+			RB_SetVertexColorParms( SVC_IGNORE );
+
+			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_DEPTHMASK | GLS_CULL_TWOSIDED );
+
+			GL_SelectTexture( 0 );
+			globalImages->ldrImage->Bind();
+
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			ResetViewportAndScissorToDefaultCamera( _viewDef );
+		}
+		else
+#endif
+		{
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
 	}
 
 	renderLog.CloseBlock();
@@ -6033,13 +6130,42 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 	pc.c_surfaces += viewDef->numDrawSurfs;
 
-
 	DBG_ShowOverdraw();
 
+	stereoOrigin_t stereoOrigin = STEREOPOS_MONO;
+	if( stereoEye == 1 )
+	{
+		stereoOrigin = STEREOPOS_RIGHT;
+	}
+	else if( stereoEye == -1 )
+	{
+		stereoOrigin = STEREOPOS_LEFT;
+	}
+
+	// update projection matrices for the case we submit only 1 view
+#if !VR_EMITSTEREO
+	if( vrSystem->IsActive() )//&& stereoEye == -1 )
+	{
+		R_SetupProjectionMatrix( cmd->viewDef, true, false, stereoEye );
+		R_SetupProjectionMatrix( cmd->viewDef, false, false, stereoEye );
+
+		// setup render matrices for faster culling
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
+		idRenderMatrix viewRenderMatrix;
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
+		idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );
+		idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
+	}
+#endif
+
 	// Leyland VR
+#if 1
 	// TODO VR some of this may be better done else where.
 	idVec3 vrHeadOrigin;
 	idMat3 vrHeadAxis;
+
 	if( vrSystem->IsActive()
 			&& cmd->viewDef->guiMode == GUIMODE_NONE
 			&& cmd->viewDef->renderView.vrHadHead
@@ -6049,7 +6175,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		idVec3 vrDeltaOrigin = ( vrHeadOrigin - cmd->viewDef->renderView.vrHeadOrigin ) * cmd->viewDef->renderView.vrMoveAxis;
 		idMat3 vrDeltaAxis = vrHeadAxis * cmd->viewDef->renderView.vrHeadAxis.Inverse();
 
-		idVec3& vieworg = cmd->viewDef->renderView.vieworg;
+		idVec3& vieworg = cmd->viewDef->renderView.vieworg[stereoOrigin];
 		idMat3& viewaxis = cmd->viewDef->renderView.viewaxis;
 		float stereoOffset = -stereoEye * vrSystem->GetHalfIPD();
 		vieworg -= stereoOffset * viewaxis[1];
@@ -6059,12 +6185,13 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 		vieworg += stereoOffset * viewaxis[1];
 
-		R_SetupViewMatrix( cmd->viewDef );
+		R_SetupViewMatrix( cmd->viewDef, stereoOrigin );
 
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
 		idRenderMatrix viewRenderMatrix;
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
 		idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+		idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
 
 		for( viewEntity_t* vEntity = cmd->viewDef->viewEntitys; vEntity; vEntity = vEntity->next )
 		{
@@ -6073,6 +6200,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 			idRenderMatrix viewMat;
 			idRenderMatrix::Transpose( *( idRenderMatrix* )vEntity->modelViewMatrix, viewMat );
 			idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewMat, vEntity->mvp );
+			idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewMat, vEntity->unjitteredMVP );
+
 			if( vEntity->weaponDepthHack )
 			{
 				idRenderMatrix::ApplyDepthHack( vEntity->mvp );
@@ -6088,12 +6217,16 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 			   cmd->viewDef->guiMode == GUIMODE_HUD ) )
 	{
 		// Put 2D GUI in a 3D world
-		const int targetEye = ( stereoEye == -1 ) ? 1 : 0;
+		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
 
 		cmd->viewDef->renderView.SetFov( vrSystem->GetFOV( targetEye ) );
 		cmd->viewDef->renderView.stereoScreenSeparation = 0.0f;
+
 		R_SetupProjectionMatrix( cmd->viewDef, false );
+		R_SetupProjectionMatrix( cmd->viewDef, true );
+
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );
 
 		for( viewEntity_t* viewEntity = cmd->viewDef->viewEntitys; viewEntity; viewEntity = viewEntity->next )
 		{
@@ -6101,6 +6234,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 			{
 				continue;
 			}
+
 			if( cmd->viewDef->guiMode == GUIMODE_SHELL )
 			{
 				static bool wasSeated = true;
@@ -6171,6 +6305,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				idRenderMatrix viewMat;
 				idRenderMatrix::Transpose( *( idRenderMatrix* )viewEntity->modelViewMatrix, viewMat );
 				idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewMat, viewEntity->mvp );
+				idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewMat, viewEntity->unjitteredMVP );
 			}
 			else //if (cmd->viewDef->guiMode == GUIMODE_HUD)
 			{
@@ -6209,9 +6344,11 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				idRenderMatrix viewMat;
 				idRenderMatrix::Transpose( *( idRenderMatrix* )viewEntity->modelViewMatrix, viewMat );
 				idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewMat, viewEntity->mvp );
+				idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewMat, viewEntity->unjitteredMVP );
 			}
 		}
 	}
+#endif
 	// Leyland end
 
 	// render the scene
@@ -6220,14 +6357,14 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		OPTICK_GPU_EVENT( "DrawView_3D" );
 		OPTICK_TAG( "stereoEye", stereoEye );
 
-		DrawViewInternal( cmd->viewDef, stereoEye );
+		DrawViewInternal( cmd->viewDef, stereoEye, stereoOrigin );
 	}
 	else
 	{
 		OPTICK_GPU_EVENT( "DrawView_GUI" );
 		OPTICK_TAG( "stereoEye", stereoEye );
 
-		DrawViewInternal( cmd->viewDef, stereoEye );
+		DrawViewInternal( cmd->viewDef, stereoEye, stereoOrigin );
 	}
 
 	// RB: Support motion blur in the future again?
@@ -6291,6 +6428,14 @@ void idRenderBackend::CopyRender( const void* data )
 		{
 			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
 		}
+		else if( cmd->image == globalImages->vrPDAImage )
+		{
+			framebuffer = globalFramebuffers.vrPDAFBO->GetApiObject();
+		}
+		else if( cmd->image == globalImages->vrHUDImage )
+		{
+			framebuffer = globalFramebuffers.vrHUDFBO->GetApiObject();
+		}
 		blitParms.targetFramebuffer = framebuffer;
 		blitParms.targetViewport = nvrhi::Viewport( cmd->imageWidth, cmd->imageHeight );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
@@ -6332,21 +6477,20 @@ void idRenderBackend::PostProcess( const void* data )
 
 	if( viewDef->renderView.rdflags & RDF_IRRADIANCE )
 	{
-#if defined( USE_NVRHI )
 		OPTICK_GPU_EVENT( "Blit_EnvProbePostFX" );
 
 		// we haven't changed ldrImage so it's basically the previewsRenderLDR
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->envprobeHDRImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
 		blitParms.targetViewport = nvrhi::Viewport( ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
-#endif
+
 		return;
 	}
 
@@ -6644,7 +6788,7 @@ void idRenderBackend::PostProcess( const void* data )
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// copy LDR result to postProcFBO which is HDR but also used by postFX
@@ -6672,6 +6816,12 @@ void idRenderBackend::CRTPostProcess()
 	}
 	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
 	OPTICK_GPU_EVENT( "CRTPostProcess" );
+
+	if( vrSystem->IsActive() )
+	{
+		// definitely not designed for VR
+		return;
+	}
 
 	renderLog.OpenMainBlock( MRB_CRT_POSTPROCESS );
 	renderLog.OpenBlock( "Render_CRTPostFX", colorBlue );
@@ -6810,7 +6960,7 @@ void idRenderBackend::CRTPostProcess()
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 	}
 

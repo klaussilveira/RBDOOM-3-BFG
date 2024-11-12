@@ -959,9 +959,6 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 	// make sure the game / draw thread has completed
 	commonLocal.WaitGameThread();
 
-	//glConfig.nativeScreenWidth = captureSize;
-	//glConfig.nativeScreenHeight = captureSize;
-
 	// disable scissor, so we don't need to adjust all those rects
 	r_useScissor.SetBool( false );
 
@@ -1033,7 +1030,7 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			ref.rdflags = RDF_NOAMBIENT | RDF_IRRADIANCE;
 			ref.SetFovXY( 90, 90 );
 
-			ref.vieworg = def->parms.origin;
+			ref.vieworg[STEREOPOS_MONO] = def->parms.origin;
 			ref.viewaxis = tr.cubeAxis[j];
 
 			// discard anything currently on the list

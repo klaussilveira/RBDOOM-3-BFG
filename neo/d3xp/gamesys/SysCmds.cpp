@@ -791,7 +791,7 @@ void Cmd_GetViewpos_f( const idCmdArgs& args )
 	const renderView_t* view = player->GetRenderView();
 	if( view )
 	{
-		gameLocal.Printf( "(%s) %.1f\n", view->vieworg.ToString(), view->viewaxis[0].ToYaw() );
+		gameLocal.Printf( "(%s) %.1f\n", view->vieworg[STEREOPOS_MONO].ToString(), view->viewaxis[0].ToYaw() );
 	}
 	else
 	{
@@ -1055,7 +1055,7 @@ void Cmd_TestLight_f( const idCmdArgs& args )
 	float fov = rv->GetFovRight();
 
 	dict.SetMatrix( "rotation", mat3_default );
-	dict.SetVector( "origin", rv->vieworg );
+	dict.SetVector( "origin", rv->vieworg[STEREOPOS_MONO] );
 	dict.SetVector( "light_target", rv->viewaxis[0] );
 	dict.SetVector( "light_right", rv->viewaxis[1] * -fov );
 	dict.SetVector( "light_up", rv->viewaxis[2] * fov );
@@ -1113,7 +1113,7 @@ void Cmd_TestPointLight_f( const idCmdArgs& args )
 		return;
 	}
 
-	dict.SetVector( "origin", player->GetRenderView()->vieworg );
+	dict.SetVector( "origin", player->GetRenderView()->vieworg[STEREOPOS_MONO] );
 
 	if( args.Argc() >= 2 )
 	{

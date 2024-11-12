@@ -81,3 +81,4 @@ If you have questions concerning this license or the applicable additional terms
 #define GOGPATH_ID						"1733124578"
 
 #define VR_OPTIONS						0
+#define VR_EMITSTEREO					1

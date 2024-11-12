@@ -250,7 +250,8 @@ void idRenderBackend::Init()
 
 	prevMVP[0] = renderMatrix_identity;
 	prevMVP[1] = renderMatrix_identity;
-	prevViewsValid = false;
+	prevViewsValid[0] = false;
+	prevViewsValid[1] = false;
 
 	currentVertexBuffer = nullptr;
 	currentIndexBuffer = nullptr;
@@ -1838,6 +1839,61 @@ void idRenderBackend::GL_StartFrame()
 
 	renderLog.StartFrame( commandList );
 	renderLog.OpenMainBlock( MRB_GPU_TIME );
+
+	// -------------------------
+	// make sure textures and render passes are initialized
+
+	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
+
+	// RB: we need to load all images left before rendering
+	// this can be expensive here because of the runtime image compression
+	//globalImages->LoadDeferredImages( commandList );
+
+	extern idCVar r_useNewSsaoPass;
+
+	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
+	{
+		ssaoPass = new SsaoPass(
+			deviceManager->GetDevice(),
+			&commonPasses, globalImages->currentDepthImage->GetTextureHandle(),
+			globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(),
+			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
+	}
+
+	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
+	{
+		if( hiZGenPass )
+		{
+			delete hiZGenPass;
+		}
+
+		hiZGenPass = new MipMapGenPass( deviceManager->GetDevice(), globalImages->hierarchicalZbufferImage->GetTextureHandle() );
+	}
+
+	if( !toneMapPass )
+	{
+		TonemapPass::CreateParameters createParms;
+		toneMapPass = new TonemapPass();
+		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
+	}
+
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+	{
+		if( !taaPass[i] )
+		{
+			TemporalAntiAliasingPass::CreateParameters taaParams;
+			taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
+			taaParams.motionVectors = globalImages->taaMotionVectorsImage[i]->GetTextureHandle();
+			taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
+			taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
+			taaParams.feedback1 = globalImages->taaFeedback1Image[i]->GetTextureHandle();
+			taaParams.feedback2 = globalImages->taaFeedback2Image[i]->GetTextureHandle();
+			taaParams.motionVectorStencilMask = 0; //0x01;
+			taaParams.useCatmullRomFilter = true;
+			taaPass[i] = new TemporalAntiAliasingPass();
+			taaPass[i]->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
+		}
+	}
 }
 
 /*
@@ -1867,8 +1923,14 @@ void idRenderBackend::GL_EndFrame()
 	// SRS - execute after EndFrame() to avoid need for barrier command list on Vulkan
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
+	if( vrSystem->IsActive() )
+	{
+		vrSystem->SubmitStereoRenders( commandList, globalImages->stereoRenderImages[0], globalImages->stereoRenderImages[1] );
+	}
+
 	// update jitter for perspective matrix
-	taaPass->AdvanceFrame();
+	taaPass[0]->AdvanceFrame();
+	taaPass[1]->AdvanceFrame();
 }
 
 /*
@@ -1885,10 +1947,6 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 	OPTICK_CATEGORY( "BlockingSwapBuffers", Optick::Category::Wait );
 	//OPTICK_TAG( "Waiting for swapIndex", swapIndex );
 
-	// SRS - device-level sync kills perf by serializing command queue processing (CPU) and rendering (GPU)
-	//	   - instead, use alternative sync method (based on command queue event queries) inside Present()
-	//deviceManager->GetDevice()->waitForIdle();
-
 	// Make sure that all frames have finished rendering
 	deviceManager->Present();
 
@@ -1900,6 +1958,13 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 	{
 		tr.InvalidateSwapBuffers();
+	}
+
+	// RB: it is suggested by the OpenVR samples to run vr::VRCompositor()->WaitGetPoses right after
+	// swapping the swapchain images
+	if( vrSystem->IsActive() )
+	{
+		vrSystem->PostSwap();
 	}
 }
 
@@ -2151,11 +2216,15 @@ void idRenderBackend::ClearCaches()
 		toneMapPass = nullptr;
 	}
 
-	if( taaPass )
+	for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
 	{
-		delete taaPass;
-		taaPass = nullptr;
+		if( taaPass[i] )
+		{
+			delete taaPass[i];
+			taaPass[i] = nullptr;
+		}
 	}
+
 
 	currentVertexBuffer = nullptr;
 	currentIndexBuffer = nullptr;
@@ -2304,6 +2373,201 @@ Renders the draw list twice, with slight modifications for left eye / right eye
 */
 void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds )
 {
+	GL_StartFrame();
+
+	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		commandObject = nvrhi::ObjectTypes::VK_CommandBuffer;
+	}
+	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
+
+	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
+
+	// RB: we need to load all images left before rendering
+	// this can be expensive here because of the runtime image compression
+	//globalImages->LoadDeferredImages( commandList );
+
+	uint64 backEndStartTime = Sys_Microseconds();
+
+	// In stereoRender mode, the front end has generated two RC_DRAW_VIEW commands
+	// with slightly different origins for each eye.
+
+	// TODO: only do the copy after the final view has been rendered, not mirror subviews?
+
+	// SRS - Save glConfig.timerQueryAvailable state so it can be disabled for RC_DRAW_VIEW_GUI then restored after it is finished
+	const bool timerQueryAvailable = glConfig.timerQueryAvailable;
+
+	// Render the 3D draw views from the screen origin so all the screen relative
+	// texture mapping works properly, then copy the portion we are going to use
+	// off to a texture.
+	bool foundEye[2] = { false, false };
+
+	for( int stereoEye = 1; stereoEye >= -1; stereoEye -= 2 )
+	{
+		// set up the target texture we will draw to
+		const int targetEye = ( stereoEye == 1 ) ? 1 : 0;
+
+		// capture only timestamps for the first eye
+		if( stereoEye == -1 )
+		{
+			glConfig.timerQueryAvailable = false;
+		}
+
+		bool drawView3D = false;
+
+		// Set the back end into a known default state to fix any stale render state issues
+		GL_SetDefaultState();
+
+		renderProgManager.Unbind();
+		renderProgManager.ZeroUniforms();
+
+		for( const emptyCommand_t* cmds = allCmds; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
+		{
+			switch( cmds->commandId )
+			{
+				case RC_NOP:
+					break;
+
+				case RC_DRAW_VIEW_GUI:
+				case RC_DRAW_VIEW_3D:
+				{
+#if VR_EMITSTEREO
+					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
+					const viewDef_t&			eyeViewDef = *dsc->viewDef;
+
+					if( eyeViewDef.renderView.viewEyeBuffer && eyeViewDef.renderView.viewEyeBuffer != stereoEye )
+					{
+						// this is the render view for the other eye
+						continue;
+					}
+#endif
+
+					foundEye[ targetEye ] = true;
+					DrawView( cmds, stereoEye );
+					break;
+				}
+
+				case RC_SET_BUFFER:
+					SetBuffer( cmds );
+					break;
+
+				case RC_COPY_RENDER:
+					CopyRender( cmds );
+					break;
+
+				case RC_POST_PROCESS:
+				{
+#if VR_EMITSTEREO
+					postProcessCommand_t* cmd = ( postProcessCommand_t* )cmds;
+					if( cmd->viewDef->renderView.viewEyeBuffer != stereoEye )
+					{
+						break;
+					}
+#endif
+					PostProcess( cmds );
+					break;
+				}
+
+				case RC_CRT_POST_PROCESS:
+					break;
+
+				default:
+					common->Error( "StereoRenderExecuteBackEndCommands: bad commandId" );
+					break;
+			}
+		}
+
+		// capture only timestamps for the first eye
+		if( stereoEye == -1 )
+		{
+			glConfig.timerQueryAvailable = timerQueryAvailable;
+		}
+
+		// copy LDR result to DX12 / Vulkan stereo image
+		{
+			OPTICK_GPU_EVENT( "Blit_StereoImage" );
+
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = globalFramebuffers.vrStereoFBO[ targetEye ]->GetApiObject();
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
+	}
+
+	// perform the final compositing / warping / deghosting to the actual framebuffer(s)
+	assert( foundEye[0] && foundEye[1] );
+
+	GL_SetDefaultState();
+
+	RB_SetMVP( renderMatrix_identity );
+
+	GL_State( GLS_DEPTHMASK | GLS_CULL_TWOSIDED );
+
+	// We just want to do a quad pass - so make sure we disable any texgen and
+	// set the texture matrix to the identity so we don't get anomalies from
+	// any stale uniform data being present from a previous draw call
+	const float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+	const float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+	// disable any texgen
+	const float texGenEnabled[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+
+	renderProgManager.BindShader_Texture();
+	GL_Color( 1, 1, 1, 1 );
+
+
+	//common->Printf( "SREBEC Rendering frame %d\n", idLib::frameNumber );
+	switch( renderSystem->GetStereo3DMode() )
+	{
+		case STEREO3D_SIDE_BY_SIDE:
+
+		// a non-warped side-by-side-uncompressed (dual input cable) is rendered
+		// just like STEREO3D_SIDE_BY_SIDE_COMPRESSED, so fall through.
+		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
+			GL_SelectTexture( 0 );
+			globalImages->stereoRenderImages[0]->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->stereoRenderImages[1]->Bind();
+			GL_ViewportAndScissor( 0, 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			GL_SelectTexture( 0 );
+			globalImages->stereoRenderImages[1]->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->stereoRenderImages[0]->Bind();
+			GL_ViewportAndScissor( renderSystem->GetWidth(), 0, renderSystem->GetWidth(), renderSystem->GetHeight() );
+			DrawElementsWithCounters( &unitSquareSurface );
+			break;
+
+		default:
+		case STEREO3D_OPENVR:
+			// Koz begin
+			// This is the rift.
+			if( vrSystem->IsActive() )
+			{
+				// RB: do it simpler for now
+				if( game->Shell_IsActive() || game->IsPDAOpen() )
+				{
+					// draw a floating 2D menu
+					HMD_RenderHUD( globalImages->stereoRenderImages[0], globalImages->stereoRenderImages[0] );
+				}
+			}
+			break;
+			// Koz end
+	}
+
+	DrawFlickerBox();
+
+	// SRS - capture backend timing before GL_EndFrame() since it can block when r_mvkSynchronousQueueSubmits is enabled on macOS/MoltenVK
+	uint64 backEndFinishTime = Sys_Microseconds();
+	pc.cpuTotalMicroSec = backEndFinishTime - backEndStartTime;
+
+	GL_EndFrame();
 }
 
 void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )
@@ -2359,4 +2623,217 @@ idImage* idRenderBackend::GetImageAt( int index )
 void idRenderBackend::ResetPipelineCache()
 {
 	pipelineCache.Clear();
+}
+
+
+static void VR_TranslationMatrix( float x, float y, float z, float ( &out )[4][4] )
+{
+	// build translation matrix
+	memset( out, 0, sizeof( float ) * 16 );
+	out[0][0] = out[1][1] = out[2][2] = 1;
+	out[3][0] = x;
+	out[3][1] = y;
+	out[3][2] = z;
+	out[3][3] = 1;
+}
+
+static void VR_MatrixMultiply( float in1[4][4], float in2[4][4], float ( &out )[4][4] )
+{
+	float result[4][4];
+
+	result[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0] + in1[0][3] * in2[3][0];
+	result[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1] + in1[0][3] * in2[3][1];
+	result[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2] + in1[0][3] * in2[3][2];
+	result[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3] * in2[3][3];
+	result[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0] + in1[1][3] * in2[3][0];
+	result[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1] + in1[1][3] * in2[3][1];
+	result[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2] + in1[1][3] * in2[3][2];
+	result[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3] * in2[3][3];
+	result[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0] + in1[2][3] * in2[3][0];
+	result[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1] + in1[2][3] * in2[3][1];
+	result[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2] + in1[2][3] * in2[3][2];
+	result[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3] * in2[3][3];
+	result[3][0] = in1[3][0] * in2[0][0] + in1[3][1] * in2[1][0] + in1[3][2] * in2[2][0] + in1[3][3] * in2[3][0];
+	result[3][1] = in1[3][0] * in2[0][1] + in1[3][1] * in2[1][1] + in1[3][2] * in2[2][1] + in1[3][3] * in2[3][1];
+	result[3][2] = in1[3][0] * in2[0][2] + in1[3][1] * in2[1][2] + in1[3][2] * in2[2][2] + in1[3][3] * in2[3][2];
+	result[3][3] = in1[3][0] * in2[0][3] + in1[3][1] * in2[1][3] + in1[3][2] * in2[2][3] + in1[3][3] * in2[3][3];
+
+	memcpy( out, result, sizeof( float ) * 16 );
+}
+
+static void VR_QuatToRotation( idQuat q, float ( &out )[4][4] )
+{
+	float xx = q.x * q.x;
+	float xy = q.x * q.y;
+	float xz = q.x * q.z;
+	float xw = q.x * q.w;
+	float yy = q.y * q.y;
+	float yz = q.y * q.z;
+	float yw = q.y * q.w;
+	float zz = q.z * q.z;
+	float zw = q.z * q.w;
+	out[0][0] = 1 - 2 * ( yy + zz );
+	out[1][0] = 2 * ( xy - zw );
+	out[2][0] = 2 * ( xz + yw );
+	out[0][1] = 2 * ( xy + zw );
+	out[1][1] = 1 - 2 * ( xx + zz );
+	out[2][1] = 2 * ( yz - xw );
+	out[0][2] = 2 * ( xz - yw );
+	out[1][2] = 2 * ( yz + xw );
+	out[2][2] = 1 - 2 * ( xx + yy );
+	out[3][0] = out[3][1] = out[3][2] = out[0][3] = out[1][3] = out[2][3] = 0;
+	out[3][3] = 1;
+}
+
+/*
+====================
+Render headtracked quad or hud mesh.
+
+Source images: idImage image0 is left eye, image1 is right eye.
+Destination images: idImage hmdEyeImage[0,1] 0 is left, 1 is right.
+
+Original images are not modified ( can be called repeatedly with the same source textures to
+provide continual tracking for static images, e.g. during loading )
+
+Does not perform hmd distortion correction.
+====================
+*/
+void idRenderBackend::HMD_RenderHUD( idImage* image0, idImage* image1 )
+{
+	// TODO
+#if 0
+	static idQuat imuRotation = { 0.0, 0.0, 0.0, 0.0 };
+	static idQuat imuRotationGL = { 0.0, 0.0, 0.0, 0.0 };
+	static idVec3 absolutePosition = vec3_zero;
+	static float rot[4][4], rot2[4][4], trans[4][4], eye[4][4], eye2[4][4], proj[4][4], result[4][4] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	static float glMatrix[16] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	static float trax = 0.0f;
+	static float tray = 0.0f;
+	static float traz = 0.0f;
+
+	float idx, idy, sx, sy;
+	float zNear = 0;
+	float zFar = 10000;
+	float depth = zFar - zNear;
+
+	float movescale = 300.0f;
+
+	imuRotation = vrSystem->poseHmdAngles.ToQuat();
+
+	imuRotationGL.x = -imuRotation.y; // convert from id coord system to gl
+	imuRotationGL.y = imuRotation.z;
+
+	imuRotationGL.z = -imuRotation.x;
+	imuRotationGL.w = imuRotation.w;
+
+	VR_QuatToRotation( imuRotationGL, rot );
+
+	idAngles rollAng = ang_zero;
+
+	rollAng.yaw = -vrSystem->poseHmdAngles.roll;
+
+	VR_QuatToRotation( rollAng.ToQuat(), rot2 );
+
+	absolutePosition = vrSystem->poseHmdAbsolutePosition;
+
+	traz = -1.5 + absolutePosition.x / movescale;
+	trax = absolutePosition.y / movescale;
+	tray = -absolutePosition.z / movescale;
+
+
+
+	const float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+	const float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+	// disable any texgen
+	const float texGenEnabled[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+
+	// RB: flip Y for DX12 / Vulkan
+	renderProgManager.BindShader_Screen();
+
+	for( int index = 0; index < 2; index++ )
+	{
+		globalFramebuffers.vrHmdEyeFBO[index]->Bind();
+
+		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, false );
+		GL_SelectTexture( 0 );
+
+		if( index )
+		{
+			image1->Bind();
+		}
+		else
+		{
+			image0->Bind();
+		}
+
+		{
+			idx = 1.0f / ( vrSystem->hmdEye[index].projectionOpenVR.projRight - vrSystem->hmdEye[index].projectionOpenVR.projLeft );
+			idy = 1.0f / ( vrSystem->hmdEye[index].projectionOpenVR.projDown - vrSystem->hmdEye[index].projectionOpenVR.projUp );
+			sx = vrSystem->hmdEye[index].projectionOpenVR.projRight + vrSystem->hmdEye[index].projectionOpenVR.projLeft;
+			sy = vrSystem->hmdEye[index].projectionOpenVR.projDown + vrSystem->hmdEye[index].projectionOpenVR.projUp;
+		}
+
+		// build the rest of the matrix
+		proj[0][0] = 2.0f * idx;
+		proj[1][0] = 0.0f;
+		proj[2][0] = sx * idx;
+		proj[3][0] = 0.0f;
+
+		proj[0][1] = 0.0f;
+		proj[1][1] = 2.0f * idy;
+		proj[2][1] = sy * idy;	// normally 0
+		proj[3][1] = 0.0f;
+
+		proj[0][2] = 0.0f;
+		proj[1][2] = 0.0f;
+		proj[2][2] = -( zFar + zNear ) / depth;		// -0.999f; // adjust value to prevent imprecision issues
+		proj[3][2] = -2 * zFar * zNear / depth;	// -2.0f * zNear;
+
+		proj[0][3] = 0.0f;
+		proj[1][3] = 0.0f;
+		proj[2][3] = -1.0f;
+		proj[3][3] = 0.0f;
+
+		trax = absolutePosition.y / movescale;
+
+		VR_TranslationMatrix( 0.0f, 0.0f, 0.0f, eye );
+
+		//VR_TranslationMatrix( -hmdEye[index].viewOffset[0], hmdEye[index].viewOffset[1], hmdEye[index].viewOffset[2], eye );
+		VR_TranslationMatrix( trax, tray, traz, trans );
+		//VR_TranslationMatrix( trax - hmdEye[index].viewOffset[0], tray + hmdEye[index].viewOffset[1], traz + hmdEye[index].viewOffset[2], trans );
+
+		VR_MatrixMultiply( trans, rot, result );
+		VR_MatrixMultiply( eye, result, result );
+		VR_MatrixMultiply( result, proj, result );
+
+		glMatrix[0] = result[0][0];
+		glMatrix[1] = result[1][0];
+		glMatrix[2] = result[2][0];
+		glMatrix[3] = result[3][0];
+		glMatrix[4] = result[0][1];
+		glMatrix[5] = result[1][1];
+		glMatrix[6] = result[2][1];
+		glMatrix[7] = result[3][1];
+		glMatrix[8] = result[0][2];
+		glMatrix[9] = result[1][2];
+		glMatrix[10] = result[2][2];
+		glMatrix[11] = result[3][2];
+		glMatrix[12] = result[0][3];
+		glMatrix[13] = result[1][3];
+		glMatrix[14] = result[2][3];
+		glMatrix[15] = result[3][3];
+
+		renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, glMatrix, 4 );
+
+		// draw the hud for that eye
+		DrawElementsWithCounters( &unitSquareSurface );
+	}
+
+	renderProgManager.Unbind();
+	Framebuffer::Unbind();
+#endif
 }

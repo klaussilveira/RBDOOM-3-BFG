@@ -797,7 +797,7 @@ void idSaveGame::WriteRenderView( const renderView_t& view )
 	WriteFloat( fov_x );
 	WriteFloat( fov_y );
 	// Leyland VR end
-	WriteVec3( view.vieworg );
+	WriteVec3( view.vieworg[STEREOPOS_MONO] );
 	WriteMat3( view.viewaxis );
 
 	WriteBool( view.cramZNear );
@@ -1706,7 +1706,7 @@ void idRestoreGame::ReadRenderView( renderView_t& view )
 	ReadFloat( fov_x );
 	ReadFloat( fov_y );
 	view.SetFovXY( fov_x, fov_y );
-	ReadVec3( view.vieworg );
+	ReadVec3( view.vieworg[STEREOPOS_MONO] );
 	ReadMat3( view.viewaxis );
 	// Leyland end
 

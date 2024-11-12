@@ -1863,7 +1863,7 @@ renderView_t* idEntity::GetRenderView()
 	}
 	memset( renderView, 0, sizeof( *renderView ) );
 
-	renderView->vieworg = GetPhysics()->GetOrigin();
+	renderView->vieworg[STEREOPOS_MONO] = GetPhysics()->GetOrigin();
 
 	// Leyland VR: new FOV definition
 	renderView->SetFovXY( 120, 120 );

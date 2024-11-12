@@ -350,7 +350,7 @@ R_SetupViewMatrix
 Sets up the world to view matrix for a given viewParm
 ======================
 */
-void R_SetupViewMatrix( viewDef_t* viewDef )
+void R_SetupViewMatrix( viewDef_t* viewDef, stereoOrigin_t stereoOrigin )
 {
 	static float s_flipMatrix[16] =
 	{
@@ -371,7 +371,7 @@ void R_SetupViewMatrix( viewDef_t* viewDef )
 	world->modelMatrix[2 * 4 + 2] = 1.0f;
 
 	// transform by the camera placement
-	const idVec3& origin = viewDef->renderView.vieworg;
+	const idVec3& origin = viewDef->renderView.vieworg[ stereoOrigin ];
 	const idMat3& axis = viewDef->renderView.viewaxis;
 
 	float viewerMatrix[16];
@@ -452,40 +452,77 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 #if 1
 
-	float ymax = viewDef->renderView.GetFovTop();
-	float ymin = viewDef->renderView.GetFovBottom();
+	if( vrSystem->IsActive() )
+	{
+		int targetEye = viewDef->renderView.viewEyeBuffer == 1 ? 1 : 0;
 
-	float xmax = viewDef->renderView.GetFovRight();
-	float xmin = viewDef->renderView.GetFovLeft();
+		idVec4 fov = vrSystem->GetFOV( targetEye );
 
-	const float width = xmax - xmin;
-	const float height = ymax - ymin;
+		float idx = 1.0f / ( fov.y - fov.x );
+		float idy = 1.0f / ( fov.w - fov.z );
+		float sx = ( fov.y + fov.x );
+		float sy = ( fov.w + fov.z );
 
-	projectionMatrix[0 * 4 + 0] = 2.0f / width;
-	projectionMatrix[1 * 4 + 0] = 0.0f;
-	projectionMatrix[2 * 4 + 0] = xoffset;
-	projectionMatrix[3 * 4 + 0] = 0.0f;
+		float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
 
-	projectionMatrix[0 * 4 + 1] = 0.0f;
-	projectionMatrix[1 * 4 + 1] = 2.0f / height;
-	projectionMatrix[2 * 4 + 1] = yoffset;
-	projectionMatrix[3 * 4 + 1] = 0.0f;
+		projectionMatrix[0 * 4 + 0] = 2.0f * idx;
+		projectionMatrix[1 * 4 + 0] = 0.0f;
+		projectionMatrix[2 * 4 + 0] = sx * idx;
+		projectionMatrix[3 * 4 + 0] = 0.0f;
 
-	// this is the far-plane-at-infinity formulation, and
-	// crunches the Z range slightly so w=0 vertexes do not
-	// rasterize right at the wraparound point
-	projectionMatrix[0 * 4 + 2] = 0.0f;
-	projectionMatrix[1 * 4 + 2] = 0.0f;
-	projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
+		projectionMatrix[0 * 4 + 1] = 0.0f;
+		projectionMatrix[1 * 4 + 1] = 2.0f * idy;
+		projectionMatrix[2 * 4 + 1] = sy * idy;	// normally 0
+		projectionMatrix[3 * 4 + 1] = 0.0f;
 
-	// RB: was -2.0f * zNear
-	// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
-	projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
+		projectionMatrix[0 * 4 + 2] = 0.0f;
+		projectionMatrix[1 * 4 + 2] = 0.0f;
+		projectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
+		projectionMatrix[3 * 4 + 2] = -2.0f * zNear;
 
-	projectionMatrix[0 * 4 + 3] = 0.0f;
-	projectionMatrix[1 * 4 + 3] = 0.0f;
-	projectionMatrix[2 * 4 + 3] = -1.0f;
-	projectionMatrix[3 * 4 + 3] = 0.0f;
+		projectionMatrix[0 * 4 + 3] = 0.0f;
+		projectionMatrix[1 * 4 + 3] = 0.0f;
+		projectionMatrix[2 * 4 + 3] = -1.0f;
+		projectionMatrix[3 * 4 + 3] = 0.0f;
+	}
+	else
+	{
+
+		float ymax = viewDef->renderView.GetFovTop();
+		float ymin = viewDef->renderView.GetFovBottom();
+
+		float xmax = viewDef->renderView.GetFovRight();
+		float xmin = viewDef->renderView.GetFovLeft();
+
+		const float width = xmax - xmin;
+		const float height = ymax - ymin;
+
+		projectionMatrix[0 * 4 + 0] = 2.0f / width;
+		projectionMatrix[1 * 4 + 0] = 0.0f;
+		projectionMatrix[2 * 4 + 0] = xoffset;
+		projectionMatrix[3 * 4 + 0] = 0.0f;
+
+		projectionMatrix[0 * 4 + 1] = 0.0f;
+		projectionMatrix[1 * 4 + 1] = 2.0f / height;
+		projectionMatrix[2 * 4 + 1] = yoffset;
+		projectionMatrix[3 * 4 + 1] = 0.0f;
+
+		// this is the far-plane-at-infinity formulation, and
+		// crunches the Z range slightly so w=0 vertexes do not
+		// rasterize right at the wraparound point
+		projectionMatrix[0 * 4 + 2] = 0.0f;
+		projectionMatrix[1 * 4 + 2] = 0.0f;
+		projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
+
+		// RB: was -2.0f * zNear
+		// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
+		projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
+
+		projectionMatrix[0 * 4 + 3] = 0.0f;
+		projectionMatrix[1 * 4 + 3] = 0.0f;
+		projectionMatrix[2 * 4 + 3] = -1.0f;
+		projectionMatrix[3 * 4 + 3] = 0.0f;
+	}
 
 #elif 0
 

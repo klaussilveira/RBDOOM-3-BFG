@@ -61,7 +61,6 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 
-
 // DeviceContext bypasses RenderSystem to work directly with this
 idGuiModel* tr_guiModel;
 
@@ -118,7 +117,7 @@ idCVar r_useStateCaching( "r_useStateCaching", "1", CVAR_RENDERER | CVAR_BOOL, "
 idCVar r_znear( "r_znear", "3", CVAR_RENDERER | CVAR_FLOAT, "near Z clip plane distance", 0.001f, 200.0f );
 
 idCVar r_ignoreGLErrors( "r_ignoreGLErrors", "1", CVAR_RENDERER | CVAR_BOOL, "ignore GL errors" );
-idCVar r_swapInterval( "r_swapInterval", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = tear, 1 = swap-tear where available, 2 = always v-sync" );
+idCVar r_swapInterval( "r_swapInterval", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = tear, 1 = swap-tear where available, 2 = always v-sync" );
 
 idCVar r_gamma( "r_gamma", "1.0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "changes gamma tables", 0.5f, 3.0f );
 idCVar r_brightness( "r_brightness", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "changes gamma tables", 0.5f, 2.0f );
@@ -422,7 +421,35 @@ void R_SetNewMode( const bool fullInit )
 
 		glimpParms_t	parms;
 
-		if( r_fullscreen.GetInteger() <= 0 )
+		// Koz
+		// Create a window for the SteamVR desktop texture
+		if( vrSystem->IsActive() )
+		{
+			// force a windowed mode
+			r_fullscreen.SetInteger( 0 );
+
+			// RB: use full target resolution for the moment
+			// so window management, device manager and Steam VR talk the same resolution
+			idVec2i resolution = vrSystem->GetRenderResolution();
+
+			// the window should be a quarter of the render resolution
+			idVec2i windowRes = resolution >> 2;
+
+			r_windowWidth.SetInteger( windowRes.x );
+			r_windowHeight.SetInteger( windowRes.y );
+
+			// force Vsync off for hmd
+			r_swapInterval.SetInteger( 0 );
+
+			parms.x = r_windowX.GetInteger();
+			parms.y = r_windowY.GetInteger();
+			parms.width = r_windowWidth.GetInteger();
+			parms.height = r_windowHeight.GetInteger();
+			parms.fullScreen = r_fullscreen.GetInteger();
+			parms.displayHz = 0;		// ignored
+		}
+		// Koz end
+		else if( r_fullscreen.GetInteger() <= 0 )
 		{
 			// use explicit position / size for window
 			parms.x = r_windowX.GetInteger();
@@ -517,7 +544,7 @@ void R_SetNewMode( const bool fullInit )
 			if( GLimp_Init( parms ) )
 #endif
 			{
-				ImGuiHook::Init( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::Init( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -532,7 +559,7 @@ void R_SetNewMode( const bool fullInit )
 #endif
 			{
 				Framebuffer::ResizeFramebuffers();
-				ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::NotifyDisplaySizeChanged( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -558,6 +585,7 @@ safeMode:
 	}
 }
 
+
 /*
 =====================
 R_ReloadSurface_f
@@ -576,7 +604,7 @@ static void R_ReloadSurface_f( const idCmdArgs& args )
 	}
 
 	// start far enough away that we don't hit the player model
-	start = tr.primaryView->renderView.vieworg + tr.primaryView->renderView.viewaxis[0] * 16;
+	start = tr.primaryView->renderView.vieworg[STEREOPOS_MONO] + tr.primaryView->renderView.viewaxis[0] * 16;
 	end = start + tr.primaryView->renderView.viewaxis[0] * 1000.0f;
 	if( !tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
 	{
@@ -2640,7 +2668,7 @@ idRenderSystemLocal::GetWidth
 */
 int idRenderSystemLocal::GetWidth() const
 {
-	if( glConfig.stereo3Dmode == STEREO3D_OPENVR )
+	if( vrSystem->IsActive() )
 	{
 		return vrSystem->GetRenderResolution().x;
 	}
@@ -2659,7 +2687,7 @@ idRenderSystemLocal::GetHeight
 */
 int idRenderSystemLocal::GetHeight() const
 {
-	if( glConfig.stereo3Dmode == STEREO3D_OPENVR )
+	if( vrSystem->IsActive() )
 	{
 		return vrSystem->GetRenderResolution().y;
 	}
@@ -2679,6 +2707,20 @@ int idRenderSystemLocal::GetHeight() const
 	}
 	return glConfig.nativeScreenHeight;
 }
+
+
+// RB: return swap chain width
+int idRenderSystemLocal::GetNativeWidth() const
+{
+	return glConfig.nativeScreenWidth;
+}
+
+// RB: return swap chain height
+int idRenderSystemLocal::GetNativeHeight() const
+{
+	return glConfig.nativeScreenHeight;
+}
+// RB end
 
 /*
 ========================
@@ -2719,7 +2761,14 @@ idRenderSystemLocal::GetStereo3DMode
 */
 stereo3DMode_t idRenderSystemLocal::GetStereo3DMode() const
 {
-	return glConfig.stereo3Dmode;
+	if( vrSystem->IsActive() )
+	{
+		return STEREO3D_OPENVR;
+	}
+	else
+	{
+		return STEREO3D_OFF; //glConfig.stereo3Dmode;
+	}
 }
 
 /*

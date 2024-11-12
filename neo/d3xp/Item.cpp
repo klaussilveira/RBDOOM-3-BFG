@@ -149,7 +149,7 @@ bool idItem::UpdateRenderEntity( renderEntity_s* renderEntity, const renderView_
 	lastRenderViewTime = renderView->time[timeGroup];
 
 	// check for glow highlighting if near the center of the view
-	idVec3 dir = renderEntity->origin - renderView->vieworg;
+	idVec3 dir = renderEntity->origin - renderView->vieworg[STEREOPOS_MONO];
 	dir.Normalize();
 	float d = dir * renderView->viewaxis[0];
 

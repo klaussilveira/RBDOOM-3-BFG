@@ -11285,7 +11285,7 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 	angles.pitch = - RAD2DEG( atan2( focusPoint.z, focusDist ) );
 	angles.yaw -= angle;
 
-	renderView->vieworg = view;
+	renderView->vieworg[STEREOPOS_MONO] = view;
 	renderView->viewaxis = angles.ToMat3() * physicsObj.GetGravityAxis();
 	renderView->viewID = 0;
 }
@@ -11643,7 +11643,7 @@ void idPlayer::CalculateRenderView()
 		camera = false;
 		if( g_stopTime.GetBool() )
 		{
-			renderView->vieworg = firstPersonViewOrigin;
+			renderView->vieworg[STEREOPOS_MONO] = firstPersonViewOrigin;
 			renderView->viewaxis = firstPersonViewAxis;
 
 			if( !pm_thirdPerson.GetBool() )
@@ -11665,7 +11665,7 @@ void idPlayer::CalculateRenderView()
 		else
 		{
 			overridePitch = true;
-			renderView->vieworg = firstPersonViewOrigin;
+			renderView->vieworg[STEREOPOS_MONO] = firstPersonViewOrigin;
 			renderView->viewaxis = firstPersonViewAxis;
 
 			// set the viewID to the clientNum + 1, so we can suppress the right player bodies and
@@ -11688,6 +11688,7 @@ void idPlayer::CalculateRenderView()
 			if( !hasCameraFirstFrame )
 			{
 				hasCameraFirstFrame = usercmd.vrHasHead;
+
 				if( vr_seated.GetBool() || !hasCameraFirstFrame )
 				{
 					lastHeadOrigin = vrSystem->GetSeatedOrigin();
@@ -11702,8 +11703,9 @@ void idPlayer::CalculateRenderView()
 					tr.guiModel->SetVRShell( lastHeadOrigin, idAngles( 0, yaw, 0 ).ToMat3() );
 				}
 			}
+
 			renderView->vrMoveAxis = lastHeadAxisInv * renderView->viewaxis;
-			renderView->vieworg += ( usercmd.vrHeadOrigin - lastHeadOrigin ) * renderView->vrMoveAxis;
+			renderView->vieworg[STEREOPOS_MONO] += ( usercmd.vrHeadOrigin - lastHeadOrigin ) * renderView->vrMoveAxis;
 			renderView->viewaxis = usercmd.vrHeadAxis * renderView->vrMoveAxis;
 			renderView->vrHadHead = usercmd.vrHasHead;
 			renderView->vrHeadOrigin = usercmd.vrHeadOrigin;
@@ -11712,17 +11714,21 @@ void idPlayer::CalculateRenderView()
 		else
 		{
 			hasCameraFirstFrame = false;
+
 			if( overridePitch )
 			{
 				if( vr_seated.GetBool() )
 				{
-					renderView->vieworg.z += 5.f;
+					renderView->vieworg[STEREOPOS_MONO].z += 5.f;
 				}
 			}
-			CalculateVRView( renderView->vieworg, renderView->viewaxis, overridePitch );
+
+			CalculateVRView( renderView->vieworg[STEREOPOS_MONO], renderView->viewaxis, overridePitch );
+
 			renderView->vrHadHead = usercmd.vrHasHead;
 			renderView->vrHeadOrigin = usercmd.vrHeadOrigin;
 			renderView->vrHeadAxis = usercmd.vrHeadAxis;
+
 			if( usercmd.vrHasHead )
 			{
 				renderView->vrMoveAxis = vrFaceForward * firstPersonViewAxis;
@@ -11742,7 +11748,7 @@ void idPlayer::CalculateRenderView()
 
 	if( g_showviewpos.GetBool() )
 	{
-		gameLocal.Printf( "%s : %s\n", renderView->vieworg.ToString(), renderView->viewaxis.ToAngles().ToString() );
+		gameLocal.Printf( "%s : %s\n", renderView->vieworg[STEREOPOS_MONO].ToString(), renderView->viewaxis.ToAngles().ToString() );
 	}
 }
 
@@ -12720,7 +12726,7 @@ bool idPlayer::GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis )
 
 		memset( &view, 0, sizeof( view ) );
 		camera->GetViewParms( &view );
-		origin = view.vieworg;
+		origin = view.vieworg[STEREOPOS_MONO];
 		axis = view.viewaxis;
 		return true;
 	}
