@@ -442,19 +442,18 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
 	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
 
-	float ymax = viewDef->renderView.GetFovTop();
-	float ymin = viewDef->renderView.GetFovBottom();
-
 	// TODO integrate jitterx += viewDef->renderView.stereoScreenSeparation;
 
 	// this mimics the logic in the Donut Feature Demo
-	const float xoffset = -1.0f * jitterx / ( 1.0f * viewWidth );
-	const float yoffset = -1.0f * jittery / ( 1.0f * viewHeight );
+	const float xoffset = -2.0f * jitterx / ( 1.0f * viewWidth );
+	const float yoffset = -2.0f * jittery / ( 1.0f * viewHeight );
 
 	float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
 
 #if 1
 
+	float ymax = viewDef->renderView.GetFovTop();
+	float ymin = viewDef->renderView.GetFovBottom();
 
 	float xmax = viewDef->renderView.GetFovRight();
 	float xmin = viewDef->renderView.GetFovLeft();
@@ -488,21 +487,63 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 	projectionMatrix[2 * 4 + 3] = -1.0f;
 	projectionMatrix[3 * 4 + 3] = 0.0f;
 
+#elif 0
+
+	float ymax = zNear * viewDef->renderView.GetFovTop();
+	float ymin = zNear * viewDef->renderView.GetFovBottom();
+
+	float xmax = zNear * viewDef->renderView.GetFovRight();
+	float xmin = zNear * viewDef->renderView.GetFovLeft();
+
+	const float width = xmax - xmin;
+	const float height = ymax - ymin;
+
+	projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
+	projectionMatrix[1 * 4 + 0] = 0.0f;
+	projectionMatrix[2 * 4 + 0] = xoffset;
+	projectionMatrix[3 * 4 + 0] = 0.0f;
+
+	projectionMatrix[0 * 4 + 1] = 0.0f;
+	projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
+	projectionMatrix[2 * 4 + 1] = yoffset;
+	projectionMatrix[3 * 4 + 1] = 0.0f;
+
+	// this is the far-plane-at-infinity formulation, and
+	// crunches the Z range slightly so w=0 vertexes do not
+	// rasterize right at the wraparound point
+	projectionMatrix[0 * 4 + 2] = 0.0f;
+	projectionMatrix[1 * 4 + 2] = 0.0f;
+	projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
+
+	// RB: was -2.0f * zNear
+	// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
+	projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
+
+	projectionMatrix[0 * 4 + 3] = 0.0f;
+	projectionMatrix[1 * 4 + 3] = 0.0f;
+	projectionMatrix[2 * 4 + 3] = -1.0f;
+	projectionMatrix[3 * 4 + 3] = 0.0f;
+
 #else
 
 	// alternative far plane at infinity Z for better precision in the distance but still no reversed depth buffer
 	// see Foundations of Game Engine Development 2, chapter 6.3
 
-	float aspect = viewDef->renderView.fov_x / viewDef->renderView.fov_y;
+	//float aspect = viewDef->renderView.fov_x / viewDef->renderView.fov_y;
+	//float aspect = viewDef->GetAspect();
 
-	float yScale = 1.0f / ( tanf( 0.5f * DEG2RAD( viewDef->renderView.fov_y ) ) );
+	float fov_x = viewDef->renderView.GetFovRight() - viewDef->renderView.GetFovLeft();
+	float fov_y = viewDef->renderView.GetFovTop() - viewDef->renderView.GetFovBottom();
+	float aspect = fov_x / fov_y;
+
+	float yScale = 1.0f / fov_y; //( tanf( 0.5f * DEG2RAD( viewDef->renderView.fov_y ) ) );
 	float xScale = yScale / aspect;
 
 	const float epsilon = 1.9073486328125e-6F;	// 2^-19;
 	const float zFar = 160000;
 
-	//float k = zFar / ( zFar - zNear );
-	float k = 1.0f - epsilon;
+	float k = zFar / ( zFar - zNear );
+	//float k = 1.0f - epsilon;
 
 	projectionMatrix[0 * 4 + 0] = xScale;
 	projectionMatrix[1 * 4 + 0] = 0.0f;

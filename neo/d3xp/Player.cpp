@@ -65,7 +65,7 @@ const int waistZ = -28.f;
 idCVar vr_slotDebug( "vr_slotDebug", "0", CVAR_BOOL, "slot debug visualation" );
 idCVar vr_slotMag( "vr_slotMag", "0.1", CVAR_FLOAT | CVAR_ARCHIVE, "slot vibration magnitude (0 is off)" );
 idCVar vr_slotDur( "vr_slotDur", "18", CVAR_INTEGER | CVAR_ARCHIVE, "slot vibration duration in milliseconds" );
-idCVar vr_slotDisable( "vr_slotDisable", "0", CVAR_BOOL | CVAR_ARCHIVE, "slot disable" );
+idCVar vr_slotDisable( "vr_slotDisable", "1", CVAR_BOOL | CVAR_ARCHIVE, "slot disable" );
 
 slot_t slots[SLOT_COUNT] =
 {

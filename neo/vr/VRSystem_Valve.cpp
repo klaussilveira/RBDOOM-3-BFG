@@ -150,44 +150,44 @@ private:
 	int				hmdWidth;
 	int				hmdHeight;
 
-	float m_ScaleX = 1.0f;
-	float m_ScaleY = 1.0f;
-	float m_ScaleZ = 1.0f;
+	float			m_ScaleX = 1.0f;
+	float			m_ScaleY = 1.0f;
+	float			m_ScaleZ = 1.0f;
 	vr::TrackedDeviceIndex_t m_leftController = vr::k_unTrackedDeviceIndexInvalid;
 	vr::TrackedDeviceIndex_t m_rightController = vr::k_unTrackedDeviceIndexInvalid;
-	idVec3 m_seatedOrigin;
-	idMat3 m_seatedAxis;
-	idMat3 m_seatedAxisInverse;
+	idVec3			m_seatedOrigin;
+	idMat3			m_seatedAxis;
+	idMat3			m_seatedAxisInverse;
 
-	bool m_LeftControllerWasPressed = false;
-	bool m_RightControllerWasPressed = false;
+	bool			m_LeftControllerWasPressed = false;
+	bool			m_RightControllerWasPressed = false;
 	vr::VRControllerState_t m_LeftControllerState;
 	vr::VRControllerState_t m_RightControllerState;
-	int m_leftControllerPulseDur;
-	int m_rightControllerPulseDur;
+	int				m_leftControllerPulseDur;
+	int				m_rightControllerPulseDur;
 
-	bool	m_HasHeadPose = false;
-	idVec3	m_HeadOrigin;
-	idMat3	m_HeadAxis;
-	bool	m_HadHead = false;
-	idVec3	m_HeadLastOrigin;
-	idVec3	m_HeadMoveDelta;
+	bool			m_HasHeadPose = false;
+	idVec3			m_HeadOrigin;
+	idMat3			m_HeadAxis;
+	bool			m_HadHead = false;
+	idVec3			m_HeadLastOrigin;
+	idVec3			m_HeadMoveDelta;
 
-	bool	m_HasLeftControllerPose = false;
-	idVec3	m_LeftControllerOrigin;
-	idMat3	m_LeftControllerAxis;
+	bool			m_HasLeftControllerPose = false;
+	idVec3			m_LeftControllerOrigin;
+	idMat3			m_LeftControllerAxis;
 
-	bool	m_HasRightControllerPose = false;
-	idVec3	m_RightControllerOrigin;
-	idMat3	m_RightControllerAxis;
+	bool			m_HasRightControllerPose = false;
+	idVec3			m_RightControllerOrigin;
+	idMat3			m_RightControllerAxis;
 
-	bool	g_poseReset = false;
+	bool			g_poseReset = false;
 
-	int			m_UIEventIndex;
-	int			m_UIEventCount = 0;
-	sysEvent_t	m_UIEvents[MAX_VREVENTS];
+	int				m_UIEventIndex;
+	int				m_UIEventCount = 0;
+	sysEvent_t		m_UIEvents[MAX_VREVENTS];
 
-	int m_GameEventCount;
+	int				m_GameEventCount;
 	struct
 	{
 		int action;
