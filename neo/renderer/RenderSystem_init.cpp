@@ -278,20 +278,6 @@ idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | 
 idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
 idCVar r_useFilmicPostFX( "r_useFilmicPostFX", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "filmic look with chromatic abberation and film grain" );
-idCVar vr_resolutionScale( "vr_resolutionScale", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "hmd resolution scaling, restart required" );
-idCVar vr_playerHeightCM( "vr_playerHeightCM", "171", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "player height for vr in centimeters" );
-idCVar vr_aimLook( "vr_aimLook", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "aim where you look" );
-idCVar vr_seated( "vr_seated", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "seated mode" );
-idCVar vr_forceGamepad( "vr_forceGamepad", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "force using the gamepad to control weapons" );
-idCVar vr_knockbackScale( "vr_knockbackScale", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "how much knockback affects you" );
-idCVar vr_strafing( "vr_strafing", "1", CVAR_ARCHIVE | CVAR_BOOL, "enable/disable left control strafing" );
-idCVar vr_forwardOnly( "vr_forwardOnly", "0", CVAR_ARCHIVE | CVAR_BOOL, "left touchpad only moves forward" );
-idCVar vr_relativeAxis( "vr_relativeAxis", "0", CVAR_ARCHIVE | CVAR_BOOL, "movement relative to initial touch" );
-idCVar vr_maxRadius( "vr_maxRadius", "0.9", CVAR_ARCHIVE | CVAR_FLOAT, "smaller values make it easier to hit max movement speed" );
-idCVar vr_responseCurve( "vr_responseCurve", "0", CVAR_ARCHIVE | CVAR_FLOAT, "interpoloate between linear and square curves, -1 for inverse square" );
-idCVar vr_moveMode( "vr_moveMode", "8", CVAR_ARCHIVE | CVAR_INTEGER, "	0 touch walk | 1 touch walk & hold run | 2 touch walk & click run | 3 click walk | 4 click walk & hold run | 5 click walk & double click run | 6 hold walk" );
-idCVar vr_moveSpeed( "vr_moveSpeed", "0.5", CVAR_ARCHIVE | CVAR_FLOAT, "Touchpad player movement speed is multiplied by this value. Set to 1 for normal speed, or between 0 and 1 for slower movement." );
-
 
 idCVar r_forceAmbient( "r_forceAmbient", "0.5", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "render additional ambient pass to make the game less dark", 0.0f, 1.0f );
 

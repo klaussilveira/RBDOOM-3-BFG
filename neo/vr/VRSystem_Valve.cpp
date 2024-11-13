@@ -416,8 +416,8 @@ int VRSystem_Valve::ReturnGameInputEvent( const int n, int& action, int& value )
 	return 1;
 }
 
-idCVar vr_leftAxis( "vr_leftAxis", "0", CVAR_INTEGER | CVAR_ARCHIVE, "left axis mode" );
-idCVar vr_rightAxis( "vr_rightAxis", "4", CVAR_INTEGER | CVAR_ARCHIVE, "right axis mode" );
+idCVar vr_leftAxis( "vr_leftAxis", "0", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_NEW, "left axis mode" );
+idCVar vr_rightAxis( "vr_rightAxis", "4", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_NEW, "right axis mode" );
 
 int VRSystem_Valve::AxisToDPad( int mode, float x, float y )
 {

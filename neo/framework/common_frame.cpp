@@ -478,8 +478,8 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 idCommonLocal::ProcessGameReturn
 ================
 */
-idCVar vr_hapticScale( "vr_hapticScale", "0.1", CVAR_FLOAT | CVAR_ARCHIVE, "" );
-idCVar vr_hapticMax( "vr_hapticMax", "3999", CVAR_INTEGER, "0 - 3999, for debug purposes" );
+idCVar vr_hapticScale( "vr_hapticScale", "0.1", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_NEW, "" );
+idCVar vr_hapticMax( "vr_hapticMax", "3999", CVAR_INTEGER | CVAR_NEW, "0 - 3999, for debug purposes" );
 void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 {
 	// set joystick rumble

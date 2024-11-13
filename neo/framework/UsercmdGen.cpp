@@ -1075,10 +1075,12 @@ void idUsercmdGenLocal::JoystickMove2()
 idUsercmdGenLocal::VRControlMove
 =================
 */
-idCVar vr_turnCrouch( "vr_turnCrouch", "1", CVAR_BOOL | CVAR_ARCHIVE, "press down to crouch from the turn axis mode." );
-idCVar vr_turnJump( "vr_turnJump", "1", CVAR_BOOL | CVAR_ARCHIVE, "press up to jump from the turn axis mode." );
+idCVar vr_turnCrouch( "vr_turnCrouch", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "press down to crouch from the turn axis mode." );
+idCVar vr_turnJump( "vr_turnJump", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "press up to jump from the turn axis mode." );
+
 extern idCVar vr_leftAxis;
 extern idCVar vr_rightAxis;
+
 void idUsercmdGenLocal::VRControlMove()
 {
 	idVec2 axis, leftAxis, rightAxis;

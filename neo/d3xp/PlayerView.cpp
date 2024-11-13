@@ -890,8 +890,8 @@ idPlayerView::RenderPlayerView
 ===================
 */
 // Leyland VR
-idCVar vr_cinematicMode( "vr_cinematicMode", "0", CVAR_BOOL | CVAR_ARCHIVE, "Adds a black frame around cinematics." );
-idCVar vr_blink( "vr_blink", "1", CVAR_FLOAT | CVAR_ARCHIVE, "Darkens the screen when head bumps walls and objects." );
+idCVar vr_cinematicMode( "vr_cinematicMode", "0", CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "Adds a black frame around cinematics." );
+idCVar vr_blink( "vr_blink", "1", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_NEW, "Darkens the screen when head bumps walls and objects." );
 // Leyland end
 
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )

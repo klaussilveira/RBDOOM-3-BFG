@@ -62,10 +62,10 @@ extern idCVar g_demoMode;
 const idVec3 neckOffset( -3, 0, -5 );
 const int waistZ = -28.f;
 
-idCVar vr_slotDebug( "vr_slotDebug", "0", CVAR_BOOL, "slot debug visualation" );
-idCVar vr_slotMag( "vr_slotMag", "0.1", CVAR_FLOAT | CVAR_ARCHIVE, "slot vibration magnitude (0 is off)" );
-idCVar vr_slotDur( "vr_slotDur", "18", CVAR_INTEGER | CVAR_ARCHIVE, "slot vibration duration in milliseconds" );
-idCVar vr_slotDisable( "vr_slotDisable", "1", CVAR_BOOL | CVAR_ARCHIVE, "slot disable" );
+idCVar vr_slotDebug( "vr_slotDebug", "0", CVAR_BOOL | CVAR_NEW, "slot debug visualation" );
+idCVar vr_slotMag( "vr_slotMag", "0.1", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_NEW, "slot vibration magnitude (0 is off)" );
+idCVar vr_slotDur( "vr_slotDur", "18", CVAR_INTEGER | CVAR_ARCHIVE | CVAR_NEW, "slot vibration duration in milliseconds" );
+idCVar vr_slotDisable( "vr_slotDisable", "1", CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "slot disable" );
 
 slot_t slots[SLOT_COUNT] =
 {
@@ -7323,8 +7323,8 @@ idPlayer::UpdateViewAngles
 */
 
 // Leyland VR
-idCVar vr_moveDirection( "vr_moveDirection", "1", CVAR_ARCHIVE | CVAR_INTEGER, "Selects forward move direction from: 0 - head, 1 - left hand (default), 2 - right hand" );
-idCVar vr_turnSlack( "vr_turnSlack", "0", CVAR_ARCHIVE | CVAR_FLOAT, "How much the weapon yaw turns before head follows, in degrees" );
+idCVar vr_moveDirection( "vr_moveDirection", "1", CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "Selects forward move direction from: 0 - head, 1 - left hand (default), 2 - right hand" );
+idCVar vr_turnSlack( "vr_turnSlack", "0", CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "How much the weapon yaw turns before head follows, in degrees" );
 // Leyland end
 
 void idPlayer::UpdateViewAngles()

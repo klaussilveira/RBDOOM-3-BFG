@@ -1002,7 +1002,7 @@ void idProjectile::Event_GetProjectileState()
 idProjectile::Explode
 ================
 */
-idCVar vr_hapticDistMin( "vr_hapticDistMin", "160", CVAR_FLOAT, "distance when falloff occurs" );
+idCVar vr_hapticDistMin( "vr_hapticDistMin", "160", CVAR_FLOAT | CVAR_NEW, "distance when falloff occurs" );
 
 void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 {

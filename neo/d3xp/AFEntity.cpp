@@ -511,7 +511,7 @@ void idAFAttachment::Think()
 idAfAttachment::GetPhysicsToVisualTransform
 ================
 */
-idCVar vr_chibi( "vr_chibi", "1.1", CVAR_FLOAT | CVAR_ARCHIVE, "changes the size of human heads." );
+idCVar vr_chibi( "vr_chibi", "1.1", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_NEW, "changes the size of human heads." );
 
 bool idAFAttachment::GetPhysicsToVisualTransform( idVec3& origin, idMat3& axis )
 {
