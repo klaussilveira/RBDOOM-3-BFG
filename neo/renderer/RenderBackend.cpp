@@ -5959,6 +5959,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		}
 		else
 #endif
+			//if( stereoEye == 1 || stereoEye == 0 )
 		{
 			BlitParameters blitParms;
 			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
@@ -6144,10 +6145,10 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 	// update projection matrices for the case we submit only 1 view
 #if !VR_EMITSTEREO
-	if( vrSystem->IsActive() )//&& stereoEye == -1 )
+	if( vrSystem->IsActive() )
 	{
-		R_SetupProjectionMatrix( cmd->viewDef, true, false, stereoEye );
-		R_SetupProjectionMatrix( cmd->viewDef, false, false, stereoEye );
+		R_SetupProjectionMatrix( cmd->viewDef, true, stereoEye );
+		R_SetupProjectionMatrix( cmd->viewDef, false, stereoEye );
 
 		// setup render matrices for faster culling
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
@@ -6181,7 +6182,14 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		vieworg -= stereoOffset * viewaxis[1];
 
 		vieworg += vrDeltaOrigin;
-		viewaxis = vrDeltaAxis * viewaxis;
+
+#if !VR_EMITSTEREO
+		if( stereoEye == 1 )
+#endif
+		{
+			// only update one time viewaxis to avoid oversteering
+			viewaxis = vrDeltaAxis * viewaxis;
+		}
 
 		vieworg += stereoOffset * viewaxis[1];
 
@@ -6191,6 +6199,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		idRenderMatrix viewRenderMatrix;
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
 		idRenderMatrix::Multiply( cmd->viewDef->projectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.mvp );
+
+		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );
 		idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
 
 		for( viewEntity_t* vEntity = cmd->viewDef->viewEntitys; vEntity; vEntity = vEntity->next )
@@ -6211,6 +6221,58 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				idRenderMatrix::ApplyModelDepthHack( vEntity->mvp, vEntity->modelDepthHack );
 			}
 		}
+
+#if 0 //!VR_EMITSTEREO
+		// RB TODO: update light scissors for each eye
+		for( viewLight_t* vLight = cmd->viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+		{
+			if( r_useLightScissors.GetInteger() != 0 )
+			{
+				// Calculate the matrix that projects the zero-to-one cube to exactly cover the
+				// light frustum in clip space.
+				idRenderMatrix invProjectMVPMatrix;
+				idRenderMatrix::Multiply( cmd->viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+
+				// Calculate the projected bounds, either not clipped at all, near clipped, or fully clipped.
+				idBounds projected;
+				if( r_useLightScissors.GetInteger() == 1 )
+				{
+					idRenderMatrix::ProjectedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+				}
+				else if( r_useLightScissors.GetInteger() == 2 )
+				{
+					idRenderMatrix::ProjectedNearClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+				}
+				else
+				{
+					idRenderMatrix::ProjectedFullyClippedBounds( projected, invProjectMVPMatrix, bounds_zeroOneCube );
+				}
+
+				// TODO make something usefull out of this
+				/*
+				if( projected[0][2] >= projected[1][2] )
+				{
+					// the light was culled to the view frustum
+					return;
+				}
+				*/
+
+				float screenWidth = ( float )viewDef->viewport.x2 - ( float )viewDef->viewport.x1;
+				float screenHeight = ( float )viewDef->viewport.y2 - ( float )viewDef->viewport.y1;
+
+				idScreenRect lightScissorRect;
+				lightScissorRect.x1 = idMath::Ftoi( projected[0][0] * screenWidth );
+				lightScissorRect.x2 = idMath::Ftoi( projected[1][0] * screenWidth );
+				lightScissorRect.y1 = idMath::Ftoi( projected[0][1] * screenHeight );
+				lightScissorRect.y2 = idMath::Ftoi( projected[1][1] * screenHeight );
+				lightScissorRect.Expand();
+
+				vLight->scissorRect.Intersect( lightScissorRect );
+				vLight->scissorRect.zmin = projected[0][2];
+				vLight->scissorRect.zmax = projected[1][2];
+			}
+		}
+#endif
 	}
 	else if( vrSystem->IsActive() &&
 			 ( cmd->viewDef->guiMode == GUIMODE_SHELL ||
@@ -6222,8 +6284,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		cmd->viewDef->renderView.SetFov( vrSystem->GetFOV( targetEye ) );
 		cmd->viewDef->renderView.stereoScreenSeparation = 0.0f;
 
-		R_SetupProjectionMatrix( cmd->viewDef, false );
-		R_SetupProjectionMatrix( cmd->viewDef, true );
+		R_SetupProjectionMatrix( cmd->viewDef, false, stereoEye );
+		R_SetupProjectionMatrix( cmd->viewDef, true, stereoEye );
 
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->projectionMatrix, cmd->viewDef->projectionRenderMatrix );
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );

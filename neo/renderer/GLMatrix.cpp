@@ -415,7 +415,7 @@ idCVar r_centerScale( "r_centerScale", "1", CVAR_FLOAT, "projection matrix cente
 
 #if !defined( DMAP )
 
-void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
+void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, const int stereoEye )
 {
 	// random jittering is usefull when multiple
 	// frames are going to be blended together
@@ -452,9 +452,10 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 #if 1
 
-	if( vrSystem->IsActive() )
+	if( vrSystem->IsActive() && stereoEye != 2 )
 	{
-		int targetEye = viewDef->renderView.viewEyeBuffer == 1 ? 1 : 0;
+		//int targetEye = viewDef->renderView.viewEyeBuffer == 1 ? 1 : 0;
+		int targetEye = stereoEye == 1 ? 1 : 0;
 
 		idVec4 fov = vrSystem->GetFOV( targetEye );
 
@@ -487,7 +488,6 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 	}
 	else
 	{
-
 		float ymax = viewDef->renderView.GetFovTop();
 		float ymin = viewDef->renderView.GetFovBottom();
 

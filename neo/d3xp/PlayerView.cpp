@@ -451,7 +451,9 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 
 	// Leyland VR
 	// everything here gets drawn twice in stereoscopic and needs to know which buffer.
+#if VR_EMITSTEREO
 	tr.guiModel->SetViewEyeBuffer( view->viewEyeBuffer );
+#endif
 
 	// place the sound origin for the player
 	gameSoundWorld->PlaceListener( view->vieworg[STEREOPOS_MONO], view->viewaxis, player->entityNumber + 1 );
@@ -579,7 +581,12 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 		{
 			tr.guiModel->SetMode( GUIMODE_FULLSCREEN );
 			float extend = -0.5f * vrSystem->GetScreenSeparation() * renderSystem->GetVirtualWidth();
+#if VR_EMITSTEREO
 			float offset = -extend * view->viewEyeBuffer;
+#else
+			// RB TODO
+			float offset = 0.0f;
+#endif
 			renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 			renderSystem->DrawStretchPic( offset - extend, 0.0f, renderSystem->GetVirtualWidth() + extend * 2, renderSystem->GetVirtualHeight(), 0.0f, 0.0f, 1.0f, 1.0f, bfgMaterial );
 		}
