@@ -2103,18 +2103,29 @@ void idRenderBackend::GL_Color( float r, float g, float b, float a )
 idRenderBackend::GL_Clear
 ========================
 */
-void idRenderBackend::GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR )
+void idRenderBackend::GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR, bool clearVR, const int stereoEye )
 {
 	nvrhi::IFramebuffer* framebuffer = Framebuffer::GetActiveFramebuffer()->GetApiObject();
 
+	nvrhi::Color colorValue( r, g, b, a );
+
 	if( color )
 	{
-		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, nvrhi::Color( 0.f ) );
+		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, colorValue );
 	}
 
 	if( clearHDR )
 	{
-		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.hdrFBO->GetApiObject(), 0, nvrhi::Color( 0.f ) );
+		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.hdrFBO->GetApiObject(), 0, colorValue );
+		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.ldrFBO->GetApiObject(), 0, colorValue );
+	}
+
+	if( clearVR && vrSystem->IsActive() && stereoEye == 1 )
+	{
+		for( int i = 0; i < MAX_STEREO_BUFFERS; i++ )
+		{
+			nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.vrStereoFBO[i]->GetApiObject(), 0, colorValue );
+		}
 	}
 
 	if( depth || stencil )
@@ -2271,7 +2282,7 @@ void idRenderBackend::DrawFlickerBox()
 idRenderBackend::SetBuffer
 =============
 */
-void idRenderBackend::SetBuffer( const void* data )
+void idRenderBackend::SetBuffer( const void* data, const int stereoEye )
 {
 	// see which draw buffer we want to render the frame to
 
@@ -2290,7 +2301,7 @@ void idRenderBackend::SetBuffer( const void* data )
 
 	currentScissor.Clear();
 	currentScissor.AddPoint( 0, 0 );
-	currentScissor.AddPoint( tr.GetWidth(), tr.GetHeight() );
+	currentScissor.AddPoint( renderSystem->GetWidth(), renderSystem->GetHeight() );
 
 	// clear screen for debugging
 	// automatically enable this with several other debug tools
@@ -2302,19 +2313,19 @@ void idRenderBackend::SetBuffer( const void* data )
 		float c[3];
 		if( sscanf( r_clear.GetString(), "%f %f %f", &c[0], &c[1], &c[2] ) == 3 )
 		{
-			GL_Clear( true, false, false, 0, c[0], c[1], c[2], 1.0f, true );
+			GL_Clear( true, false, false, 0, c[0], c[1], c[2], 1.0f, true, true );
 		}
 		else if( r_clear.GetInteger() == 2 )
 		{
-			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, true, true );
 		}
 		else if( r_showOverDraw.GetBool() )
 		{
-			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f, true, true );
 		}
 		else
 		{
-			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f, true, true );
 		}
 	}
 
@@ -2449,7 +2460,7 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 				}
 
 				case RC_SET_BUFFER:
-					SetBuffer( cmds );
+					SetBuffer( cmds, stereoEye );
 					break;
 
 				case RC_COPY_RENDER:
@@ -2487,12 +2498,15 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 		// copy LDR result to DX12 / Vulkan stereo image
 		{
 			OPTICK_GPU_EVENT( "Blit_StereoImage" );
+			renderLog.OpenBlock( "Blit_StereoImage", colorBlue );
 
 			BlitParameters blitParms;
 			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 			blitParms.targetFramebuffer = globalFramebuffers.vrStereoFBO[ targetEye ]->GetApiObject();
 			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
 			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
+			renderLog.CloseBlock();
 		}
 	}
 
@@ -2758,7 +2772,7 @@ void idRenderBackend::HMD_RenderHUD( idImage* image0, idImage* image1 )
 	{
 		globalFramebuffers.vrHmdEyeFBO[index]->Bind();
 
-		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, false );
+		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, false, false );
 		GL_SelectTexture( 0 );
 
 		if( index )

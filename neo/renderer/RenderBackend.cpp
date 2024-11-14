@@ -2114,7 +2114,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 	{
 		globalFramebuffers.geometryBufferFBO->Bind();
 
-		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, false );
+		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f );
 	}
 
 	// RB: not needed
@@ -3659,80 +3659,6 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOr
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
 }
-
-/*
-void idRenderBackend::SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef )
-{
-	if( r_skipShadows.GetBool() || !r_useShadowAtlas.GetBool() || viewDef->viewLights == NULL )
-	{
-		return;
-	}
-
-	OPTICK_EVENT( "SetupShadowMapMatricesForShadowAtlas" );
-
-	//
-	// for each light, perform shadowing to a big atlas Framebuffer
-	//
-	int shadowIndex = 0;
-	int failedNum = 0;
-
-	for( viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
-	{
-		if( vLight->lightShader->IsFogLight() )
-		{
-			continue;
-		}
-
-		if( vLight->lightShader->IsBlendLight() )
-		{
-			continue;
-		}
-
-		if( vLight->localInteractions == NULL && vLight->globalInteractions == NULL && vLight->translucentInteractions == NULL )
-		{
-			continue;
-		}
-
-		if( !vLight->ImageAtlasPlaced() )
-		{
-			continue;
-		}
-
-		int	side, sideStop;
-
-		if( vLight->parallel )
-		{
-			side = 0;
-			sideStop = r_shadowMapSplits.GetInteger() + 1;
-		}
-		else if( vLight->pointLight )
-		{
-			if( r_shadowMapSingleSide.GetInteger() != -1 )
-			{
-				side = r_shadowMapSingleSide.GetInteger();
-				sideStop = side + 1;
-			}
-			else
-			{
-				side = 0;
-				sideStop = 6;
-			}
-		}
-		else
-		{
-			side = -1;
-			sideStop = 0;
-		}
-
-		for( ; side < sideStop ; side++ )
-		{
-			idRenderMatrix lightProjectionRenderMatrix;
-			idRenderMatrix lightViewRenderMatrix;
-			SetupShadowMapMatrices( vLight, side, lightProjectionRenderMatrix, lightViewRenderMatrix, stereoOrigin );
-		}
-	}
-}
-*/
 
 /*
 ==============================================================================================
@@ -5459,7 +5385,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 
 			case RC_SET_BUFFER:
-				SetBuffer( cmds );
+				SetBuffer( cmds, 0 );
 				c_setBuffers++;
 				break;
 
@@ -5615,7 +5541,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	{
 		OPTICK_GPU_EVENT( "Render_ClearDepthStencil" );
 
-		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
+		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f );
 	}
 
 	// RB end
@@ -5915,7 +5841,8 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	}
 	else
 	{
-		OPTICK_GPU_EVENT( "Blit_Rendered" );
+		OPTICK_GPU_EVENT( "Blit_Rendered2SwapChain" );
+		renderLog.OpenBlock( "Blit_Rendered2SwapChain", colorBlue );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
 #if 0
@@ -5967,6 +5894,8 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 		}
+
+		renderLog.CloseBlock();
 	}
 
 	renderLog.CloseBlock();
@@ -6223,7 +6152,13 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 		}
 
 #if 0 //!VR_EMITSTEREO
-		// RB TODO: update light scissors for each eye
+		// RB TODO: check wether it is better to just bruteforce render lights and objects with r_useScissor 0
+		// ... or iterate through all draw surfaces and calculate the new scissor
+
+		float screenWidth = ( float )viewDef->viewport.x2 - ( float )viewDef->viewport.x1;
+		float screenHeight = ( float )viewDef->viewport.y2 - ( float )viewDef->viewport.y1;
+
+		// RB: update light scissors for each eye
 		for( viewLight_t* vLight = cmd->viewDef->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			if( r_useLightScissors.GetInteger() != 0 )
@@ -6257,9 +6192,6 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				}
 				*/
 
-				float screenWidth = ( float )viewDef->viewport.x2 - ( float )viewDef->viewport.x1;
-				float screenHeight = ( float )viewDef->viewport.y2 - ( float )viewDef->viewport.y1;
-
 				idScreenRect lightScissorRect;
 				lightScissorRect.x1 = idMath::Ftoi( projected[0][0] * screenWidth );
 				lightScissorRect.x2 = idMath::Ftoi( projected[1][0] * screenWidth );
@@ -6267,9 +6199,25 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				lightScissorRect.y2 = idMath::Ftoi( projected[1][1] * screenHeight );
 				lightScissorRect.Expand();
 
-				vLight->scissorRect.Intersect( lightScissorRect );
+				//vLight->scissorRect.Intersect( lightScissorRect );
+				vLight->scissorRect = lightScissorRect;
 				vLight->scissorRect.zmin = projected[0][2];
 				vLight->scissorRect.zmax = projected[1][2];
+			}
+
+			if( vLight->lightShader->IsFogLight() || vLight->lightShader->IsBlendLight() )
+			{
+				drawSurf_t* 	surf;
+
+				for( surf = vLight->localInteractions; surf; surf = surf->nextOnLight )
+				{
+					surf->scissorRect = vLight->scissorRect;
+				}
+
+				for( surf = vLight->globalInteractions; surf; surf = surf->nextOnLight )
+				{
+					surf->scissorRect = vLight->scissorRect;
+				}
 			}
 		}
 #endif
@@ -6437,7 +6385,12 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 	if( r_drawEyeColor.GetBool() )
 	{
 		const idScreenRect& r = viewDef->viewport;
-		GL_Scissor( ( r.x1 + r.x2 ) / 2, ( r.y1 + r.y2 ) / 2, 32, 32 );
+		int x = ( r.x1 + r.x2 ) / 2.0f;
+		int y = ( r.y1 + r.y2 ) / 2.0f;
+
+		GL_Scissor( x, y, 32, 32 );
+		GL_Viewport( x, y, 32, 32 );
+
 		switch( stereoEye )
 		{
 			case -1:
@@ -6450,6 +6403,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 				GL_Clear( true, false, false, 0, 0.5f, 0.5f, 0.5f, 1.0f );
 				break;
 		}
+
+		ResetViewportAndScissorToDefaultCamera( viewDef );
 	}
 }
 

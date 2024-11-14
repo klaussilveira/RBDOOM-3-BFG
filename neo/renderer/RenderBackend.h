@@ -240,7 +240,7 @@ private:
 //	void				GL_CopyDepthBuffer( idImage* image, int x, int y, int imageWidth, int imageHeight );
 
 	// RB: HDR parm
-	void				GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR = false );
+	void				GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR = false, bool clearVR = false, const int stereoEye = 0 );
 
 	void				GL_DepthBoundsTest( const float zmin, const float zmax );
 	void				GL_PolygonOffset( float scale, float bias );
@@ -287,7 +287,7 @@ private:
 
 //	void				GL_Color( float* color );
 
-	void				SetBuffer( const void* data );
+	void				SetBuffer( const void* data, const int stereoEye );
 
 private:
 	void				DBG_SimpleSurfaceSetup( const drawSurf_t* drawSurf );
