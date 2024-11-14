@@ -235,10 +235,11 @@ idStr VRSystem_Valve::GetTrackedDeviceString( vr::TrackedDeviceIndex_t unDevice,
 
 bool VRSystem_Valve::InitHMD()
 {
-#if 0
-	openVREnabled = false;
-	return false;
-#endif
+	if( stereoRender_enable.GetInteger() == 0 )
+	{
+		openVREnabled = false;
+		return false;
+	}
 
 	vr::EVRInitError error = vr::VRInitError_None;
 	hmd = vr::VR_Init( &error, vr::VRApplication_Scene );

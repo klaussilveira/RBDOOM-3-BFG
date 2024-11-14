@@ -1109,7 +1109,7 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		globalImages->brdfLutImage->Bind();
 
 		GL_SelectTexture( INTERACTION_TEXUNIT_PROJECTION );
-		if( !r_useSSAO.GetBool() || ( viewDef->renderView.rdflags & ( RDF_NOAMBIENT | RDF_IRRADIANCE ) ) )
+		if( !r_useSSAO.GetBool() || vrSystem->IsActive() || ( viewDef->renderView.rdflags & ( RDF_NOAMBIENT | RDF_IRRADIANCE ) ) )
 		{
 			globalImages->whiteImage->Bind();
 		}
@@ -1187,7 +1187,7 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		globalImages->brdfLutImage->Bind();
 
 		GL_SelectTexture( INTERACTION_TEXUNIT_PROJECTION );
-		if( !r_useSSAO.GetBool() || ( viewDef->renderView.rdflags & ( RDF_NOAMBIENT | RDF_IRRADIANCE ) ) )
+		if( !r_useSSAO.GetBool() || vrSystem->IsActive() || ( viewDef->renderView.rdflags & ( RDF_NOAMBIENT | RDF_IRRADIANCE ) ) )
 		{
 			globalImages->whiteImage->Bind();
 		}
@@ -2170,11 +2170,6 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 		specularColor = lightColor;// * 0.5f;
 
 		float ambientBoost = 1.0f;
-		//if( !r_usePBR.GetBool() )
-		//{
-		//	ambientBoost += r_useSSAO.GetBool() ? 0.2f : 0.0f;
-		//	ambientBoost *= 1.1f;
-		//}
 
 		ambientColor.x = r_forceAmbient.GetFloat() * ambientBoost;
 		ambientColor.y = r_forceAmbient.GetFloat() * ambientBoost;
@@ -5011,7 +5006,7 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 	}
 
 	// FIXME: the hierarchical depth buffer does not work with the MSAA depth texture source
-	if( !r_useSSAO.GetBool() || R_GetMSAASamples() > 1 )
+	if( !r_useSSAO.GetBool() || R_GetMSAASamples() > 1 || vrSystem->IsActive() )
 	{
 		return;
 	}
@@ -5251,7 +5246,7 @@ NVRHI SSAO using compute shaders.
 */
 void idRenderBackend::DrawScreenSpaceAmbientOcclusion2( const viewDef_t* _viewDef )
 {
-	if( !r_useSSAO.GetBool() )
+	if( !r_useSSAO.GetBool() || vrSystem->IsActive() )
 	{
 		return;
 	}
@@ -6131,6 +6126,8 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 
 		idRenderMatrix::Transpose( *( idRenderMatrix* )cmd->viewDef->unjitteredProjectionMatrix, cmd->viewDef->unjitteredProjectionRenderMatrix );
 		idRenderMatrix::Multiply( cmd->viewDef->unjitteredProjectionRenderMatrix, viewRenderMatrix, cmd->viewDef->worldSpace.unjitteredMVP );
+
+		R_SetupUnprojection( cmd->viewDef );
 
 		for( viewEntity_t* vEntity = cmd->viewDef->viewEntitys; vEntity; vEntity = vEntity->next )
 		{

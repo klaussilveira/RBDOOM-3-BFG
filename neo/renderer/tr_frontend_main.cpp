@@ -700,7 +700,6 @@ void R_RenderView( viewDef_t* parms )
 	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value
 	// for some post process shaders
 	R_SetupUnprojection( tr.viewDef );
-	// RB end
 
 	// setup render matrices for faster culling
 	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->projectionMatrix, tr.viewDef->projectionRenderMatrix );
@@ -722,9 +721,8 @@ void R_RenderView( viewDef_t* parms )
 	// remove the Z-near to avoid portals from being near clipped
 	tr.viewDef->frustums[FRUSTUM_PRIMARY][4][3] -= r_znear.GetFloat();
 
-	// RB begin
+	// RB: prepare subfrustums for cascaded shadow mapping of sun lights
 	R_SetupSplitFrustums( tr.viewDef );
-	// RB end
 
 	// identify all the visible portal areas, and create view lights and view entities
 	// for all the the entityDefs and lightDefs that are in the visible portal areas

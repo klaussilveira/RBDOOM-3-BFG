@@ -335,7 +335,7 @@ bool R_UsePixelatedLook()
 
 bool R_UseTemporalAA()
 {
-	if( !r_useTemporalAA.GetBool() )
+	if( !r_useTemporalAA.GetBool() || vrSystem->IsActive() )
 	{
 		return false;
 	}
