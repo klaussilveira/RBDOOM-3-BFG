@@ -488,22 +488,22 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, const int stere
 	}
 	else
 	{
-		float ymax = viewDef->renderView.GetFovTop();
-		float ymin = viewDef->renderView.GetFovBottom();
+		float ymax = zNear * viewDef->renderView.GetFovTop();
+		float ymin = zNear * viewDef->renderView.GetFovBottom();
 
-		float xmax = viewDef->renderView.GetFovRight();
-		float xmin = viewDef->renderView.GetFovLeft();
+		float xmax = zNear * viewDef->renderView.GetFovRight();
+		float xmin = zNear * viewDef->renderView.GetFovLeft();
 
 		const float width = xmax - xmin;
 		const float height = ymax - ymin;
 
-		projectionMatrix[0 * 4 + 0] = 2.0f / width;
+		projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
 		projectionMatrix[1 * 4 + 0] = 0.0f;
 		projectionMatrix[2 * 4 + 0] = xoffset;
 		projectionMatrix[3 * 4 + 0] = 0.0f;
 
 		projectionMatrix[0 * 4 + 1] = 0.0f;
-		projectionMatrix[1 * 4 + 1] = 2.0f / height;
+		projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
 		projectionMatrix[2 * 4 + 1] = yoffset;
 		projectionMatrix[3 * 4 + 1] = 0.0f;
 
@@ -523,43 +523,6 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, const int stere
 		projectionMatrix[2 * 4 + 3] = -1.0f;
 		projectionMatrix[3 * 4 + 3] = 0.0f;
 	}
-
-#elif 0
-
-	float ymax = zNear * viewDef->renderView.GetFovTop();
-	float ymin = zNear * viewDef->renderView.GetFovBottom();
-
-	float xmax = zNear * viewDef->renderView.GetFovRight();
-	float xmin = zNear * viewDef->renderView.GetFovLeft();
-
-	const float width = xmax - xmin;
-	const float height = ymax - ymin;
-
-	projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
-	projectionMatrix[1 * 4 + 0] = 0.0f;
-	projectionMatrix[2 * 4 + 0] = xoffset;
-	projectionMatrix[3 * 4 + 0] = 0.0f;
-
-	projectionMatrix[0 * 4 + 1] = 0.0f;
-	projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
-	projectionMatrix[2 * 4 + 1] = yoffset;
-	projectionMatrix[3 * 4 + 1] = 0.0f;
-
-	// this is the far-plane-at-infinity formulation, and
-	// crunches the Z range slightly so w=0 vertexes do not
-	// rasterize right at the wraparound point
-	projectionMatrix[0 * 4 + 2] = 0.0f;
-	projectionMatrix[1 * 4 + 2] = 0.0f;
-	projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
-
-	// RB: was -2.0f * zNear
-	// the transformation into window space has changed from [-1 .. 1] to [0 .. 1]
-	projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
-
-	projectionMatrix[0 * 4 + 3] = 0.0f;
-	projectionMatrix[1 * 4 + 3] = 0.0f;
-	projectionMatrix[2 * 4 + 3] = -1.0f;
-	projectionMatrix[3 * 4 + 3] = 0.0f;
 
 #else
 

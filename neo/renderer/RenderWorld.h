@@ -250,6 +250,7 @@ enum stereoOrigin_t
 typedef struct renderView_s
 {
 private:
+	float					fov_x, fov_y;									// as degrees like before
 	float					fov_left, fov_right, fov_top, fov_bottom;		// as tangents
 
 public:
@@ -261,24 +262,37 @@ public:
 		fov_right = fov[1];
 		fov_bottom = fov[2];
 		fov_top = fov[3];
+
+		fov_x = ( atan( fov_right ) - atan( fov_left ) ) * idMath::M_RAD2DEG;
+		fov_y = ( atan( fov_top ) - atan( fov_bottom ) ) * idMath::M_RAD2DEG;
 	}
 
 	// assumes degrees
-	void					SetFovXY( float fov_x, float fov_y )
+	void					SetFovXY( float fovX, float fovY )
 	{
-		fov_x = tan( fov_x * 0.5f * idMath::M_DEG2RAD );
-		fov_y = tan( fov_y * 0.5f * idMath::M_DEG2RAD );
-		fov_left = -fov_x;
-		fov_right = fov_x;
-		fov_bottom = -fov_y;
-		fov_top = fov_y;
+		fov_x = fovX;
+		fov_y = fovY;
+
+		//fovX = tan( fov_x * 0.5f * idMath::M_DEG2RAD );
+		//fovY = tan( fov_y * 0.5f * idMath::M_DEG2RAD );
+
+		fovX = tan( fov_x * idMath::PI / 360.0f );
+		fovY = tan( fov_y * idMath::PI / 360.0f );
+
+		fov_left = -fovX;
+		fov_right = fovX;
+		fov_bottom = -fovY;
+		fov_top = fovY;
 	}
 
 	// returns fov in degrees like in old Doom 3
-	void					GetFovXY( float& fov_x, float& fov_y ) const
+	void					GetFovXY( float& fovX, float& fovY ) const
 	{
-		fov_x = ( atan( fov_right ) - atan( fov_left ) ) * idMath::M_RAD2DEG;
-		fov_y = ( atan( fov_top ) - atan( fov_bottom ) ) * idMath::M_RAD2DEG;
+		fovX = fov_x;
+		fovY = fov_y;
+
+		//fov_x = ( atan( fov_right ) - atan( fov_left ) ) * idMath::M_RAD2DEG;
+		//fov_y = ( atan( fov_top ) - atan( fov_bottom ) ) * idMath::M_RAD2DEG;
 	}
 
 	float					GetFovLeft() const
