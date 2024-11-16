@@ -554,6 +554,16 @@ void idGuiModel::EmitImGui( ImDrawData* drawData )
 				1.0f
 			};
 
+			// RB: just use the full view for now in VR mode instead of transforming
+			// the scissor in the renderer backend into the new GUIMODE_* target rectangle
+			if( vrSystem->IsActive() )
+			{
+				clipRect.x1 = 0;
+				clipRect.y1 = io.DisplaySize.y;
+				clipRect.x2 = io.DisplaySize.x;
+				clipRect.y2 = 0;
+			}
+
 			idDrawVert* verts = AllocTris( numVerts, indexBufferOffset, numIndexes, mat, tr.currentGLState, STEREO_DEPTH_TYPE_NONE, clipRect );
 			if( verts == NULL )
 			{

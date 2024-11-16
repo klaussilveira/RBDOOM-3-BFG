@@ -754,8 +754,9 @@ stereoDistances_t	CaclulateStereoDistances(
 		dists.worldSeparation = vrSystem->GetHalfIPD();// CentimetersToInches( interOcularCentimeters * 0.5 );
 		dists.screenSeparation = vrSystem->GetScreenSeparation();
 
-		// TODO float tanRoverN = Max( vrSystem->hmdEye[1].projectionOpenVR.projLeft, vrSystem->hmdEye[1].projectionOpenVR.projRight );
-		dists.combinedSeperation = 0.0f; //dists.worldSeparation * ( 1.0f / tanRoverN );
+		idVec4 fov = vrSystem->GetFOV( 1 );
+		float tanRoverN = Max( fov.x, fov.y );
+		dists.combinedSeperation = dists.worldSeparation * ( 1.0f / tanRoverN );
 
 		return dists;
 	}
