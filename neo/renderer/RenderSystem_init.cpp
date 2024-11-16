@@ -241,9 +241,7 @@ idCVar r_materialOverride( "r_materialOverride", "", CVAR_RENDERER, "overrides a
 
 idCVar r_debugRenderToTexture( "r_debugRenderToTexture", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
 
-idCVar stereoRender_enable( "stereoRender_enable", "0", CVAR_INTEGER | CVAR_ARCHIVE, "1 = side-by-side compressed, 2 = top and bottom compressed, 3 = side-by-side, 4 = 720 frame packed, 5 = interlaced, 6 = OpenGL quad buffer" );
 idCVar stereoRender_swapEyes( "stereoRender_swapEyes", "0", CVAR_BOOL | CVAR_ARCHIVE, "reverse eye adjustments" );
-idCVar stereoRender_deGhost( "stereoRender_deGhost", "0.05", CVAR_FLOAT | CVAR_ARCHIVE, "subtract from opposite eye to reduce ghosting" );
 
 idCVar r_useVirtualScreenResolution( "r_useVirtualScreenResolution", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "do 2D rendering at 640x480 and stretch to the current resolution" );
 
@@ -403,9 +401,9 @@ void R_SetNewMode( const bool fullInit )
 {
 	// try up to three different configurations
 
-	for( int i = 0 ; i < 3 ; i++ )
+	for( int i = 0 ; i < 3; i++ )
 	{
-		if( i == 0 && stereoRender_enable.GetInteger() != STEREO3D_QUAD_BUFFER )
+		if( i == 0 /*&& vr_enable.GetInteger() != STEREO3D_QUAD_BUFFER*/ )
 		{
 			continue;		// don't even try for a stereo mode
 		}
@@ -516,15 +514,6 @@ void R_SetNewMode( const bool fullInit )
 #pragma warning( pop )
 #endif
 
-		if( i == 0 )
-		{
-			parms.stereo = ( stereoRender_enable.GetInteger() == STEREO3D_QUAD_BUFFER );
-		}
-		else
-		{
-			parms.stereo = false;
-		}
-
 		if( fullInit )
 		{
 			// create the context as well as setting up the window
@@ -557,7 +546,7 @@ void R_SetNewMode( const bool fullInit )
 
 		if( i == 2 )
 		{
-			common->FatalError( "Unable to initialize OpenGL" );
+			common->FatalError( "Unable to initialize renderer" );
 		}
 
 		if( i == 0 )
@@ -1560,7 +1549,7 @@ void GfxInfo_f( const idCmdArgs& args )
 
 	common->Printf( "-------\n" );
 
-	if( r_swapInterval.GetInteger() )//&& wglSwapIntervalEXT != NULL )
+	if( r_swapInterval.GetInteger() )
 	{
 		common->Printf( "Forcing swapInterval %i\n", r_swapInterval.GetInteger() );
 	}
@@ -1569,52 +1558,7 @@ void GfxInfo_f( const idCmdArgs& args )
 		common->Printf( "swapInterval not forced\n" );
 	}
 
-	if( glConfig.stereoPixelFormatAvailable && glConfig.isStereoPixelFormat )
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel format active\n" );
-	}
-	else if( glConfig.stereoPixelFormatAvailable )
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel available but not selected\n" );
-	}
-	else
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel format not available\n" );
-	}
-
-	idLib::Printf( "Stereo mode: " );
-	switch( renderSystem->GetStereo3DMode() )
-	{
-		case STEREO3D_OFF:
-			idLib::Printf( "STEREO3D_OFF\n" );
-			break;
-		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
-			idLib::Printf( "STEREO3D_SIDE_BY_SIDE_COMPRESSED\n" );
-			break;
-		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:
-			idLib::Printf( "STEREO3D_TOP_AND_BOTTOM_COMPRESSED\n" );
-			break;
-		case STEREO3D_SIDE_BY_SIDE:
-			idLib::Printf( "STEREO3D_SIDE_BY_SIDE\n" );
-			break;
-		case STEREO3D_HDMI_720:
-			idLib::Printf( "STEREO3D_HDMI_720\n" );
-			break;
-		case STEREO3D_INTERLACED:
-			idLib::Printf( "STEREO3D_INTERLACED\n" );
-			break;
-		case STEREO3D_QUAD_BUFFER:
-			idLib::Printf( "STEREO3D_QUAD_BUFFER\n" );
-			break;
-		case STEREO3D_OPENVR:
-			idLib::Printf( "STEREO3D_OPENVR\n" );
-			break;
-		default:
-			idLib::Printf( "Unknown (%i)\n", renderSystem->GetStereo3DMode() );
-			break;
-	}
-
-	idLib::Printf( "%i multisamples\n", glConfig.multisamples );
+	//idLib::Printf( "%i multisamples\n", glConfig.multisamples );
 
 	common->Printf( "%5.1f cm screen width (%4.1f\" diagonal)\n",
 					glConfig.physicalScreenWidthInCentimeters, glConfig.physicalScreenWidthInCentimeters / 2.54f
@@ -2293,8 +2237,6 @@ void idRenderSystemLocal::Init()
 	guiModel->Clear();
 	tr_guiModel = guiModel;	// for DeviceContext fast path
 
-	UpdateStereo3DMode();
-
 	globalImages->Init();
 
 	// RB begin
@@ -2663,10 +2605,14 @@ int idRenderSystemLocal::GetWidth() const
 	{
 		return vrSystem->GetRenderResolution().x;
 	}
+
+	// do something similar in case the VR API requires it
+	/*
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE || glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE_COMPRESSED )
 	{
 		return glConfig.nativeScreenWidth >> 1;
 	}
+	*/
 
 	return glConfig.nativeScreenWidth;
 }
@@ -2682,6 +2628,9 @@ int idRenderSystemLocal::GetHeight() const
 	{
 		return vrSystem->GetRenderResolution().y;
 	}
+
+	// do something similar in case the VR API requires it
+	/*
 	if( glConfig.stereo3Dmode == STEREO3D_HDMI_720 )
 	{
 		return 720;
@@ -2692,10 +2641,8 @@ int idRenderSystemLocal::GetHeight() const
 		// for the Rift, render a square aspect view that will be symetric for the optics
 		return glConfig.nativeScreenWidth >> 1;
 	}
-	if( glConfig.stereo3Dmode == STEREO3D_INTERLACED || glConfig.stereo3Dmode == STEREO3D_TOP_AND_BOTTOM_COMPRESSED )
-	{
-		return glConfig.nativeScreenHeight >> 1;
-	}
+	*/
+
 	return glConfig.nativeScreenHeight;
 }
 
@@ -2747,98 +2694,12 @@ int idRenderSystemLocal::GetVirtualHeight() const
 
 /*
 ========================
-idRenderSystemLocal::GetStereo3DMode
-========================
-*/
-stereo3DMode_t idRenderSystemLocal::GetStereo3DMode() const
-{
-	if( vrSystem->IsActive() )
-	{
-		return STEREO3D_OPENVR;
-	}
-	else
-	{
-		return STEREO3D_OFF; //glConfig.stereo3Dmode;
-	}
-}
-
-/*
-========================
-idRenderSystemLocal::IsStereoScopicRenderingSupported
-========================
-*/
-bool idRenderSystemLocal::IsStereoScopicRenderingSupported() const
-{
-#if VR_OPTIONS
-	return true;
-#else
-	return false;
-#endif
-}
-
-/*
-========================
-idRenderSystemLocal::HasQuadBufferSupport
-========================
-*/
-bool idRenderSystemLocal::HasQuadBufferSupport() const
-{
-	return glConfig.stereoPixelFormatAvailable;
-}
-
-/*
-========================
-idRenderSystemLocal::UpdateStereo3DMode
-========================
-*/
-void idRenderSystemLocal::UpdateStereo3DMode()
-{
-	if( vrSystem->IsActive() )
-	{
-		glConfig.stereo3Dmode = STEREO3D_OPENVR;
-	}
-	else if( glConfig.nativeScreenWidth == 1280 && glConfig.nativeScreenHeight == 1470 )
-	{
-		glConfig.stereo3Dmode = STEREO3D_HDMI_720;
-	}
-	else
-	{
-		glConfig.stereo3Dmode = GetStereoScopicRenderingMode();
-	}
-}
-
-/*
-========================
-idRenderSystemLocal::GetStereoScopicRenderingMode
-========================
-*/
-stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
-{
-	// RB: only support in VR builds
-#if VR_OPTIONS
-	return ( !IsStereoScopicRenderingSupported() ) ? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
-#else
-	return STEREO3D_OFF;
-#endif
-}
-
-/*
-========================
-idRenderSystemLocal::IsStereoScopicRenderingSupported
-========================
-*/
-void idRenderSystemLocal::EnableStereoScopicRendering( const stereo3DMode_t mode ) const
-{
-	stereoRender_enable.SetInteger( mode );
-}
-
-/*
-========================
 idRenderSystemLocal::GetPixelAspect
 ========================
 */
 float idRenderSystemLocal::GetPixelAspect() const
 {
+	/*
 	switch( glConfig.stereo3Dmode )
 	{
 		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
@@ -2849,6 +2710,9 @@ float idRenderSystemLocal::GetPixelAspect() const
 		default:
 			return glConfig.pixelAspect;
 	}
+	*/
+
+	return glConfig.pixelAspect;
 }
 
 /*

@@ -37,6 +37,12 @@ VR
 =============================================================
 */
 
+enum class VrAPI : uint8_t
+{
+	OPENVR,
+	OPENXR
+};
+
 class VRSystem
 {
 public:
@@ -96,6 +102,7 @@ public:
 
 extern VRSystem* vrSystem;
 
+extern idCVar vr_enable;
 extern idCVar vr_resolutionScale;
 extern idCVar vr_playerHeightCM;
 extern idCVar vr_aimLook;

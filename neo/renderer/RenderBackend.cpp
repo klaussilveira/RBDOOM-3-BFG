@@ -5326,7 +5326,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		return;
 	}
 
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	if( vrSystem->IsActive() )
 	{
 		StereoRenderExecuteBackEndCommands( cmds );
 		return;

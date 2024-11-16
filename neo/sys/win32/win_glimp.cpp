@@ -921,9 +921,6 @@ static bool GLW_CreateWindow( glimpParms_t parms )
 		return false;
 	}
 
-	// TODO
-	glConfig.stereoPixelFormatAvailable = false;
-
 	SetForegroundWindow( win32.hWnd );
 	SetFocus( win32.hWnd );
 
@@ -1129,7 +1126,6 @@ bool GLimp_Init( glimpParms_t parms )
 	}
 
 	glConfig.isFullscreen = parms.fullScreen;
-	glConfig.isStereoPixelFormat = parms.stereo;
 
 	if( parms.fullScreen )
 	{
@@ -1219,8 +1215,6 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
 
 	glConfig.isFullscreen = parms.fullScreen;
 	glConfig.pixelAspect = 1.0f;	// FIXME: some monitor modes may be distorted
-
-	glConfig.isStereoPixelFormat = parms.stereo;
 
 	// SRS - Get window's client area dimensions to set new render size
 	RECT rect;

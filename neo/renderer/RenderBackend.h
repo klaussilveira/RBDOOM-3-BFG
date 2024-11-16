@@ -214,9 +214,6 @@ private:
 	void				GL_StartFrame();
 	void				GL_EndFrame();
 
-	// Render headtracked quad for menus or fake HUD
-	void				HMD_RenderHUD( idImage* image0, idImage* image1 );
-
 public:
 	uint64				GL_GetCurrentState() const;
 	idVec2				GetCurrentPixelOffset( int frameIndex ) const;

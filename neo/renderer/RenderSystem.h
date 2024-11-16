@@ -39,30 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===============================================================================
 */
-enum stereo3DMode_t
-{
-	STEREO3D_OFF,
 
-	// half-resolution, non-square pixel views
-	STEREO3D_SIDE_BY_SIDE_COMPRESSED,
-	STEREO3D_TOP_AND_BOTTOM_COMPRESSED,
-
-	// two full resolution views side by side, as for a dual cable display
-	STEREO3D_SIDE_BY_SIDE,
-
-	STEREO3D_INTERLACED,
-
-	// OpenGL quad buffer
-	STEREO3D_QUAD_BUFFER,
-
-	// two full resolution views stacked with a 30 pixel guard band
-	// On the PC this can be configured as a custom video timing, but
-	// it definitely isn't a consumer level task.  The quad_buffer
-	// support can handle 720P-3D with apropriate driver support.
-	STEREO3D_HDMI_720,
-
-	STEREO3D_OPENVR
-};
 
 // In a head mounted display with separate displays for each eye,
 // screen separation will be zero and world separation will be the eye distance.
@@ -221,15 +198,12 @@ struct glconfig_t
 
 	bool				timerQueryAvailable;
 
-	stereo3DMode_t		stereo3Dmode;
 	int					nativeScreenWidth; // this is the native screen width resolution of the renderer
 	int					nativeScreenHeight; // this is the native screen height resolution of the renderer
 
 	int					displayFrequency;
 
 	int					isFullscreen;					// monitor number
-	bool				isStereoPixelFormat;
-	bool				stereoPixelFormatAvailable;
 	int					multisamples;
 
 	// Screen separation for stereoscopic rendering is set based on this.
@@ -297,14 +271,6 @@ public:
 
 	// This is used to calculate stereoscopic screen offset for a given interocular distance.
 	virtual float			GetPhysicalScreenWidthInCentimeters() const = 0;
-
-	// GetWidth() / GetHeight() return the size of a single eye
-	// view, which may be replicated twice in a stereo display
-	virtual stereo3DMode_t	GetStereo3DMode() const = 0;
-	virtual bool			IsStereoScopicRenderingSupported() const = 0;
-	virtual stereo3DMode_t	GetStereoScopicRenderingMode() const = 0;
-	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const = 0;
-	virtual bool			HasQuadBufferSupport() const = 0;
 
 	// allocate a renderWorld to be used for drawing
 	virtual idRenderWorld* 	AllocRenderWorld() = 0;

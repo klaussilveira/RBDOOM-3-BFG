@@ -877,11 +877,6 @@ public:
 	virtual void			ShutdownOpenGL();
 	virtual bool			IsOpenGLRunning() const;
 	virtual bool			IsFullScreen() const;
-	virtual stereo3DMode_t	GetStereo3DMode() const;
-	virtual bool			HasQuadBufferSupport() const;
-	virtual bool			IsStereoScopicRenderingSupported() const;
-	virtual stereo3DMode_t	GetStereoScopicRenderingMode() const;
-	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const;
 	virtual int				GetWidth() const;
 	virtual int				GetHeight() const;
 	virtual int				GetNativeWidth() const;
@@ -959,8 +954,6 @@ public:
 	// internal functions
 	idRenderSystemLocal();
 	~idRenderSystemLocal();
-
-	void					UpdateStereo3DMode();// Leyland VR
 
 	void					Clear();
 	void					GetCroppedViewport( idScreenRect* viewport );
@@ -1217,9 +1210,6 @@ extern idCVar r_materialOverride;			// override all materials
 
 extern idCVar r_debugRenderToTexture;
 
-extern idCVar stereoRender_enable;
-extern idCVar stereoRender_deGhost;			// subtract from opposite eye to reduce ghosting
-
 // RB begin
 extern idCVar r_useGPUSkinning;
 
@@ -1386,7 +1376,6 @@ struct glimpParms_t
 	int			fullScreen;		// 0 = windowed, otherwise 1 based monitor number to go full screen on
 	// -1 = borderless window for spanning multiple displays
 	bool		startMaximized = false;
-	bool		stereo;
 	int			displayHz;
 	int			multiSamples;
 };

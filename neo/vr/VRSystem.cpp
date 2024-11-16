@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "VRSystem.h"
 
+idCVar vr_enable( "vr_enable", "0", CVAR_INTEGER | CVAR_INIT | CVAR_ARCHIVE | CVAR_NEW, "" );
 idCVar vr_resolutionScale( "vr_resolutionScale", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "hmd resolution scaling, restart required" );
 idCVar vr_playerHeightCM( "vr_playerHeightCM", "183", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "player height for vr in centimeters" );
 idCVar vr_aimLook( "vr_aimLook", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "aim where you look" );
@@ -43,7 +44,7 @@ idCVar vr_forwardOnly( "vr_forwardOnly", "0", CVAR_ARCHIVE | CVAR_BOOL | CVAR_NE
 idCVar vr_relativeAxis( "vr_relativeAxis", "0", CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "movement relative to initial touch" );
 idCVar vr_maxRadius( "vr_maxRadius", "0.9", CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "smaller values make it easier to hit max movement speed" );
 idCVar vr_responseCurve( "vr_responseCurve", "0", CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "interpoloate between linear and square curves, -1 for inverse square" );
-idCVar vr_moveMode( "vr_moveMode", "8", CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "	0 touch walk | 1 touch walk & hold run | 2 touch walk & click run | 3 click walk | 4 click walk & hold run | 5 click walk & double click run | 6 hold walk" );
+idCVar vr_moveMode( "vr_moveMode", "8", CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 touch walk | 1 touch walk & hold run | 2 touch walk & click run | 3 click walk | 4 click walk & hold run | 5 click walk & double click run | 6 hold walk" );
 idCVar vr_moveSpeed( "vr_moveSpeed", "0.5", CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "Touchpad player movement speed is multiplied by this value. Set to 1 for normal speed, or between 0 and 1 for slower movement." );
 
 

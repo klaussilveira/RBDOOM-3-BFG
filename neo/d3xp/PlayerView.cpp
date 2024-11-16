@@ -873,11 +873,7 @@ The crosshair is swapped for a laser sight in stereo rendering
 */
 bool	IsGameStereoRendered()
 {
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
-	{
-		return true;
-	}
-	return false;
+	return vrSystem->IsActive();
 }
 
 int EyeForHalfRateFrame( const int frameCount )
@@ -898,7 +894,7 @@ idCVar vr_blink( "vr_blink", "1", CVAR_FLOAT | CVAR_ARCHIVE | CVAR_NEW, "Darkens
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 {
 	const renderView_t* view = player->GetRenderView();
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	if( vrSystem->IsActive() )
 	{
 		int eye = 0;
 

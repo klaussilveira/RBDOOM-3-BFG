@@ -212,7 +212,7 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->accumImage->texture ) );
 
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	if( vrSystem->IsActive() )
 	{
 		globalFramebuffers.vrPDAFBO = new Framebuffer( "_vrPDA",
 				nvrhi::FramebufferDesc()
@@ -274,7 +274,7 @@ void Framebuffer::ReloadImages()
 	globalImages->guiEdit->Reload( false, tr.backend.commandList );
 	globalImages->accumImage->Reload( false, tr.backend.commandList );
 
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	if( vrSystem->IsActive() )
 	{
 		globalImages->vrPDAImage->Reload( false, tr.backend.commandList );
 		globalImages->vrHUDImage->Reload( false, tr.backend.commandList );

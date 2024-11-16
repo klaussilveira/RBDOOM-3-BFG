@@ -1133,7 +1133,7 @@ void idImageManager::CreateIntrinsicImages()
 	vrPDAImage = ImageFromFunction( "_pdaImage", R_LdrNativeImage );
 	vrHUDImage = ImageFromFunction( "_hudImage", R_LdrNativeImage );
 
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	if( vrSystem->IsActive() )
 	{
 		stereoRenderImages[0] = ImageFromFunction( "_stereoRender0", R_VR_StereoImage );
 		stereoRenderImages[1] = ImageFromFunction( "_stereoRender1", R_VR_StereoImage );
