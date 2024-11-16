@@ -604,4 +604,3 @@ float DitherArray8x8Anim( float2 pos, int frameIndexMod4 )
 }
 
 
-#define SMAA_RT_METRICS float4(1.0 / 1280.0, 1.0 / 720.0, 1280.0, 720.0)

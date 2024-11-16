@@ -87,17 +87,17 @@ void TemporalAntiAliasingPass::Init(
 	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
 	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
 
-	switch( r_antiAliasing.GetInteger() )
+	//switch( r_antiAliasing.GetInteger() )
 	{
 #if ID_MSAA
-		case ANTI_ALIASING_MSAA_2X:
+	case ANTI_ALIASING_MSAA_2X:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_2X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
 			break;
 		}
 
-		case ANTI_ALIASING_MSAA_4X:
+	case ANTI_ALIASING_MSAA_4X:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_4X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
@@ -108,11 +108,11 @@ void TemporalAntiAliasingPass::Init(
 #pragma warning( disable : 4065 )	// C4065: switch statement contains 'default' but no 'case'
 #endif
 
-		default:
+		//default:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
-			break;
+			//break;
 		}
 	}
 #if !ID_MSAA && defined( _MSC_VER )

@@ -377,6 +377,23 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_BINK_VIDEO] = { device->createBindingLayout( binkVideoBindingLayout ), samplerOneBindingLayout };
 
+	auto smaaEdgeDetectionBindingLayout = nvrhi::BindingLayoutDesc()
+										  .setVisibility( nvrhi::ShaderType::All )
+										  .addItem( renderParmLayoutItem )
+										  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) );		// _smaaInput
+	//.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )		// _motionVectors
+
+	bindingLayouts[BINDING_LAYOUT_SMAA_EDGE_DETECTION] = { device->createBindingLayout( smaaEdgeDetectionBindingLayout ), samplerTwoBindingLayout };
+
+	auto smaaWeightCalcBindingLayout = nvrhi::BindingLayoutDesc()
+									   .setVisibility( nvrhi::ShaderType::All )
+									   .addItem( renderParmLayoutItem )
+									   .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )		// _smaaEdges
+									   .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )		// _smaaArea
+									   .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );		// _smaaSearch
+
+	bindingLayouts[BINDING_LAYOUT_SMAA_WEIGHT_CALC] = { device->createBindingLayout( smaaWeightCalcBindingLayout ), samplerTwoBindingLayout };
+
 	auto motionVectorsBindingLayout = nvrhi::BindingLayoutDesc()
 									  .setVisibility( nvrhi::ShaderType::All )
 									  .addItem( renderParmLayoutItem )
@@ -548,9 +565,9 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		{ BUILTIN_HDR_GLARE_CHROMATIC, "builtin/post/hdr_glare_chromatic", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
 		{ BUILTIN_HDR_DEBUG, "builtin/post/tonemap", "_debug", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "1"} }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
 
-		{ BUILTIN_SMAA_EDGE_DETECTION, "builtin/post/SMAA_edge_detection", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "builtin/post/SMAA_blending_weight_calc", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "builtin/post/SMAA_final", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_SMAA_EDGE_DETECTION, "builtin/post/SMAA_edge_detection", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SMAA_EDGE_DETECTION },
+		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "builtin/post/SMAA_blending_weight_calc", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SMAA_WEIGHT_CALC },
+		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "builtin/post/SMAA_final", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
 
 		{ BUILTIN_MOTION_BLUR, "builtin/post/motionBlur", "_vectors", { { "VECTORS_ONLY", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
 		{ BUILTIN_TAA_RESOLVE, "builtin/post/taa", "", { { "SAMPLE_COUNT", "1" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },

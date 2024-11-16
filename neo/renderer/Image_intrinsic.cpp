@@ -1092,21 +1092,20 @@ void idImageManager::CreateIntrinsicImages()
 	bloomRenderImage[0] = globalImages->ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
 	bloomRenderImage[1] = globalImages->ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
 
-	glowImage[0] = globalImages->ImageFromFunction( "_glowImage0", R_RGBA8Image_ResGui );
-	glowImage[1] = globalImages->ImageFromFunction( "_glowImage1", R_RGBA8Image_ResGui );
-	glowDepthImage[0] = globalImages->ImageFromFunction( "_glowDepthImage0", R_DepthImage );
-	glowDepthImage[1] = globalImages->ImageFromFunction( "_glowDepthImage1", R_DepthImage );
+	//glowImage[0] = globalImages->ImageFromFunction( "_glowImage0", R_RGBA8Image_ResGui );
+	//glowImage[1] = globalImages->ImageFromFunction( "_glowImage1", R_RGBA8Image_ResGui );
+	//glowDepthImage[0] = globalImages->ImageFromFunction( "_glowDepthImage0", R_DepthImage );
+	//glowDepthImage[1] = globalImages->ImageFromFunction( "_glowDepthImage1", R_DepthImage );
 
-	accumTransparencyImage = globalImages->ImageFromFunction( "_accumTransparencyImage", R_HDR_RGBA16FImage_ResNative_Linear );
-	revealTransparencyImage = globalImages->ImageFromFunction( "_revealTransparencyImage", R_R8Image_ResNative_Linear );
+	//accumTransparencyImage = globalImages->ImageFromFunction( "_accumTransparencyImage", R_HDR_RGBA16FImage_ResNative_Linear );
+	//revealTransparencyImage = globalImages->ImageFromFunction( "_revealTransparencyImage", R_R8Image_ResNative_Linear );
 
 	heatmap5Image = ImageFromFunction( "_heatmap5", R_CreateHeatmap5ColorsImage );
 	heatmap7Image = ImageFromFunction( "_heatmap7", R_CreateHeatmap7ColorsImage );
 
 	grainImage1 = globalImages->ImageFromFunction( "_grain1", R_CreateGrainImage1 );
 
-	smaaInputImage = ImageFromFunction( "_smaaInput", R_RGBA8LinearImage );
-
+	smaaInputImage = ImageFromFunction( "_smaaInput", R_SMAAImage_ResNative );
 	smaaAreaImage = globalImages->ImageFromFunction( "_smaaArea", R_CreateSMAAAreaImage );
 	smaaSearchImage = globalImages->ImageFromFunction( "_smaaSearch", R_CreateSMAASearchImage );
 

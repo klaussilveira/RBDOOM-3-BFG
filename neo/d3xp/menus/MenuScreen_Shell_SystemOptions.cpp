@@ -600,10 +600,11 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 				ANTI_ALIASING_MSAA_4X,
 			};
 #else
-			static const int numValues = 2;
+			static const int numValues = 3;
 			static const int values[numValues] =
 			{
 				ANTI_ALIASING_NONE,
+				ANTI_ALIASING_SMAA_1X,
 				ANTI_ALIASING_TAA,
 			};
 #endif
@@ -780,10 +781,11 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 
 			compile_time_assert( numValues == ( ANTI_ALIASING_MSAA_4X + 1 ) );
 #else
-			static const int numValues = 2;
+			static const int numValues = 3;
 			static const char* values[numValues] =
 			{
 				"None",
+				"SMAA",
 				"TAA"
 			};
 

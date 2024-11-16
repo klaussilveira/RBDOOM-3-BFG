@@ -6524,11 +6524,14 @@ void idRenderBackend::PostProcess( const void* data )
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 
-#if 0
+#if 1
 	// SMAA
 	int aaMode = r_antiAliasing.GetInteger();
 	if( aaMode == ANTI_ALIASING_SMAA_1X )
 	{
+		OPTICK_GPU_EVENT( "Render_SMAA" );
+		renderLog.OpenBlock( "Render_SMAA" );
+
 		/*
 		 * The shader has three passes, chained together as follows:
 		 *
@@ -6547,8 +6550,6 @@ void idRenderBackend::PostProcess( const void* data )
 		 *                           |output|
 		*/
 
-		globalImages->smaaInputImage->CopyFramebuffer( 0, 0, screenWidth, screenHeight );
-
 		// set SMAA_RT_METRICS = rpScreenCorrectionFactor
 		float screenCorrectionParm[4];
 		screenCorrectionParm[0] = 1.0f / screenWidth;
@@ -6557,53 +6558,60 @@ void idRenderBackend::PostProcess( const void* data )
 		screenCorrectionParm[3] = screenHeight;
 		SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 
-		globalFramebuffers.smaaEdgesFBO->Bind();
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = globalFramebuffers.smaaInputFBO->GetApiObject();
 
-		glClearColor( 0, 0, 0, 0 );
-		glClear( GL_COLOR_BUFFER_BIT );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+		{
+			//                    [ SMAA*EdgeDetection ]
+			globalFramebuffers.smaaEdgesFBO->Bind();
 
-		renderProgManager.BindShader_SMAA_EdgeDetection();
-		DrawElementsWithCounters( &unitSquareSurface );
+			GL_Clear( true, false, false, 128, 0, 0, 0, 0 );
 
-#if 1
-		//globalImages->smaaEdgesImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+			GL_SelectTexture( 0 );
+			globalImages->smaaInputImage->Bind();
 
-		globalFramebuffers.smaaBlendFBO->Bind();
-		//Framebuffer::Unbind();
+			renderProgManager.BindShader_SMAA_EdgeDetection();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
 
-		glClear( GL_COLOR_BUFFER_BIT );
+		{
+			//              [ SMAABlendingWeightCalculation ]
+			globalFramebuffers.smaaBlendFBO->Bind();
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaEdgesImage->Bind();
+			GL_Clear( true, false, false, 128, 0, 0, 0, 0 );
 
-		GL_SelectTexture( 1 );
-		globalImages->smaaAreaImage->Bind();
+			GL_SelectTexture( 0 );
+			globalImages->smaaEdgesImage->Bind();
 
-		GL_SelectTexture( 2 );
-		globalImages->smaaSearchImage->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->smaaAreaImage->Bind();
 
-		renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
-		DrawElementsWithCounters( &unitSquareSurface );
+			GL_SelectTexture( 2 );
+			globalImages->smaaSearchImage->Bind();
 
-		Framebuffer::Unbind();
-#endif
+			renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
 
-#if 1
-		//GL_SelectTexture( 0 );
-		//globalImages->smaaBlendImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+		{
+			//                [ SMAANeighborhoodBlending ]
+			globalFramebuffers.ldrFBO->Bind();
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+			GL_SelectTexture( 0 );
+			globalImages->smaaInputImage->Bind();
 
-		GL_SelectTexture( 1 );
-		globalImages->smaaBlendImage->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->smaaBlendImage->Bind();
 
-		renderProgManager.BindShader_SMAA_NeighborhoodBlending();
-		DrawElementsWithCounters( &unitSquareSurface );
-#endif
+			renderProgManager.BindShader_SMAA_NeighborhoodBlending();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
+
+		renderLog.CloseBlock();
 	}
 #endif
 

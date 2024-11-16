@@ -98,6 +98,7 @@ enum graphicsVendor_t
 enum antiAliasingMode_t
 {
 	ANTI_ALIASING_NONE,
+	ANTI_ALIASING_SMAA_1X,
 	ANTI_ALIASING_TAA,
 
 #if ID_MSAA

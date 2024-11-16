@@ -427,17 +427,19 @@ float idConsoleLocal::DrawFPS( float y )
 
 		compile_time_assert( aaNumValues == ( ANTI_ALIASING_MSAA_4X + 1 ) );
 #else
-		static const int aaNumValues = 2;
+		static const int aaNumValues = 3;
 
 		static const char* aaValues[aaNumValues] =
 		{
 			"None",
+			"SMAA",
 			"None",
 		};
 
 		static const char* taaValues[aaNumValues] =
 		{
 			"None",
+			"SMAA",
 			"TAA",
 		};
 
