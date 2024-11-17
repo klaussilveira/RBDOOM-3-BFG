@@ -4670,7 +4670,7 @@ void idRenderBackend::FogAllLights( const stereoOrigin_t stereoOrigin )
 
 void idRenderBackend::DrawMotionVectors( const int stereoEye )
 {
-	if( !viewDef->viewEntitys )
+	if( !viewDef->viewEntitys || viewDef->guiMode != GUIMODE_NONE )
 	{
 		// 3D views only
 		return;
