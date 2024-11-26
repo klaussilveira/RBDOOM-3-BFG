@@ -4703,20 +4703,6 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 	renderLog.OpenBlock( "Render_MotionVectors" );
 
 	// clear the alpha buffer
-	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
-
-	globalFramebuffers.smaaInputFBO->Bind();
-	commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
-
-	// draw only the hands + weapon into the alpha buffer so
-	/*
-	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
-
-	//globalFramebuffers.smaaInputFBO->Bind();
-	//commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
-
-	// draw only the hands + weapon into the alpha buffer so
-	// we can avoid blurring them
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
 	GL_Color( 0, 0, 0, 1 );
 
@@ -4726,7 +4712,6 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 	RB_SetMVP( renderMatrix_fullscreen );
 
 	DrawElementsWithCounters( &unitSquareSurface );
-	*/
 
 	// draw the hands + weapon with alpha 0
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
@@ -4821,7 +4806,7 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 		renderProgManager.BindShader_MotionVectors();
 
 		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+		globalImages->currentRenderHDRImage->Bind();
 
 		GL_SelectTexture( 1 );
 		globalImages->currentDepthImage->Bind();
@@ -5457,16 +5442,6 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// ugly but still faster than building the string
 	if( !_viewDef->viewEntitys || _viewDef->guiMode != GUIMODE_NONE )
 	{
-		if( stereoEye == -1 )
-		{
-			renderLog.OpenBlock( "Render_DrawView2D_LeftEye", colorRed );
-		}
-		else if( stereoEye == 1 )
-		{
-			renderLog.OpenBlock( "Render_DrawView2D_RightEye", colorRed );
-		}
-		else
-		{
 		if( stereoEye == -1 )
 		{
 			renderLog.OpenBlock( "Render_DrawView2D_LeftEye", colorRed );
