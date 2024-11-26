@@ -444,10 +444,6 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, const int stere
 
 	// TODO integrate jitterx += viewDef->renderView.stereoScreenSeparation;
 
-	// this mimics the logic in the Donut Feature Demo
-	const float xoffset = -2.0f * jitterx / ( 1.0f * viewWidth );
-	const float yoffset = -2.0f * jittery / ( 1.0f * viewHeight );
-
 	float* projectionMatrix = doJitter ? viewDef->projectionMatrix : viewDef->unjitteredProjectionMatrix;
 
 #if 1
@@ -496,6 +492,10 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter, const int stere
 
 		const float width = xmax - xmin;
 		const float height = ymax - ymin;
+
+		// this mimics the logic in the Donut Feature Demo
+		const float xoffset = -2.0f * jitterx / ( 1.0f * viewWidth );
+		const float yoffset = -2.0f * jittery / ( 1.0f * viewHeight );
 
 		projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
 		projectionMatrix[1 * 4 + 0] = 0.0f;

@@ -2086,9 +2086,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 		renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
 
 		currentSpace = NULL;
-		auto mvp = renderMatrix_identity;
-		mvp[1][1] = -mvp[1][1]; // flip y
-		RB_SetMVP( mvp );
+		RB_SetMVP( renderMatrix_fullscreen );
 
 		renderProgManager.BindShader_Texture();
 		GL_Color( 1, 1, 1, 1 );
@@ -4704,19 +4702,28 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 	renderLog.OpenMainBlock( MRB_MOTION_VECTORS );
 	renderLog.OpenBlock( "Render_MotionVectors" );
 
-	// clear the alpha buffer and draw only the hands + weapon into it so
+	// clear the alpha buffer
+	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
+
+	globalFramebuffers.smaaInputFBO->Bind();
+	commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
+
+	// draw only the hands + weapon into the alpha buffer so
 	// we can avoid blurring them
+	/*
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
 	GL_Color( 0, 0, 0, 1 );
 
 	renderProgManager.BindShader_Color();
 
-	currentSpace = &viewDef->worldSpace;
-	RB_SetMVP( viewDef->worldSpace.mvp );
+	currentSpace = NULL;
+	RB_SetMVP( renderMatrix_fullscreen );
 
 	DrawElementsWithCounters( &unitSquareSurface );
+	*/
 
 	// draw the hands + weapon with alpha 0
+	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
 	GL_Color( 0, 0, 0, 0 );
 
 	GL_SelectTexture( 0 );
@@ -4728,7 +4735,7 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 	{
 		const drawSurf_t* surf = drawSurfs[ surfNum ];
 
-		if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() && !surf->space->isGuiSurface )
+		if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )//&& !surf->space->isGuiSurface )
 		{
 			// don't apply TAA to this object
 			continue;
@@ -4767,7 +4774,7 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 
 	globalFramebuffers.taaMotionVectorsFBO[ targetEye ]->Bind();
 
-	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage[ targetEye ]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
+	commandList->clearTextureFloat( globalImages->taaMotionVectorsImage[ targetEye ]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.0f ) );
 
 	// derive the matrix to go from current pixels to previous frame pixels
 	bool cameraMoved = false;
@@ -4808,7 +4815,7 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 		renderProgManager.BindShader_MotionVectors();
 
 		GL_SelectTexture( 0 );
-		globalImages->currentRenderHDRImage->Bind();
+		globalImages->smaaInputImage->Bind();
 
 		GL_SelectTexture( 1 );
 		globalImages->currentDepthImage->Bind();
@@ -5840,7 +5847,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		renderLog.OpenBlock( "Blit_Rendered2SwapChain", colorBlue );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
-#if 0
+#if 1
 		if( vrSystem->IsActive() )
 		{
 			uint32_t swapChainIndex = deviceManager->GetCurrentBackBufferIndex();
@@ -5854,10 +5861,11 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 			GL_Viewport( 0, 0, width, width );
 			GL_Scissor( 0, 0, width, height );
 
-			//renderProgManager.BindShader_TextureVertexColor_sRGB();
-			renderProgManager.BindShader_Screen();
+			renderProgManager.BindShader_TextureVertexColor_sRGB();
+			//renderProgManager.BindShader_Screen();
 
-			RB_SetMVP( renderMatrix_identity );
+			currentSpace = NULL;
+			RB_SetMVP( renderMatrix_fullscreen );
 
 			renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
 
@@ -6086,7 +6094,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 #endif
 
 	// Leyland VR
-#if 1
+	//
 	// TODO VR some of this may be better done else where.
 	idVec3 vrHeadOrigin;
 	idMat3 vrHeadAxis;
@@ -6355,7 +6363,6 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 			}
 		}
 	}
-#endif
 	// Leyland end
 
 	// render the scene

@@ -136,13 +136,10 @@ public:
 	void				StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds );
 	void				GL_BlockingSwapBuffers();
 
-	void				Print();
 	void				CheckCVars();
 
 	void				ClearCaches();
 
-	static void			ImGui_Init();
-	static void			ImGui_Shutdown();
 	static void			ImGui_RenderDrawLists( ImDrawData* draw_data );
 
 	void				DrawElementsWithCounters( const drawSurf_t* surf, bool shadowCounter = false );
@@ -151,9 +148,6 @@ private:
 	void				DrawFlickerBox();
 
 	void				GetCurrentBindingLayout( int bindingLayoutType );
-	void				DrawStencilShadowPass( const drawSurf_t* drawSurf, const bool renderZPass );
-
-	void				SetColorMappings();
 	void				ResizeImages();
 
 	void				DrawViewInternal( const viewDef_t* viewDef, const int stereoEye, const stereoOrigin_t stereoOrigin );
@@ -193,7 +187,6 @@ private:
 	void				ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int numDrawSurfs, viewLight_t* vLight, int side, const idRenderMatrix& lightProjectionRenderMatrix, const idRenderMatrix& lightViewRenderMatrix );
 
 	void				ShadowAtlasPass( const viewDef_t* _viewDef, const stereoOrigin_t stereoOrigin );
-	//void				SetupShadowMapMatricesForShadowAtlas( const viewDef_t* _viewDef );
 
 	void				DrawMotionVectors( const int stereoEye );
 	void				TemporalAAPass( const viewDef_t* _viewDef, const int stereoEye );

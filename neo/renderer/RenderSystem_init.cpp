@@ -333,12 +333,12 @@ bool R_UsePixelatedLook()
 
 bool R_UseTemporalAA()
 {
-	if( !r_useTemporalAA.GetBool() || vrSystem->IsActive() )
+	if( !r_useTemporalAA.GetBool() )
 	{
 		return false;
 	}
 
-	if( r_renderMode.GetInteger() == RENDERMODE_PSX )
+	if( r_renderMode.GetInteger() != RENDERMODE_DOOM )
 	{
 		return false;
 	}
