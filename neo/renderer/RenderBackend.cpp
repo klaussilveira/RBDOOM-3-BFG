@@ -4709,9 +4709,15 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 	commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
 
 	// draw only the hands + weapon into the alpha buffer so
-	// we can avoid blurring them
 	/*
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
+
+	//globalFramebuffers.smaaInputFBO->Bind();
+	//commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
+
+	// draw only the hands + weapon into the alpha buffer so
+	// we can avoid blurring them
+	GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
 	GL_Color( 0, 0, 0, 1 );
 
 	renderProgManager.BindShader_Color();
@@ -5461,6 +5467,16 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		}
 		else
 		{
+		if( stereoEye == -1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_LeftEye", colorRed );
+		}
+		else if( stereoEye == 1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_RightEye", colorRed );
+		}
+		else
+		{
 			renderLog.OpenBlock( "Render_DrawView2D", colorRed );
 		}
 	}
@@ -5847,7 +5863,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		renderLog.OpenBlock( "Blit_Rendered2SwapChain", colorBlue );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
-#if 1
+#if 0
 		if( vrSystem->IsActive() )
 		{
 			uint32_t swapChainIndex = deviceManager->GetCurrentBackBufferIndex();

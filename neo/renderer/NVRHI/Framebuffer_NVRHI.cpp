@@ -262,6 +262,8 @@ void Framebuffer::ReloadImages()
 		globalImages->taaFeedback1Image[i]->Reload( false, tr.backend.commandList );
 		globalImages->taaFeedback2Image[i]->Reload( false, tr.backend.commandList );
 	}
+
+	globalImages->smaaInputImage->Reload( false, tr.backend.commandList );
 	globalImages->taaResolvedImage->Reload( false, tr.backend.commandList );
 
 	globalImages->smaaInputImage->Reload( false, tr.backend.commandList );
