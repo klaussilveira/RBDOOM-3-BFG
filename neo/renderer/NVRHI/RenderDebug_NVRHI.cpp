@@ -2393,7 +2393,7 @@ void idRenderBackend::DBG_TestImage()
 		imageCb->Bind();
 
 		// SRS - When rendering in 2D skip sRGB to linear conversion
-		if( viewDef->viewEntitys )
+		if( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE )
 		{
 			renderProgManager.BindShader_Bink();
 		}
@@ -2408,7 +2408,7 @@ void idRenderBackend::DBG_TestImage()
 		image->Bind();
 
 		// SRS - When rendering in 2D skip sRGB to linear conversion
-		if( viewDef->viewEntitys )
+		if( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE )
 		{
 			renderProgManager.BindShader_TextureVertexColor();
 		}
@@ -2472,7 +2472,7 @@ void idRenderBackend::DBG_RenderDebugTools( drawSurf_t** drawSurfs, int numDrawS
 	OPTICK_GPU_EVENT( "Render_DebugTools" );
 
 	// don't do much if this was a 2D rendering
-	if( !viewDef->viewEntitys )
+	if( !viewDef->viewEntitys || viewDef->guiMode != GUIMODE_NONE )
 	{
 		DBG_TestImage();
 		DBG_ShowLines();

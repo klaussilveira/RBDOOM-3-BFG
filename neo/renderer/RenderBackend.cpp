@@ -3859,7 +3859,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 									   const float guiStereoScreenOffset, const int stereoEye, const stereoOrigin_t stereoOrigin )
 {
 	// only obey skipAmbient if we are rendering a view
-	if( viewDef->viewEntitys && r_skipAmbient.GetBool() )
+	if( ( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE ) && r_skipAmbient.GetBool() )
 	{
 		return numDrawSurfs;
 	}
@@ -4670,7 +4670,7 @@ void idRenderBackend::FogAllLights( const stereoOrigin_t stereoOrigin )
 
 void idRenderBackend::DrawMotionVectors( const int stereoEye )
 {
-	if( !viewDef->viewEntitys )
+	if( !viewDef->viewEntitys || viewDef->guiMode != GUIMODE_NONE )
 	{
 		// 3D views only
 		return;
@@ -4823,7 +4823,7 @@ void idRenderBackend::DrawMotionVectors( const int stereoEye )
 void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef, const int stereoEye )
 {
 	// if we are just doing 2D rendering, no need for HDR TAA
-	if( viewDef->viewEntitys == NULL )
+	if( viewDef->viewEntitys == NULL || viewDef->guiMode != GUIMODE_NONE )
 	{
 		return;
 	}
@@ -5608,7 +5608,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//
 	// fill the geometric buffer with normals and roughness
 	//-------------------------------------------------
-	if( viewDef->viewEntitys )		// 3D views only
+	if( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE )		// 3D views only
 	{
 		//OPTICK_EVENT( "Render_GeometryBuffer" );
 		OPTICK_GPU_EVENT( "Render_GeometryBuffer" );
@@ -5631,7 +5631,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// render static lighting and consider SSAO results
 	//-------------------------------------------------
-	if( viewDef->viewEntitys )		// 3D views only
+	if( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE )		// 3D views only
 	{
 		//OPTICK_EVENT( "Render_AmbientPass" );
 		OPTICK_GPU_EVENT( "Render_AmbientPass" );
@@ -5669,7 +5669,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 		renderLog.OpenMainBlock( MRB_DRAW_SHADER_PASSES );
 		float guiScreenOffset;
-		if( _viewDef->viewEntitys != NULL || vrSystem->IsActive() )
+		if( ( _viewDef->viewEntitys != NULL && viewDef->guiMode == GUIMODE_NONE ) || vrSystem->IsActive() )
 		{
 			// guiScreenOffset will be 0 in non-gui views
 			guiScreenOffset = 0.0f;
@@ -6359,7 +6359,7 @@ void idRenderBackend::DrawView( const void* data, const int stereoEye )
 	// Leyland end
 
 	// render the scene
-	if( viewDef->viewEntitys )
+	if( viewDef->viewEntitys && viewDef->guiMode == GUIMODE_NONE )
 	{
 		OPTICK_GPU_EVENT( "DrawView_3D" );
 		OPTICK_TAG( "stereoEye", stereoEye );
