@@ -18,6 +18,36 @@ _______________________________________
 TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
+## .plan - December 6, 2024
+
+This is a first test build for the new blood effects.
+
+The new blood materials build upon sikkpin's concept of adding reflections to blood. This time, instead of using a static cubemap, the system leverages env_probes with parallax-correct cubemaps. Additionally, Screen Space Reflections are employed to ensure high-quality visuals, even when env_probes are not manually adjusted for all maps.
+
+
+## .plan - November 27, 2024
+
+Another test build.
+
+Changelog:
+
+* Added new PBR roughness and specular color estimation by Kennedith98
+
+* Tuned r_lightScale influence for PBR so specular is less dominant
+
+* Added back SMAA so r_antiAliasing 1 = SMAA, 2 = TAA
+
+* Fixed TAA problems with 3D guis and transparent decals
+
+* Killed 3DTV render code. It's either VR or flat.
+
+* MOC now renders only at the half resolution for better perf
+
+* Improved interpolation between env_probes, especially when they are parallel placed
+
+* Updated NVRHI with Nvidia's latest patches
+
+
 
 ## .plan - September 06, 2024
 
@@ -94,7 +124,7 @@ Immerse yourself in the authentic Commodore 64 mode, faithfully replicating the 
 
 The retro rendering modes transport you back to the golden age of gaming, with a resolution that mimics the beloved 320x240 display, now extended to a widescreen 480x270 format. To enhance the arcade feel, two new CRT filters are included that overlay the entire game, including Doom 1 & 2.
 
-To access these retro rendering modes, simply navigate to the menu options and select your desired mode. Alternatively, you can control the rendering mode by modifying the `r_renderMode` variable. The available values for `r_renderMode` are as follows: Default (0) for Doom 3, Commodore 64 (1), Commodore 64 Highres (2), Amstrad CPC (3), Amstrad CPC Highres (4), Sega Genesis (5), Sega Genesis Highres (6) and Sony PSX (7).
+To access these retro rendering modes, simply navigate to the menu options and select your desired mode. Alternatively, you can control the rendering mode by modifying the `r_renderMode` variable. The available values for `r_renderMode` are as follows: Default (0) for Doom 3, 2-bit CGA (1), 2-bit CGA Highres(2), Commodore 64 (3), Commodore 64 Highres (4), Amstrad CPC (5), Amstrad CPC Highres (6), Sega Genesis (7), Sega Genesis Highres (8) and Sony PSX (9).
 
 <img src="https://i.imgur.com/W8umJ3a.png" width="800">
 
