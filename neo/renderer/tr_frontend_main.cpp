@@ -631,7 +631,7 @@ static void R_FindClosestEnvironmentProbes2()
 		return;
 	}
 
-	idVec3 testOrigin = tr.viewDef->renderView.vieworg;
+	idVec3 testOrigin = tr.viewDef->renderView.vieworg[STEREOPOS_CULLING];
 
 	// sort by distance
 	// RB: each Doom 3 level has ~50 - 150 probes so this should be ok for each frame
