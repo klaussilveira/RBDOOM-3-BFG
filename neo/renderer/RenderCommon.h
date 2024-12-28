@@ -623,12 +623,13 @@ struct viewDef_t
 	// RB: collect environment probes like lights
 	viewEnvprobe_t*		viewEnvprobes;
 
-	// RB: nearest probe for now
+	// RB: nearest 3 probes for now
 	idBounds			globalProbeBounds;
 	idRenderMatrix		inverseBaseEnvProbeProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the environent probe volume in world space
 	idImage* 			irradianceImage;			// cubemap image used for diffuse IBL by backend
 	idImage* 			radianceImages[3];			// cubemap image used for specular IBL by backend
 	idVec4				radianceImageBlends;		// blending weights
+	idVec4				probePositions[3];			// only used by parallax correction
 
 	Framebuffer*		targetRender;				// SP: The framebuffer to render to
 
@@ -823,6 +824,9 @@ enum bindingLayoutType_t
 
 	BINDING_LAYOUT_NORMAL_CUBE,
 	BINDING_LAYOUT_NORMAL_CUBE_SKINNED,
+
+	BINDING_LAYOUT_OCTAHEDRON_CUBE,
+	BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED,
 
 	// NO GPU SKINNING ANYMORE
 	BINDING_LAYOUT_POST_PROCESS_INGAME,
@@ -1264,6 +1268,13 @@ extern idCVar r_useLightGrid;
 
 extern idCVar r_exposure;
 
+extern idCVar r_useSSR;
+extern idCVar r_ssrJitter;
+extern idCVar r_ssrMaxDistance;
+extern idCVar r_ssrMaxSteps;
+extern idCVar r_ssrStride;
+extern idCVar r_ssrZThickness;
+
 extern idCVar r_useTemporalAA;
 extern idCVar r_taaJitter;
 extern idCVar r_taaEnableHistoryClamping;
@@ -1288,8 +1299,6 @@ enum RenderMode
 	RENDERMODE_C64_HIGHRES,
 	RENDERMODE_CPC,
 	RENDERMODE_CPC_HIGHRES,
-	RENDERMODE_NES,
-	RENDERMODE_NES_HIGHRES,
 	RENDERMODE_GENESIS,
 	RENDERMODE_GENESIS_HIGHRES,
 	RENDERMODE_PSX,
@@ -1315,6 +1324,8 @@ INITIALIZATION
 bool R_UsePixelatedLook();
 
 bool R_UseTemporalAA();
+
+bool R_UseHiZ();
 
 uint R_GetMSAASamples();
 

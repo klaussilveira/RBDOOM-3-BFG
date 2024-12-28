@@ -959,6 +959,14 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 	// make sure the game / draw thread has completed
 	commonLocal.WaitGameThread();
 
+	// turn vsync off for faster capturing of the probes
+	int oldVsync = r_swapInterval.GetInteger();
+	r_swapInterval.SetInteger( 0 );
+
+	// turn off clear in between views so we keep the progress bar visible
+	int oldClear = r_clear.GetInteger();
+	r_clear.SetInteger( 0 );
+
 	// disable scissor, so we don't need to adjust all those rects
 	r_useScissor.SetBool( false );
 
@@ -1124,6 +1132,9 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			}
 		}
 
+		// generate .bimage file
+		globalImages->ImageFromFile( job->filename, TF_LINEAR, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
+
 		Mem_Free( job->outBuffer );
 
 		delete job;
@@ -1157,6 +1168,10 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 	idLib::Printf( "----------------------------------\n" );
 	idLib::Printf( "Processed %i light probes\n", totalProcessedProbes );
 	common->Printf( "Baked SH irradiance and GGX mip maps in %5.1f minutes\n\n", ( totalEnd - totalStart ) / ( 1000.0f * 60 ) );
+
+	// restore vsync setting
+	r_swapInterval.SetInteger( oldVsync );
+	r_clear.SetInteger( oldClear );
 }
 
 CONSOLE_COMMAND( makeBrdfLUT, "make a GGX BRDF lookup table", NULL )

@@ -170,6 +170,24 @@ static void R_CyanImage( idImage* image, nvrhi::ICommandList* commandList )
 	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_DEFAULT, TR_REPEAT, TD_DIFFUSE, commandList );
 }
 
+static void R_RedClayImage( idImage* image, nvrhi::ICommandList* commandList )
+{
+	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
+
+	for( int x = 0; x < DEFAULT_SIZE; x++ )
+	{
+		for( int y = 0; y < DEFAULT_SIZE; y++ )
+		{
+			data[y][x][0] = 165;
+			data[y][x][1] = 42;
+			data[y][x][2] = 42;
+			data[y][x][3] = 255;
+		}
+	}
+
+	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_DEFAULT, TR_REPEAT, TD_DIFFUSE, commandList );
+}
+
 static void R_ChromeSpecImage( idImage* image, nvrhi::ICommandList* commandList )
 {
 	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
@@ -181,7 +199,7 @@ static void R_ChromeSpecImage( idImage* image, nvrhi::ICommandList* commandList 
 			data[y][x][0] = 0;
 			data[y][x][1] = 255;
 			data[y][x][2] = 255;
-			data[y][x][3] = 255;
+			data[y][x][3] = 128;
 		}
 	}
 
@@ -196,10 +214,10 @@ static void R_PlasticSpecImage( idImage* image, nvrhi::ICommandList* commandList
 	{
 		for( int y = 0; y < DEFAULT_SIZE; y++ )
 		{
-			data[y][x][0] = 0;
+			data[y][x][0] = 32;
 			data[y][x][1] = 0;
 			data[y][x][2] = 255;
-			data[y][x][3] = 255;
+			data[y][x][3] = 128;
 		}
 	}
 
@@ -1053,6 +1071,7 @@ void idImageManager::CreateIntrinsicImages()
 	blackImage = ImageFromFunction( "_black", R_BlackImage );
 	blackDiffuseImage = ImageFromFunction( "_blackDiffuse", R_BlackDiffuseImage );
 	cyanImage = ImageFromFunction( "_cyan", R_CyanImage );
+	redClayImage = ImageFromFunction( "_redClay", R_RedClayImage );
 	flatNormalMap = ImageFromFunction( "_flat", R_FlatNormalImage );
 	alphaNotchImage = ImageFromFunction( "_alphaNotch", R_AlphaNotchImage );
 	fogImage = ImageFromFunction( "_fog", R_FogImage );
@@ -1252,6 +1271,41 @@ CONSOLE_COMMAND( makeImageHeader, "load an image and turn it into a .h file", NU
 	Mem_Free( buffer );
 }
 
+class idSortColors : public idSort_Quick< idVec3, idSortColors >
+{
+public:
+	int SizeMetric( const idVec3& v ) const
+	{
+		return v.x * v.x + v.y * v.y + v.z * v.z;
+	}
+	int Compare( const idVec3& a, const idVec3& b ) const
+	{
+		//idVec3 diff = b - a;
+		//return SizeMetric( diff );
+
+		return SizeMetric( a ) - SizeMetric( b );
+	}
+};
+
+idVec3 Average( const idList<idVec3>& colors )
+{
+	idVec3 avg = vec3_zero;
+
+	int numColors = colors.Num();
+	for( int i = 0; i < numColors; i++ )
+	{
+		avg += colors[i];
+	}
+	avg *= ( 1.0f / numColors );
+
+	return avg;
+}
+
+idVec3 Median( const idList<idVec3>& sortedPal )
+{
+	return sortedPal[sortedPal.Num() / 2];
+}
+
 CONSOLE_COMMAND( makePaletteHeader, "load a .pal palette, build an image from it and turn it into a .h file", NULL )
 {
 	if( args.Argc() < 2 )
@@ -1284,16 +1338,65 @@ CONSOLE_COMMAND( makePaletteHeader, "load a .pal palette, build an image from it
 
 	int numColors = src.ParseInt();
 
-	//idList<id
-	byte rgb[3];
+	idList<idVec3> colors;
+	colors.AssureSize( numColors );
+
+	idVec3 rgb;
 	for( int i = 0; i < numColors; i++ )
 	{
 		rgb[0] = src.ParseInt();
 		rgb[1] = src.ParseInt();
 		rgb[2] = src.ParseInt();
 
-		idLib::Printf( "RGB( %d, %d, %d ),\n", rgb[0], rgb[1], rgb[2] );
+		colors[ i ] = rgb;
+
+		//idLib::Printf( "RGB( %d, %d, %d ),\n", (int)rgb[0], (int)rgb[1], (int)rgb[2] );
 	}
+
+	idLib::Printf( "// SORTED ============\n" );
+	colors.SortWithTemplate( idSortColors() );
+
+	idLib::Printf( "const float3 palette[NUM_COLORS] = // %d\n{\n", numColors );
+	for( int i = 0; i < numColors; i++ )
+	{
+		rgb = colors[ i ];
+		idLib::Printf( "\tRGB( %d, %d, %d ),\n", ( int )rgb[0], ( int )rgb[1], ( int )rgb[2] );
+	}
+	idLib::Printf( "};\n\n", numColors );
+
+	// calc the median absolute deviation
+	idVec3 median = Median( colors );
+	idList<idVec3> deviations;
+	deviations.AssureSize( numColors );
+
+	for( int i = 0; i < numColors; i++ )
+	{
+		idVec3 diff = colors[i] - median;
+		deviations[i].x = idMath::Fabs( diff.x );
+		deviations[i].y = idMath::Fabs( diff.y );
+		deviations[i].z = idMath::Fabs( diff.z );
+	}
+
+	deviations.SortWithTemplate( idSortColors() );
+	rgb = Median( deviations );
+
+	idLib::Printf( "const float3 medianAbsoluteDeviation = RGB( %d, %d, %d );\n", ( int )rgb[0], ( int )rgb[1], ( int )rgb[2] );
+
+	// calc the standard deviation
+	idVec3 avg = Average( colors );
+
+	idVec3 deviation = vec3_zero;
+	for( int i = 0; i < numColors; i++ )
+	{
+		idVec3 diff = colors[i] - avg;
+		deviation.x += idMath::Fabs( diff.x );
+		deviation.y += idMath::Fabs( diff.y );
+		deviation.z += idMath::Fabs( diff.z );
+	}
+	deviation *= ( 1.0f / numColors );
+
+	rgb = deviation;
+	idLib::Printf( "const float3 deviation = RGB( %d, %d, %d );\n", ( int )rgb[0], ( int )rgb[1], ( int )rgb[2] );
 
 	fileSystem->FreeFile( palBuffer );
 

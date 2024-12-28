@@ -47,7 +47,7 @@ This file contains the following sections:
 
 `RBDOOM-3-BFG is a modernization effort of DOOM-3-BFG.`
 
-RBDOOM-3-BFG is based on DOOM-3-BFG and the goal of this port is to bring DOOM-3-BFG up to latest technology in 2023 making it closer to Doom 2016 while still remaining a DOOM 3 port regarding the gameplay. 
+RBDOOM-3-BFG is based on DOOM-3-BFG and the goal of this port is to bring DOOM-3-BFG up to latest technology in 2024 making it closer to Doom 2016 while still remaining a DOOM 3 port regarding the gameplay. 
 
 I started this project in 2012 and focused on making this code being future proof so other cool projects can build interesting things on top of it without the need to fix a lot of stuff first. Over 40 people all over the world contributed cool patches. Some results are:
 
@@ -61,10 +61,12 @@ I started this project in 2012 and focused on making this code being future proo
 * True internal 64 bit HDR lighting with filmic ACES tone mapping and gamma-correct rendering in linear RGB space
 * Temporal Antialiasing (TAA) as a cheap alternative for MSAA and that works well with HDR and also improves PBR lighting
 * Filmic post process effects like Chromatic Aberration and Dithering
+* Retro Rendering modes for the nostalgia of the 8-bit and 16-bit eras including the Commodore 64, Amstrad CPC 6128, Sega Genesis and Sony PSX
 * Screen Space Ambient Occlusion used to only dim down the Global Illumination contribution like in the Frostbite engine
 * Bink video playback through libbinkdec (thanks to Daniel Gibson) or FFmpeg (thanks to Carl Kenner)
 * Cinematic sequences can be skipped (thanks to Biel Bestué de Luna)
 * Netcode fixes to allow multiplayer sessions to friends with +connect <ip of friend> (manual port forwarding required)
+* Classic flashlight support
 
 ## Programming and Code Quality
 * Flexible build system using CMake allowing to add optional features like FFmpeg for videos or OpenAL for sound
@@ -85,12 +87,12 @@ RBDOOM-3-BFG allows mod editing and has many tiny fixes so custom content can be
 * New PBR related material keywords like basecolormap, normalmap, rmaomap
 * invertGreen( normalmap.png ) material keyword to allow flipping the Y-Axis for tangent space normal maps 
 * glTF2 .glb model support for static and skinned models (thanks to Harrie van Ginneken)
-* Added back dmap and aas compilers as `standalone rbdmap.exe` tool (thanks to Pat Raynor) and improved them to work with TrenchBroom and Blender
+* Standalone `rbdmap.exe` BSP compiler that has the aas navigation compiler included
 * Changed dmap to support compiling maps straight from glTF2 .glb models instead of .map files using a new polygon based workflow
 * Wavefront OBJ model support to make it easier getting static models from Blender/Maya/3D Studio Max into TrenchBroom
 * Added in-engine Flash debugging tools and new console variables
 * Added support for Mikkelsen tangent space standard for new assets (thanks to Stephen Pridham)
-* Bumped the static vertex cache limit of 31 MB to roughly ~ 128 MB to help with some custom models and maps by the Doom 3 community
+* Bumped the static vertex cache limit of 31 MB to roughly ~ 64 MB to help with some custom models and maps by the Doom 3 community
 * com_showFPS bigger than 1 uses ImGui to show more detailed renderer stats like the original console prints with r_speeds
 * .png .exr .hdr image support
 * .ogg sound file support
@@ -631,7 +633,7 @@ r_useSSAO [0 .. 1]                     | Use Screen Space Ambient Occlusion to d
 r_forceAmbient                         | Default 0.5, controls additional brightness by Global Illumination 
 r_useFilmicPostFX [0, 1]               | Apply several post process effects to mimic a filmic look
 r_useCRTPostFX [0 .. 2]                | CRT monitor/TV filter
-r_renderMode [0 .. 7]				   | Default 0 = Doom 3, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC, 4 = Amstrad CPC Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX
+r_renderMode [0 .. 9]				   | Default 0 = Doom, 1 = CGA, 2 = CGA Highres, 3 = Commodore 64, 4 = Commodore 64 Highres, 5 = Amstrad CPC 6128, 6 = Amstrad CPC 6128 Highres, 7 = Sega Genesis, 8 = Sega Genesis Highres, 9 = Sony PSX
 
 ## Modding Support
 Name                              | Description

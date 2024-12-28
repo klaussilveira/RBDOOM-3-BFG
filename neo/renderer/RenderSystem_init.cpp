@@ -82,7 +82,7 @@ idCVar r_useValidationLayers( "r_useValidationLayers", "1", CVAR_INTEGER | CVAR_
 #if ID_MSAA
 	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = TAA 1x\n 2 = TAA + SMAA 1x\n 3 = MSAA 2x\n 4 = MSAA 4x\n", 0, ANTI_ALIASING_MSAA_4X );
 #else
-	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = SMAA 1x, 2 = TAA", 0, ANTI_ALIASING_TAA );
+	idCVar r_antiAliasing( "r_antiAliasing", "2", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = SMAA 1x, 2 = TAA", 0, ANTI_ALIASING_TAA );
 #endif
 // RB end
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
@@ -154,7 +154,7 @@ idCVar r_useLightPortalCulling( "r_useLightPortalCulling", "1", CVAR_RENDERER | 
 idCVar r_useLightAreaCulling( "r_useLightAreaCulling", "1", CVAR_RENDERER | CVAR_BOOL, "0 = off, 1 = on" );
 idCVar r_useLightScissors( "r_useLightScissors", "3", CVAR_RENDERER | CVAR_INTEGER, "0 = no scissor, 1 = non-clipped scissor, 2 = near-clipped scissor, 3 = fully-clipped scissor", 0, 3, idCmdSystem::ArgCompletion_Integer<0, 3> );
 idCVar r_useEntityPortalCulling( "r_useEntityPortalCulling", "1", CVAR_RENDERER | CVAR_INTEGER, "0 = none, 1 = cull frustum corners to plane, 2 = exact clip the frustum faces", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
-idCVar r_clear( "r_clear", "2", CVAR_RENDERER, "force screen clear every frame, 1 = purple, 2 = black, 'r g b' = custom" );
+idCVar r_clear( "r_clear", "2", CVAR_RENDERER | CVAR_NOCHEAT, "force screen clear every frame, 1 = purple, 2 = black, 'r g b' = custom" );
 
 idCVar r_offsetFactor( "r_offsetfactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polygon offset parameter" );
 // RB: offset factor was 0, and units were -600 which caused some very ugly polygon offsets on Android so I reverted the values to the same as in Q3A
@@ -297,6 +297,13 @@ idCVar r_useLightGrid( "r_useLightGrid", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_N
 
 idCVar r_exposure( "r_exposure", "0.5", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "HDR exposure or LDR brightness [-4.0 .. 4.0]", -4.0f, 4.0f );
 
+idCVar r_useSSR( "r_useSSR", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "" );
+idCVar r_ssrJitter( "r_ssrJitter", "0", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrMaxDistance( "r_ssrMaxDistance", "100", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "In meters" );
+idCVar r_ssrMaxSteps( "r_ssrMaxSteps", "100", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrStride( "r_ssrStride", "12", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrZThickness( "r_ssrZThickness", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+
 idCVar r_useTemporalAA( "r_useTemporalAA", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "only disable for debugging" );
 idCVar r_taaJitter( "r_taaJitter", "2", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0: None, 1: MSAA, 2: Halton, 3: R2 Sequence, 4: White Noise" );
 idCVar r_taaEnableHistoryClamping( "r_taaEnableHistoryClamping", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
@@ -311,7 +318,7 @@ idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT | CVAR_
 
 idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Gameboy, 6 = Gameboy Highres, 7 = NES, 8 = NES Highres, 9 = Sega Genesis, 10 = Sega Genesis Highres, 11 = Sony PSX", 0, 11 );
+idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = CGA, 2 = CGA Highres, 3 = Commodore 64, 4 = Commodore 64 Highres, 5 = Amstrad CPC 6128, 6 = Amstrad CPC 6128 Highres, 7 = Sega Genesis, 8 = Sega Genesis Highres, 9 = Sony PSX", 0, 9 );
 
 idCVar r_psxVertexJitter( "r_psxVertexJitter", "0.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "", 0.0f, 0.75f );
 idCVar r_psxAffineTextures( "r_psxAffineTextures", "1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
@@ -356,6 +363,12 @@ bool R_UseTemporalAA()
 		default:
 			return false;
 	}
+}
+
+bool R_UseHiZ()
+{
+	// TODO check for driver problems here
+	return r_useHierarchicalDepthBuffer.GetBool();
 }
 
 uint R_GetMSAASamples()
