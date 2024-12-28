@@ -353,10 +353,13 @@ enum
 	BUILTIN_DEBUG_OCTAHEDRON,
 	BUILTIN_DEBUG_OCTAHEDRON_SKINNED,
 	// RB end
+
 	BUILTIN_ENVIRONMENT,
 	BUILTIN_ENVIRONMENT_SKINNED,
 	BUILTIN_BUMPY_ENVIRONMENT,
 	BUILTIN_BUMPY_ENVIRONMENT_SKINNED,
+	BUILTIN_BUMPY_ENVIRONMENT2,			// RB
+	BUILTIN_BUMPY_ENVIRONMENT2_SKINNED,	// RB
 
 	BUILTIN_DEPTH,
 	BUILTIN_DEPTH_SKINNED,
@@ -372,7 +375,6 @@ enum
 	BUILTIN_POSTPROCESS_RETRO_2BIT,		// CGA, Gameboy, cool for Gamejams
 	BUILTIN_POSTPROCESS_RETRO_C64,		// Commodore 64
 	BUILTIN_POSTPROCESS_RETRO_CPC,		// Amstrad 6128
-	BUILTIN_POSTPROCESS_RETRO_NES,		// NES
 	BUILTIN_POSTPROCESS_RETRO_GENESIS,	// Sega Genesis / Megadrive
 	BUILTIN_POSTPROCESS_RETRO_PSX,		// Sony Playstation 1
 	BUILTIN_CRT_MATTIAS,
@@ -774,6 +776,16 @@ public:
 		BindShader_Builtin( BUILTIN_BUMPY_ENVIRONMENT_SKINNED );
 	}
 
+	void	BindShader_BumpyEnvironment2()
+	{
+		BindShader_Builtin( BUILTIN_BUMPY_ENVIRONMENT2 );
+	}
+
+	void	BindShader_BumpyEnvironment2Skinned()
+	{
+		BindShader_Builtin( BUILTIN_BUMPY_ENVIRONMENT2_SKINNED );
+	}
+
 	void	BindShader_Depth()
 	{
 		BindShader_Builtin( BUILTIN_DEPTH );
@@ -842,11 +854,6 @@ public:
 	void	BindShader_PostProcess_Retro2Bit()
 	{
 		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_2BIT );
-	}
-
-	void	BindShader_PostProcess_RetroNES()
-	{
-		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_NES );
 	}
 
 	void	BindShader_PostProcess_RetroGenesis()

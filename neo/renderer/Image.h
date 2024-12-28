@@ -573,6 +573,7 @@ public:
 	idImage* 			blackImage;					// full of 0x00
 	idImage* 			blackDiffuseImage;			// full of 0x00
 	idImage* 			cyanImage;					// cyan
+	idImage* 			redClayImage;				// dark red
 	idImage* 			noFalloffImage;				// all 255, but zero clamped
 	idImage* 			fogImage;					// increasing alpha is denser fog
 	idImage* 			fogEnterImage;				// adjust fogImage alpha based on terminator plane
@@ -592,10 +593,10 @@ public:
 	idImage*			taaFeedback1Image;
 	idImage*			taaFeedback2Image;
 	idImage*			bloomRenderImage[2];
-	idImage*			glowImage[2];					// contains any glowable surface information.
-	idImage*			glowDepthImage[2];
-	idImage*			accumTransparencyImage;
-	idImage*			revealTransparencyImage;
+	//idImage*			glowImage[2];					// contains any glowable surface information.
+	//idImage*			glowDepthImage[2];
+	//idImage*			accumTransparencyImage;
+	//idImage*			revealTransparencyImage;
 	idImage*			envprobeHDRImage;
 	idImage*			envprobeDepthImage;
 	idImage*			heatmap5Image;

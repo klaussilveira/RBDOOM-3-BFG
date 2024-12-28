@@ -1234,11 +1234,11 @@ int main( int argc, char** argv )
 
 	Dmap_f( args );
 
-#if 0
+#if 1
+	// maybe only do this if dmap has a leaked BSP
 	while( true )
 	{
-		bool captureToImage = false;
-		common->UpdateScreen( captureToImage );
+		common->UpdateScreen( false );
 	}
 #endif
 

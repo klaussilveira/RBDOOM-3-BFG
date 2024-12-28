@@ -240,38 +240,81 @@ void main( PS_IN fragment, out PS_OUT result )
 	const float3 palette[NUM_COLORS] = // 32
 	{
 		RGB( 0, 0, 0 ),
+		RGB( 36, 49, 55 ),
 		RGB( 27, 27, 101 ),
-		RGB( 53, 53, 201 ),
-		RGB( 102, 30, 37 ),
-		RGB( 85, 51, 97 ),
-		RGB( 127, 53, 201 ),
-		RGB( 188, 53, 53 ),
-		RGB( 192, 70, 110 ),
-		RGB( 223, 109, 155 ),
 		RGB( 27, 101, 27 ),
-		RGB( 27, 110, 131 ),
-		RGB( 30, 121, 229 ),
+		RGB( 102, 30, 37 ),
+		RGB( 63, 80, 63 ),
+		RGB( 85, 51, 97 ),
 		RGB( 121, 95, 27 ),
-		RGB( 128, 128, 128 ),
-		RGB( 145, 148, 223 ),
-		RGB( 201, 127, 53 ),
-		RGB( 227, 155, 141 ),
-		RGB( 248, 120, 248 ),
+		RGB( 27, 110, 131 ),
 		RGB( 53, 175, 53 ),
+		RGB( 118, 132, 72 ),
+		RGB( 188, 53, 53 ),
+		RGB( 53, 53, 201 ),
+		RGB( 128, 128, 128 ),
+		RGB( 192, 70, 110 ),
 		RGB( 53, 183, 143 ),
-		RGB( 53, 193, 215 ),
 		RGB( 127, 201, 53 ),
+		RGB( 127, 53, 201 ),
+		RGB( 201, 127, 53 ),
+		RGB( 30, 121, 229 ),
+		RGB( 172, 181, 107 ),
+		RGB( 223, 109, 155 ),
+		RGB( 53, 193, 215 ),
+		RGB( 145, 148, 223 ),
+		RGB( 225, 198, 67 ),
+		RGB( 227, 155, 141 ),
 		RGB( 173, 200, 170 ),
 		RGB( 141, 225, 199 ),
-		RGB( 225, 198, 67 ),
 		RGB( 228, 221, 154 ),
-		RGB( 255, 255, 255 ),
+		RGB( 248, 120, 248 ),
 		RGB( 238, 234, 224 ),
-		RGB( 172, 181, 107 ),
-		RGB( 118, 132, 72 ),
-		RGB( 63, 80, 63 ),
-		RGB( 36, 49, 55 ),
+		RGB( 255, 255, 255 ),
 	};
+
+	const float3 medianAbsoluteDeviation = RGB( 65, 131, 57 );
+	const float3 deviation = RGB( 66, 57, 63 );
+
+#elif 1
+
+	// https://lospec.com/palette-list/ancientheritage30
+	const float3 palette[NUM_COLORS] = // 30
+	{
+		RGB( 2, 4, 5 ),
+		RGB( 21, 33, 43 ),
+		RGB( 51, 38, 20 ),
+		RGB( 30, 56, 56 ),
+		RGB( 32, 50, 66 ),
+		RGB( 77, 59, 34 ),
+		RGB( 95, 26, 41 ),
+		RGB( 41, 77, 70 ),
+		RGB( 97, 31, 73 ),
+		RGB( 45, 71, 94 ),
+		RGB( 51, 99, 83 ),
+		RGB( 125, 69, 52 ),
+		RGB( 83, 88, 94 ),
+		RGB( 113, 89, 72 ),
+		RGB( 146, 40, 62 ),
+		RGB( 67, 104, 121 ),
+		RGB( 140, 76, 128 ),
+		RGB( 175, 107, 66 ),
+		RGB( 109, 153, 106 ),
+		RGB( 199, 78, 51 ),
+		RGB( 122, 129, 140 ),
+		RGB( 154, 116, 181 ),
+		RGB( 100, 166, 194 ),
+		RGB( 240, 120, 62 ),
+		RGB( 176, 178, 181 ),
+		RGB( 255, 168, 97 ),
+		RGB( 171, 157, 227 ),
+		RGB( 119, 217, 213 ),
+		RGB( 255, 240, 156 ),
+		RGB( 233, 241, 242 ),
+	};
+
+	const float3 medianAbsoluteDeviation = RGB( 87, 12, 60 );
+	const float3 deviation = RGB( 57, 50, 51 );
 
 #elif 0
 
@@ -354,36 +397,14 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 46, 43, 18 ),
 	};
 
-#elif 0
-
-	// Hollow
-	// https://lospec.com/palette-list/hollow
-	const float3 palette[NUM_COLORS] = // 4
-	{
-		RGB( 15, 15, 27 ),
-		RGB( 86, 90, 117 ),
-		RGB( 198, 183, 190 ),
-		RGB( 250, 251, 246 ),
-	};
-
-#else
-
-	// https://lospec.com/palette-list/2bit-demichrome
-	const float3 palette[NUM_COLORS] = // 4
-	{
-		RGB( 33, 30, 32 ),
-		RGB( 85, 85, 104 ),
-		RGB( 160, 160, 139 ),
-		RGB( 233, 239, 236 ),
-	};
-
 #endif
 
 	float2 uv = ( fragment.texcoord0 );
 	float2 uvPixelated = floor( fragment.position.xy / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
 
 	float3 quantizationPeriod = _float3( 1.0 / NUM_COLORS );
-	float3 quantDeviation = Deviation( palette );
+	float3 quantDeviation = deviation; //Deviation( palette );
+	quantDeviation = medianAbsoluteDeviation;
 
 	// get pixellated base color
 	float4 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy );
