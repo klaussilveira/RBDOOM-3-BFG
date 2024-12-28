@@ -242,6 +242,8 @@ void idCommonLocal::DrawLoadPacifierProgressbar()
 		return;
 	}
 
+	tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
+
 	float loadPacifierProgress = float( loadPacifierCount ) / loadPacifierExpectedCount;
 
 	// draw our basic overlay
@@ -288,6 +290,8 @@ void idCommonLocal::Draw()
 
 		if( loadPacifierBinarizeActive )
 		{
+			tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
+
 			// update our progress estimates
 			int time = Sys_Milliseconds();
 			if( loadPacifierBinarizeProgress > 0.0f )
@@ -327,6 +331,8 @@ void idCommonLocal::Draw()
 	}
 	else if( loadGUI != NULL )
 	{
+		tr.guiModel->SetMode( GUIMODE_SHELL ); // Leyland VR
+
 		// foresthale 2014-05-30: showing a black background looks better than flickering in widescreen
 		renderSystem->SetColor( colorBlack );
 		renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
