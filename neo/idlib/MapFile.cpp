@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015-2023 Robert Beckebans
+Copyright (C) 2015-2025 Robert Beckebans
 Copyright (C) 2020 Admer (id Tech Fox)
 Copyright (C) 2022 Harrie van Ginneken
 
@@ -145,33 +145,6 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		return;
 	}
 
-#if 0
-	// create p1, p2, p3
-	idVec3 forward = plane.Normal();
-	idVec3 p1 = forward * plane.Dist();
-
-	// create tangents right,up similar as in Quake's MakeNormalVectors
-	idVec3 right = forward;
-	right[1] = -forward[0];
-	right[2] = forward[1];
-	right[0] = forward[2];
-
-	float d = right * forward;
-	right = right + ( -d * forward );
-	right.Normalize();
-
-	idVec3 up = right.Cross( forward );
-
-	// offset p1 by tangents to have 3 points in a plane
-	idVec3 p2 = p1 + right;
-	idVec3 p3 = p1 + up;
-
-	// move planepts from entity space to world space because TrenchBroom can only handle brushes in world space
-	planepts[0] = entityTransform * p1;
-	planepts[1] = entityTransform * p2;
-	planepts[2] = entityTransform * p3;
-
-#else
 	// from DoomEdit's void BrushPrimit_Parse( brush_t* b, bool newFormat, const idVec3 origin )
 
 	idVec3 origin = entityTransform.GetTranslation();
@@ -188,7 +161,6 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		planepts[j].y = w[j].y + origin.y;
 		planepts[j].z = w[j].z + origin.z;
 	}
-#endif
 
 	idVec3 texX, texY;
 
@@ -2996,7 +2968,7 @@ bool idMapFile::ConvertToPolygonMeshFormat()
 	return true;
 }
 
-bool idMapFile::ConvertToValve220Format()
+bool idMapFile::ConvertToValve220Format( bool recalcPlanePoints )
 {
 	valve220Format = true;
 
@@ -3237,9 +3209,12 @@ bool idMapFile::ConvertToValve220Format()
 							side->ConvertToValve220Format( transform, textureCollections );
 						}
 
-						// RB: this is not necessary but the initial plane definitions are at the border of the max world size
+						// RB: this shouldn't necessary but the initial plane definitions are at the border of the max world size
 						// so with this function we get sane values that are within the brush boundaries
-						brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
+						if( recalcPlanePoints )
+						{
+							brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
+						}
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
 					{

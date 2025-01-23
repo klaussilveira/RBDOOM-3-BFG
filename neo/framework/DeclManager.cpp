@@ -3580,7 +3580,7 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 	int totalModelsCount = 0;
 	int totalEntitiesCount = 0;
 
-	idFileList* files = fileSystem->ListFilesTree( "generated", ".blwo|.base|.bdae|.bobj|.bmd5mesh", true, true );
+	idFileList* files = fileSystem->ListFilesTree( "generated", ".blwo|.base|.bglb|.bobj|.bmd5mesh", true, true );
 
 	idStr mapName( "maps/zoomaps/zoo_models.map" );
 	idMapFile mapFile;
@@ -3740,9 +3740,9 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 			modelName.SetFileExtension( "ase" );
 		}
 
-		if( ext.Icmp( "bdae" ) == 0 )
+		if( ext.Icmp( "bglb" ) == 0 )
 		{
-			modelName.SetFileExtension( "dae" );
+			modelName.SetFileExtension( "glb" );
 		}
 
 		if( ext.Icmp( "bobj" ) == 0 )
@@ -3837,18 +3837,24 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 			idMapEntity* mapEnt = new( TAG_SYSTEM ) idMapEntity();
 			mapFile.AddEntity( mapEnt );
 
-			// build TB compatible model name
-			idStrStatic< MAX_OSPATH > exportedModelFileName;
-			exportedModelFileName = "_tb/";
-			exportedModelFileName.AppendPath( modelName );
-			exportedModelFileName.SetFileExtension( ".obj" );
-
 			idStrStatic< MAX_OSPATH > entityName;
 			entityName.Format( "misc_model_%d", mapFile.GetNumEntities() );
 
 			mapEnt->epairs.Set( "classname", "misc_model" );
 			mapEnt->epairs.Set( "name", entityName );
-			mapEnt->epairs.Set( "proxymodel", exportedModelFileName );
+			
+			// .glb models are the fastest to load into TrenchBroom so skip proxymodel
+			if( ext.Icmp( "bglb" ) != 0 )
+			{
+				// build TB compatible model name
+				idStrStatic< MAX_OSPATH > exportedModelFileName;
+				exportedModelFileName = "_tb/";
+				exportedModelFileName.AppendPath( modelName );
+				exportedModelFileName.SetFileExtension( ".obj" );
+
+				mapEnt->epairs.Set( "proxymodel", exportedModelFileName );
+			}
+			
 			mapEnt->epairs.Set( "model", modelName );
 
 			EntityInfo_t* entInfo = new( TAG_SYSTEM ) EntityInfo_t;
@@ -4126,10 +4132,12 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 #endif
 	}
 
-	mapFile.ConvertToValve220Format();
+	mapFile.ConvertToValve220Format( false );
 
 	worldspawn->epairs.Set( "_tb_textures", "textures/common;textures/editor;textures/decals;textures/rock" );
 	worldspawn->epairs.Set( "_tb_def", "external:base/_tb/fgd/DOOM-3-models.fgd" );
+
+	//"_tb_mod" "mod_unittests"
 
 	mapFile.Write( mapName, ".map" );
 
