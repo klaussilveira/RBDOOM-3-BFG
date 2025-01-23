@@ -791,6 +791,10 @@ bool DeviceManager_VK::pickPhysicalDevice()
 
 	if( !otherGPUs.empty() )
 	{
+#if	defined(__linux__) && ( defined(__i386__) || defined(__x86_64__) )
+		// SRS - Disable HiZ buffer on Linux + Intel iGPU to work-around device lost crashes - potentially a driver issue?
+		r_useHierarchicalDepthBuffer.SetBool( false );
+#endif
 		m_VulkanPhysicalDevice = otherGPUs[0];
 		return true;
 	}
