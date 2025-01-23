@@ -1659,9 +1659,10 @@ void DeviceManager_VK::Present()
 				OPTICK_STORAGE_EVENT( mvkSubmitEventStorage, mvkSubmitEventDesc, mvkPreviousSubmitTime, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime );
 				OPTICK_STORAGE_TAG( mvkSubmitEventStorage, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime / 2, "Frame", idLib::frameNumber - 2 );
 
-				// SRS - select latest acquire time if hashes match and we didn't retrieve a new image, otherwise select previous acquire time
+				// SRS - select latest acquire time if hashes match and we didn't retrieve a new image, or vsync is on, or other high-load conditions
 				double mvkLatestAcquireHash = mvkPerfStats.queue.retrieveCAMetalDrawable.latest + mvkPerfStats.queue.retrieveCAMetalDrawable.previous;
-				int64_t mvkAcquireWaitTime = mvkLatestAcquireHash == mvkPreviousAcquireHash ? mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0 : mvkPerfStats.queue.retrieveCAMetalDrawable.previous * 1000000.0;
+				bool useLatestAcquire = ( mvkLatestAcquireHash != mvkPreviousAcquireHash ) && ( mvkPerfStats.queue.waitSubmitCommandBuffers.latest > mvkPerfStats.queue.waitSubmitCommandBuffers.previous || mvkPerfStats.queue.commandBufferEncoding.latest > mvkPerfStats.queue.commandBufferEncoding.previous ) && ( mvkPerfStats.queue.retrieveCAMetalDrawable.latest > mvkPerfStats.queue.retrieveCAMetalDrawable.previous );
+				int64_t mvkAcquireWaitTime = mvkLatestAcquireHash == mvkPreviousAcquireHash || r_swapInterval.GetInteger() > 0 || useLatestAcquire ? mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0 : mvkPerfStats.queue.retrieveCAMetalDrawable.previous * 1000000.0;
 
 				// SRS - select latest presented frame if we are running synchronous, otherwise select previous presented frame as reference
 				int64_t mvkAcquireStartTime = mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime;
@@ -1677,15 +1678,16 @@ void DeviceManager_VK::Present()
 				OPTICK_STORAGE_EVENT( mvkAcquireEventStorage, mvkAcquireEventDesc, mvkAcquireStartTime, mvkAcquireStartTime + mvkAcquireWaitTime );
 				OPTICK_STORAGE_TAG( mvkAcquireEventStorage, mvkAcquireStartTime + mvkAcquireWaitTime / 2, "Frame", frameNumberTag );
 
-				// SRS - when Optick is active, use MoltenVK's previous encoding time to select game command buffer vs. Optick's command buffer
+				// SRS - when Optick is active, use max of MoltenVK's latest/previous encoding time to select game command buffer vs. Optick's command buffer
 				int64_t mvkEncodeStartTime = mvkAcquireStartTime + mvkAcquireWaitTime;
-				mvkEncodeTime = Max( int64_t( 0 ), int64_t( mvkPerfStats.queue.commandBufferEncoding.previous * 1000000.0 ) - mvkAcquireWaitTime );
+				mvkEncodeTime = Max( mvkPerfStats.queue.commandBufferEncoding.latest, mvkPerfStats.queue.commandBufferEncoding.previous ) * 1000000.0;
+				mvkEncodeTime = ( mvkEncodeTime > mvkAcquireWaitTime ) && ( ( mvkPerfStats.queue.commandBufferEncoding.previous > mvkPerfStats.queue.commandBufferEncoding.latest && Max( mvkPreviousSubmitWaitTime, int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.previous * 1000000.0 ) ) > int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0 ) ) || useLatestAcquire ) ? mvkEncodeTime - mvkAcquireWaitTime : mvkEncodeTime;
 
 				// SRS - create custom Optick event that displays MoltenVK's Vulkan-to-Metal encoding time
 				OPTICK_STORAGE_EVENT( mvkEncodeEventStorage, mvkEncodeEventDesc, mvkEncodeStartTime, mvkEncodeStartTime + mvkEncodeTime );
 				OPTICK_STORAGE_TAG( mvkEncodeEventStorage, mvkEncodeStartTime + mvkEncodeTime / 2, "Frame", frameNumberTag );
 
-				mvkPreviousSubmitWaitTime = mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0;
+				mvkPreviousSubmitWaitTime = Min( mvkPerfStats.queue.waitSubmitCommandBuffers.latest, mvkPerfStats.queue.waitSubmitCommandBuffers.previous ) * 1000000.0;
 				mvkPreviousAcquireHash = mvkLatestAcquireHash;
 			}
 #endif
