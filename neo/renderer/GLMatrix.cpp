@@ -571,18 +571,18 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 	// Change the relevant parts of the matrix
 	weaponMatrix[0 * 4 + 0] = 2.0f * zNear / weaponWidth;
-	weaponMatrix[2 * 4 + 0] = (xmax + xmin) / weaponWidth;	// normally 0
-	
+	weaponMatrix[2 * 4 + 0] = ( xmax + xmin ) / weaponWidth;	// normally 0
+
 	// RB: Y axis now points down the screen
 #if defined(USE_VULKAN)
 	weaponMatrix[1 * 4 + 1] = -2.0f * zNear / weaponHeight;
 #else
 	weaponMatrix[1 * 4 + 1] = 2.0f * zNear / weaponHeight;
 #endif
-	weaponMatrix[2 * 4 + 1] = (ymax + ymin) / weaponHeight;	// normally 0
+	weaponMatrix[2 * 4 + 1] = ( ymax + ymin ) / weaponHeight;	// normally 0
 
 	// Set up the weapon projection matrix
-	idRenderMatrix::Transpose( *(idRenderMatrix*)weaponMatrix, viewDef->weaponProjectionMatrix );
+	idRenderMatrix::Transpose( *( idRenderMatrix* )weaponMatrix, viewDef->weaponProjectionMatrix );
 }
 
 

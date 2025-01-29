@@ -244,7 +244,7 @@ typedef struct renderView_s
 	// player views will set this to a non-zero integer for model suppress / allow
 	// subviews (mirrors, cameras, etc) will always clear it to zero
 	int						viewID;
-	
+
 	float					fov_x, fov_y;		// in degrees
 	float					weaponFov_x, weaponFov_y; // Admer: weapons have a different FOV than the view for aesthetic reasons
 	idVec3					vieworg;			// has already been adjusted for stereo world seperation
