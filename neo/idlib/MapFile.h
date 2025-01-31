@@ -504,7 +504,7 @@ public:
 	// RB begin
 	bool					WriteJSON( const char* fileName, const char* ext, bool fromBasePath = true );
 	bool					ConvertToPolygonMeshFormat();
-	bool					ConvertToValve220Format();
+	bool					ConvertToValve220Format( bool recalcPlanePoints );
 
 	void					ClassifyEntitiesForTrenchBroom( idDict& classTypeOverview );
 
