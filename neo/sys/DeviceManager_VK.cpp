@@ -49,14 +49,10 @@
 			#include <MoltenVK/vk_mvk_moltenvk.h>		// SRS - now deprecated, but provides backwards compatibility for MoltenVK < 1.2.7 / SDK < 1.3.275.0
 		#endif
 	#endif
-	#if defined( VK_EXT_layer_settings )
-		// SRS - Disable Metal Argument Buffers for Vulkan SDK >= 1.3.275.0 to avoid HiZ compute shader issues on Apple Silicon
+	#if defined( VK_EXT_layer_settings ) || defined( USE_MoltenVK )
+		// SRS - Disable MoltenVK's Synchronous Queue Submits for better performance, and Metal Argument Buffers to avoid HiZ compute shader issues on Apple Silicon
 		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use MoltenVK's synchronous queue submit option." );
 		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "0", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Use MoltenVK's Metal argument buffers option (0=Off, 1=On)", 0, 1 );
-	#elif defined( USE_MoltenVK )
-		// SRS - Enable Metal Argument Buffers for Vulkan SDK < 1.3.275.0 to work around SPIRV-Cross issue for Metal conversion
-		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use MoltenVK's synchronous queue submit option." );
-		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "1", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Use MoltenVK's Metal argument buffers option (0=Off, 1=On)", 0, 1 );
 	#endif
 #endif
 #include <nvrhi/validation.h>
