@@ -18,6 +18,29 @@ _______________________________________
 TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
+## .plan - February 1, 2025
+
+This test build improves the Blender .glb map workflow.
+
+Changelog:
+
+* editLights supports .glb maps via _extra_ents.map file
+
+* Use DOOM-3-slim.fgd in model zoo maps
+
+* Fixed messed up coords in makeZooMapForModels command
+
+* Throttle down to 15 fps if the engine runs in the background or is unfocused
+
+* Small bugfix when it comes to entity rotations in .glb maps
+
+* Replaced CPC color palette with a new one closer to the Amstrad
+
+* Allow flying around lights by holding Mouse2 in editLights mode
+
+* Fixed crash when switching maps and editLights is still running
+
+
 ## .plan - January 16, 2025
 
 This test build comes with HDRI support and a few critical bugfixes that save video memory and avoid unnessessary duplicated .bimage files.
