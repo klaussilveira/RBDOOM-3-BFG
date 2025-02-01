@@ -781,16 +781,16 @@ bool DeviceManager_VK::pickPhysicalDevice()
 	// pick the first discrete GPU if it exists, otherwise the first integrated GPU
 	if( !discreteGPUs.empty() )
 	{
+		glConfig.vendor = getGPUVendor( discreteGPUs[0].getProperties().vendorID );
+		glConfig.gpuType = GPU_TYPE_DISCRETE;
 		m_VulkanPhysicalDevice = discreteGPUs[0];
 		return true;
 	}
 
 	if( !otherGPUs.empty() )
 	{
-#if	defined(__linux__) && ( defined(__i386__) || defined(__x86_64__) )
-		// SRS - Disable HiZ buffer on Linux + Intel iGPU to work-around device lost crashes - potentially a driver issue?
-		r_useHierarchicalDepthBuffer.SetBool( false );
-#endif
+		glConfig.vendor = getGPUVendor( otherGPUs[0].getProperties().vendorID );
+		glConfig.gpuType = GPU_TYPE_OTHER;
 		m_VulkanPhysicalDevice = otherGPUs[0];
 		return true;
 	}
