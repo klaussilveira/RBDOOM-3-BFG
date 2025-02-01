@@ -503,6 +503,7 @@ public:
 
 	// RB begin
 	bool					WriteJSON( const char* fileName, const char* ext, bool fromBasePath = true );
+	bool					WriteDiff( const idMapFile* other, const char* fileName, const char* ext, bool fromBasePath = true );
 	bool					ConvertToPolygonMeshFormat();
 	bool					ConvertToValve220Format( bool recalcPlanePoints );
 
@@ -554,6 +555,11 @@ public:
 		return hasPrimitiveData;
 	}
 
+	bool					IsGLTF() const
+	{
+		return gltfFormat;
+	}
+
 	static void				AddMaterialToCollection( const char* material, idStrList& textureCollections );
 	static void				WadTextureToMaterial( const char* material, idStr& matName );
 
@@ -564,7 +570,8 @@ protected:
 	idMapEntity::EntityList	entities;
 	idStr					name;
 	bool					hasPrimitiveData;
-	bool					valve220Format; // RB: for TrenchBroom support
+	bool					valve220Format;	// RB: for TrenchBroom support
+	bool					gltfFormat;
 
 private:
 	void					SetGeometryCRC();
@@ -579,6 +586,7 @@ ID_INLINE idMapFile::idMapFile()
 	entities.Resize( 1024, 256 );
 	hasPrimitiveData = false;
 	valve220Format = false;
+	gltfFormat = false;
 }
 
 #endif /* !__MAPFILE_H__ */

@@ -291,11 +291,7 @@ void LightInfo::ToDict( idDict* e )
 			e->Set( "light_center", DELETE_VAL );
 		}
 
-		if( lightType == LIGHT_SUN )
-		{
-			e->Set( "parallel", "1" );
-			e->Set( "style", DELETE_VAL );
-		}
+		e->Set( "parallel", ( lightType == LIGHT_SUN ) ? "1" : DELETE_VAL );
 
 		// get rid of all the projected light specific stuff
 		e->Set( "light_target", DELETE_VAL );

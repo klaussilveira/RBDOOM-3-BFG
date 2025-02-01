@@ -103,10 +103,8 @@ bool	g_MousePressed[5] = { false, false, false, false, false };
 float	g_MouseWheel = 0.0f;
 ImVec2	g_MousePos = ImVec2( -1.0f, -1.0f ); //{-1.0f, -1.0f};
 ImVec2	g_DisplaySize = ImVec2( 0.0f, 0.0f ); //{0.0f, 0.0f};
-
-
-
-bool g_haveNewFrame = false;
+bool	g_haveNewFrame = false;
+bool	g_insideRender = false;
 
 bool HandleKeyEvent( const sysEvent_t& keyEvent )
 {
@@ -897,8 +895,10 @@ bool IsReadyToRender()
 
 void Render()
 {
-	if( IsInitialized() && ShowWindows() )
+	if( !g_insideRender && IsInitialized() && ShowWindows() )
 	{
+		g_insideRender = true;
+
 		if( !g_haveNewFrame )
 		{
 			// for screenshots etc, where we didn't go through idCommonLocal::Frame()
@@ -920,6 +920,7 @@ void Render()
 		ImGui::Render();
 		idRenderBackend::ImGui_RenderDrawLists( ImGui::GetDrawData() );
 		g_haveNewFrame = false;
+		g_insideRender = false;
 	}
 }
 

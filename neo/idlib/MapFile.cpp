@@ -1590,25 +1590,6 @@ void idMapEntity::CalculateBrushOrigin()
 	originOffset /= static_cast<float>( originBrushes.Num() );
 }
 
-class idSort_CompareMapEntity : public idSort_Quick< idMapEntity*, idSort_CompareMapEntity >
-{
-public:
-	int Compare( idMapEntity* const& a, idMapEntity* const& b ) const
-	{
-		if( idStr::Icmp( a->epairs.GetString( "name" ), "worldspawn" ) == 0 )
-		{
-			return 1;
-		}
-
-		if( idStr::Icmp( b->epairs.GetString( "name" ), "worldspawn" ) == 0 )
-		{
-			return -1;
-		}
-
-		return idStr::Icmp( a->epairs.GetString( "name" ), b->epairs.GetString( "name" ) );
-	}
-};
-
 /*
 ===============
 idMapFile::Parse
@@ -1722,14 +1703,12 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 			}
 		}
 
-		//entities.SortWithTemplate( idSort_CompareMapEntity() );
-
-		if( entities.Num() > 0 && ( idStr::Icmp( entities[0]->epairs.GetString( "name" ), "worldspawn" ) != 0 ) )
+		// move world spawn to first place if it was written by Python's JSON serializer
+		if( entities.Num() > 0 && ( idStr::Icmp( entities[0]->epairs.GetString( "classname" ), "worldspawn" ) != 0 ) )
 		{
-			// move world spawn to first place
 			for( int i = 1; i < entities.Num(); i++ )
 			{
-				if( idStr::Icmp( entities[i]->epairs.GetString( "name" ), "worldspawn" ) == 0 )
+				if( idStr::Icmp( entities[i]->epairs.GetString( "classname" ), "worldspawn" ) == 0 )
 				{
 					idMapEntity* tmp = entities[0];
 					entities[0] = entities[i];
@@ -1741,6 +1720,8 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 	}
 	else if( isGTLF )
 	{
+		gltfFormat = true;
+
 		GLTF_Parser gltf;
 		gltf.Load( fullName );
 		idMapEntity::GetEntities( gltf.currentAsset, entities, gltf.currentAsset->GetSceneId( gltf_MapSceneName.GetString() ) );
@@ -1853,7 +1834,7 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		FixDuplicatedNamesInGroupInstances();
 	}
 
-	// RB: <name>_extraents.map allows to add and override existing entities
+	// RB: <name>_extra_ents.map allows to add and override existing entities
 	idMapFile extrasMap;
 	fullName = name;
 	//fullName.StripFileExtension();
@@ -1885,6 +1866,7 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 				}
 			}
 
+			if( idStr::Icmp( extraEnt->epairs.GetString( "classname" ), "worldspawn" ) != 0 )
 			{
 				mapEnt = new( TAG_SYSTEM ) idMapEntity();
 				entities.Append( mapEnt );
@@ -1994,6 +1976,124 @@ bool idMapFile::WriteJSON( const char* fileName, const char* ext, bool fromBaseP
 
 	fp->Printf( "\t]\n" );
 	fp->Printf( "}\n" );
+
+	idLib::fileSystem->CloseFile( fp );
+
+	return true;
+}
+
+/*
+============
+idMapFile::WriteDiff
+============
+*/
+bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, const char* ext, bool fromBasePath )
+{
+	int i;
+	idStr qpath;
+	idFile* fp;
+
+	qpath = fileName;
+	qpath.SetFileExtension( ext );
+
+	idLib::common->Printf( "writing %s...\n", qpath.c_str() );
+
+	if( fromBasePath )
+	{
+		fp = idLib::fileSystem->OpenFileWrite( qpath, "fs_basepath" );
+	}
+	else
+	{
+		fp = idLib::fileSystem->OpenExplicitFileWrite( qpath );
+	}
+
+	if( !fp )
+	{
+		idLib::common->Warning( "Couldn't open %s\n", qpath.c_str() );
+		return false;
+	}
+
+	if( valve220Format )
+	{
+		fp->WriteFloatString( "// Game: Doom 3 BFG\n// Format: Doom3 (Valve)\n" );
+	}
+	else
+	{
+		fp->WriteFloatString( "Version %d\n", CURRENT_MAP_VERSION );
+	}
+
+	for( i = 1; i < otherMap->entities.Num(); i++ )
+	{
+		idMapEntity* otherEnt = otherMap->entities[i];
+
+		idDict epairs;
+
+		// TODO build epairs diff and only write different entities
+		const idKeyValue* kv = otherEnt->epairs.FindKey( "name" );
+		if( kv && kv->GetValue().Length() )
+		{
+			idMapEntity* origEnt = FindEntity( kv->GetValue().c_str() );
+			if( origEnt )
+			{
+				// TODO diff epairs
+				if( origEnt->epairs.GetNumKeyVals() != otherEnt->epairs.GetNumKeyVals() )
+				{
+					epairs.Copy( otherEnt->epairs );
+				}
+			}
+			else
+			{
+				// it is a new entity
+				epairs.Copy( otherEnt->epairs );
+			}
+		}
+		else
+		{
+			// it is a new entity
+			epairs.Copy( otherEnt->epairs );
+		}
+
+		if( epairs.GetNumKeyVals() )
+		{
+			fp->WriteFloatString( "// entity %d\n{\n", i );
+
+			for( int j = 0; j < epairs.GetNumKeyVals(); j++ )
+			{
+				fp->WriteFloatString( "\"%s\" \"%s\"\n", epairs.GetKeyVal( j )->GetKey().c_str(), epairs.GetKeyVal( j )->GetValue().c_str() );
+			}
+
+			fp->WriteFloatString( "}\n" );
+		}
+
+		/*
+		const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
+		if( kv && kv->GetValue().Length() )
+		{
+			mapEnt = FindEntity( kv->GetValue().c_str() );
+			if( mapEnt )
+			{
+				// allow override old settings
+				for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
+				{
+					const idKeyValue* pair = extraEnt->epairs.GetKeyVal( j );
+					if( pair && pair->GetValue().Length() )
+					{
+						mapEnt->epairs.Set( pair->GetKey(), pair->GetValue() );
+					}
+				}
+
+				continue;
+			}
+		}
+		*/
+	}
+
+	/*
+	for( i = 0; i < entities.Num(); i++ )
+	{
+		entities[i]->Write( fp, i, valve220Format );
+	}
+	*/
 
 	idLib::fileSystem->CloseFile( fp );
 
