@@ -498,7 +498,7 @@ public:
 	// normally this will use a .reg file instead of a .map file if it exists,
 	// which is what the game and dmap want, but the editor will want to always
 	// load a .map file
-	bool					Parse( const char* filename, bool ignoreRegion = false, bool osPath = false );
+	bool					Parse( const char* filename, bool ignoreRegion = false, bool osPath = false, bool ignoreExtraEnts = false );
 	bool					Write( const char* fileName, const char* ext, bool fromBasePath = true );
 
 	// RB begin

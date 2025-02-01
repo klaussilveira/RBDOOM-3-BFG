@@ -1595,7 +1595,7 @@ void idMapEntity::CalculateBrushOrigin()
 idMapFile::Parse
 ===============
 */
-bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
+bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath, bool ignoreExtraEnts )
 {
 	// no string concatenation for epairs and allow path names for materials
 	idLexer src( LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
@@ -1835,53 +1835,62 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 	}
 
 	// RB: <name>_extra_ents.map allows to add and override existing entities
-	idMapFile extrasMap;
-	fullName = name;
-	//fullName.StripFileExtension();
-	fullName += "_extra_ents.map";
-
-	if( extrasMap.Parse( fullName, ignoreRegion, osPath ) )
+	if( !ignoreExtraEnts )
 	{
-		for( i = 0; i < extrasMap.entities.Num(); i++ )
+		idMapFile extrasMap;
+		fullName = name;
+		//fullName.StripFileExtension();
+		fullName += "_extra_ents.map";
+
+		if( extrasMap.Parse( fullName, ignoreRegion, osPath ) )
 		{
-			idMapEntity* extraEnt = extrasMap.entities[i];
-
-			const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
-			if( kv && kv->GetValue().Length() )
+			for( i = 0; i < extrasMap.entities.Num(); i++ )
 			{
-				mapEnt = FindEntity( kv->GetValue().c_str() );
-				if( mapEnt )
-				{
-					// allow override old settings
-					for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
-					{
-						const idKeyValue* pair = extraEnt->epairs.GetKeyVal( j );
-						if( pair && pair->GetValue().Length() )
-						{
-							mapEnt->epairs.Set( pair->GetKey(), pair->GetValue() );
-						}
-					}
+				idMapEntity* extraEnt = extrasMap.entities[i];
 
-					continue;
+				const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
+				if( kv && kv->GetValue().Length() )
+				{
+					mapEnt = FindEntity( kv->GetValue().c_str() );
+					if( mapEnt )
+					{
+						// allow override old settings
+						for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
+						{
+							const idKeyValue* kv2 = extraEnt->epairs.GetKeyVal( j );
+							const char* key = kv2->GetKey();
+							const char* val = kv2->GetValue();
+
+							if( idStr::Icmp( key, "name" ) != 0 )
+							{
+								// DG: if val is "", delete key from the entity
+								//     => same behavior as EntityChangeSpawnArgs()
+								if( val[0] == '\0' )
+								{
+									mapEnt->epairs.Delete( key );
+								}
+								else
+								{
+									mapEnt->epairs.Set( key, val );
+								}
+							}
+						}
+
+						continue;
+					}
+				}
+
+				// entity wasn't found so add new one
+				if( idStr::Icmp( extraEnt->epairs.GetString( "classname" ), "worldspawn" ) != 0 )
+				{
+					mapEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( mapEnt );
+
+					// don't grab brushes or polys
+					mapEnt->epairs.Copy( extraEnt->epairs );
 				}
 			}
-
-			if( idStr::Icmp( extraEnt->epairs.GetString( "classname" ), "worldspawn" ) != 0 )
-			{
-				mapEnt = new( TAG_SYSTEM ) idMapEntity();
-				entities.Append( mapEnt );
-
-				// don't grab brushes or polys
-				mapEnt->epairs.Copy( extraEnt->epairs );
-			}
 		}
-
-#if 0
-		fullName = name;
-		fullName += "_extra_debug.map";
-
-		Write( fullName, ".map" );
-#endif
 	}
 
 	hasPrimitiveData = true;
@@ -1982,11 +1991,6 @@ bool idMapFile::WriteJSON( const char* fileName, const char* ext, bool fromBaseP
 	return true;
 }
 
-/*
-============
-idMapFile::WriteDiff
-============
-*/
 bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, const char* ext, bool fromBasePath )
 {
 	int i;
@@ -2022,6 +2026,8 @@ bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, cons
 		fp->WriteFloatString( "Version %d\n", CURRENT_MAP_VERSION );
 	}
 
+	static const char* DELETE_VAL = "";
+
 	for( i = 1; i < otherMap->entities.Num(); i++ )
 	{
 		idMapEntity* otherEnt = otherMap->entities[i];
@@ -2035,11 +2041,88 @@ bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, cons
 			idMapEntity* origEnt = FindEntity( kv->GetValue().c_str() );
 			if( origEnt )
 			{
-				// TODO diff epairs
+				// delete all entries that have been deleted
+				for( int d = 0; d < origEnt->epairs.GetNumKeyVals(); d++ )
+				{
+					const idKeyValue* kv = origEnt->epairs.GetKeyVal( d );
+					const char* key = kv->GetKey();
+
+					if( !otherEnt->epairs.FindKey( key ) )
+					{
+						epairs.Set( key, DELETE_VAL );
+					}
+				}
+
+				// update new entries
+#if 1
+				// more compact
+				bool haveEpairsChanged = epairs.GetNumKeyVals() > 0;
+
+				// scan for changes
+				for( int d = 0; d < otherEnt->epairs.GetNumKeyVals(); d++ )
+				{
+					const idKeyValue* kv = otherEnt->epairs.GetKeyVal( d );
+					const char* key = kv->GetKey();
+					const char* val = kv->GetValue();
+
+					const idKeyValue* kv2 = origEnt->epairs.FindKey( key );
+					if( kv2 )
+					{
+						const char* val2 = kv2->GetValue();
+
+						if( idStr::Cmp( val, val2 ) != 0 )
+						{
+							haveEpairsChanged = true;
+							break;
+						}
+					}
+					else
+					{
+						haveEpairsChanged = true;
+						break;
+					}
+				}
+
+				// apply changes
+				if( haveEpairsChanged )
+				{
+					for( int d = 0; d < otherEnt->epairs.GetNumKeyVals(); d++ )
+					{
+						const idKeyValue* kv = otherEnt->epairs.GetKeyVal( d );
+						const char* key = kv->GetKey();
+						const char* val = kv->GetValue();
+
+						if( idStr::Icmp( key, "name" ) == 0 )
+						{
+							epairs.Set( key, val );
+						}
+						else
+						{
+							const idKeyValue* kv2 = origEnt->epairs.FindKey( key );
+							if( kv2 )
+							{
+								const char* val2 = kv2->GetValue();
+
+								if( idStr::Cmp( val, val2 ) != 0 )
+								{
+									epairs.Set( key, val );
+								}
+							}
+							else
+							{
+								// new key
+								epairs.Set( key, val );
+							}
+						}
+					}
+				}
+#else
+				// better if you want to read the values in TrenchBroom
 				if( origEnt->epairs.GetNumKeyVals() != otherEnt->epairs.GetNumKeyVals() )
 				{
 					epairs.Copy( otherEnt->epairs );
 				}
+#endif
 			}
 			else
 			{
@@ -2064,36 +2147,7 @@ bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, cons
 
 			fp->WriteFloatString( "}\n" );
 		}
-
-		/*
-		const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
-		if( kv && kv->GetValue().Length() )
-		{
-			mapEnt = FindEntity( kv->GetValue().c_str() );
-			if( mapEnt )
-			{
-				// allow override old settings
-				for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
-				{
-					const idKeyValue* pair = extraEnt->epairs.GetKeyVal( j );
-					if( pair && pair->GetValue().Length() )
-					{
-						mapEnt->epairs.Set( pair->GetKey(), pair->GetValue() );
-					}
-				}
-
-				continue;
-			}
-		}
-		*/
 	}
-
-	/*
-	for( i = 0; i < entities.Num(); i++ )
-	{
-		entities[i]->Write( fp, i, valve220Format );
-	}
-	*/
 
 	idLib::fileSystem->CloseFile( fp );
 

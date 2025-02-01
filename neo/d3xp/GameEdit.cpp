@@ -1205,7 +1205,7 @@ void idGameEdit::MapSave( const char* path ) const
 		{
 			// RB: can't write .glb so we write a _extra_ents.map which acts like a patch
 			idMapFile* origFile = new( TAG_GAME ) idMapFile;
-			if( origFile->Parse( mapFile->GetName() ) )
+			if( origFile->Parse( mapFile->GetName(), true, false, true ) )
 			{
 				idStr filename = mapFile->GetName();
 				filename += "_extra_ents";

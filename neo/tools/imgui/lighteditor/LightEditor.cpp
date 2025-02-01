@@ -340,9 +340,15 @@ void LightInfo::ToDict( idDict* e )
 		e->SetAngles( "light_angles", angles );
 	}
 	else
-		//if( angles.yaw != 0.0f || angles.pitch != 0.0f || angles.roll != 0.0f )
 	{
-		e->SetAngles( "angles", angles );
+		if( angles.yaw != 0.0f || angles.pitch != 0.0f || angles.roll != 0.0f )
+		{
+			e->SetAngles( "angles", angles );
+		}
+		else
+		{
+			e->Set( "angles", DELETE_VAL );
+		}
 	}
 }
 
