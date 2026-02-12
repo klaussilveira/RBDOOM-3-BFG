@@ -1,0 +1,138 @@
+<rml>
+<head>
+    <title>Difficulty</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #header {
+            margin-top: 100dp;
+            margin-bottom: 50dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 48dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+        }
+
+        #subtitle {
+            font-size: 18dp;
+            color: #606060;
+            margin-top: 15dp;
+        }
+
+        #menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12dp;
+        }
+
+        .diff-btn {
+            width: 300dp;
+            height: 52dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            font-size: 20dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2dp;
+            cursor: pointer;
+            padding-top: 13dp;
+        }
+
+        .diff-btn:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .diff-btn:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .diff-btn:active {
+            background-color: #ff6600;
+            color: #000000;
+        }
+
+        .diff-btn.nightmare {
+            color: #cc0000;
+            border-color: #660000;
+        }
+
+        .diff-btn.nightmare:hover,
+        .diff-btn.nightmare:focus {
+            border-color: #cc0000;
+            color: #ff0000;
+        }
+
+        .diff-btn.nightmare:active {
+            background-color: #cc0000;
+            color: #000000;
+        }
+
+        .diff-description {
+            font-size: 12dp;
+            color: #505050;
+            margin-top: -8dp;
+            margin-bottom: 4dp;
+            text-align: center;
+        }
+
+        .diff-description.nightmare {
+            color: #880000;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">Difficulty</div>
+        <div id="subtitle">Choose your challenge</div>
+    </div>
+
+    <div id="menu-container">
+        <button class="diff-btn" data-action="difficulty_easy" tabindex="1">
+            Recruit
+        </button>
+        <div class="diff-description">For those new to combat</div>
+
+        <button class="diff-btn" data-action="difficulty_medium" tabindex="2" autofocus>
+            Marine
+        </button>
+        <div class="diff-description">Standard combat experience</div>
+
+        <button class="diff-btn" data-action="difficulty_hard" tabindex="3">
+            Veteran
+        </button>
+        <div class="diff-description">For experienced soldiers</div>
+
+        <button class="diff-btn nightmare" data-action="difficulty_nightmare" tabindex="4">
+            Nightmare
+        </button>
+        <div class="diff-description nightmare">You will not survive</div>
+    </div>
+
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

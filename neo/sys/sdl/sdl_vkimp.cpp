@@ -603,12 +603,24 @@ void VKimp_GrabInput( int flags )
 		return;
 	}
 
-	// DG: disabling the cursor is now done once in VKimp_Init() because it should always be disabled
+	static bool lastGrab = true;
+	if( grab != lastGrab )
+	{
+		lastGrab = grab;
+	}
 
 	// DG: check for GRAB_ENABLE instead of GRAB_HIDECURSOR because we always wanna hide it
 	SDL_SetRelativeMouseMode( flags & GRAB_ENABLE ? SDL_TRUE : SDL_FALSE );
 	SDL_SetWindowGrab( window, grab ? SDL_TRUE : SDL_FALSE );
 
+	if( !grab )
+	{
+		SDL_ShowCursor( SDL_ENABLE );
+	}
+	else
+	{
+		SDL_ShowCursor( SDL_DISABLE );
+	}
 }
 
 /*

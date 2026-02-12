@@ -559,6 +559,13 @@ void idCommonLocal::ExecuteMapChange()
 
 	game->Shell_CreateMenu( true );
 
+	if( RmlUIHook::IsEnabled() )
+	{
+		// Dismiss any menu screen that was kept visible during loading
+		RmlUIHook::SetScreen( RmlUIHook::SCREEN_NONE );
+		RmlUIHook::LoadHUD();
+	}
+
 	// Reset some values important to multiplayer
 	ResetNetworkingState();
 

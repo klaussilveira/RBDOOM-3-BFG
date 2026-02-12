@@ -1,0 +1,220 @@
+<rml>
+<head>
+    <title>System Options</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #header {
+            margin-top: 60dp;
+            margin-bottom: 30dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 48dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+        }
+
+        #options-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6dp;
+            margin: 0 auto;
+            width: 520dp;
+        }
+
+        .section-header {
+            width: 100%;
+            font-size: 14dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            margin-top: 10dp;
+            margin-bottom: 4dp;
+            padding-left: 5dp;
+        }
+
+        .option-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 36dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            padding: 0 15dp;
+            cursor: pointer;
+        }
+
+        .option-row:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+        }
+
+        .option-row:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+        }
+
+        .option-label {
+            font-size: 14dp;
+            color: #c0c0c0;
+        }
+
+        .option-value {
+            font-size: 14dp;
+            color: #ff6600;
+            font-weight: bold;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8dp;
+        }
+
+        .slider-bar {
+            width: 80dp;
+            height: 6dp;
+            background-color: #303030;
+            border: 1dp solid #505050;
+        }
+
+        .slider-fill {
+            height: 100%;
+            background-color: #ff6600;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 40dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 65dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12dp;
+            color: #505050;
+        }
+
+        #restart-warning {
+            position: absolute;
+            bottom: 90dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11dp;
+            color: #cc6600;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">System</div>
+    </div>
+
+    <div id="options-container">
+        <div class="section-header">Video</div>
+
+        <div class="option-row" data-action="cycle_fullscreen" tabindex="1" autofocus>
+            <span class="option-label">Display Mode</span>
+            <span class="option-value" id="fullscreen-value">Fullscreen</span>
+        </div>
+
+        <div class="option-row" data-action="cycle_framerate" tabindex="2">
+            <span class="option-label">Framerate</span>
+            <span class="option-value" id="framerate-value">60 FPS</span>
+        </div>
+
+        <div class="option-row" data-action="cycle_vsync" tabindex="3">
+            <span class="option-label">VSync</span>
+            <span class="option-value" id="vsync-value">Smart</span>
+        </div>
+
+        <div class="option-row" data-action="cycle_antialiasing" tabindex="4">
+            <span class="option-label">Anti-Aliasing</span>
+            <span class="option-value" id="aa-value">TAA</span>
+        </div>
+
+        <div class="section-header">Graphics</div>
+
+        <div class="option-row" data-action="cycle_render_mode" tabindex="5">
+            <span class="option-label">Render Mode</span>
+            <span class="option-value" id="render-mode-value">Doom 3</span>
+        </div>
+
+        <div class="option-row" data-action="adjust_ambient" tabindex="6">
+            <span class="option-label">Ambient Lighting</span>
+            <div class="slider-container">
+                <div class="slider-bar">
+                    <div class="slider-fill" id="ambient-fill" style="width: 30%;"></div>
+                </div>
+                <span class="option-value" id="ambient-value">30</span>
+            </div>
+        </div>
+
+        <div class="option-row" data-action="toggle_ssao" tabindex="7">
+            <span class="option-label">SSAO</span>
+            <span class="option-value" id="ssao-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_reflections" tabindex="8">
+            <span class="option-label">Blood Reflections</span>
+            <span class="option-value" id="reflections-value">Dynamic (SSR)</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_filmic" tabindex="9">
+            <span class="option-label">Filmic Post FX</span>
+            <span class="option-value" id="filmic-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="cycle_crt" tabindex="10">
+            <span class="option-label">CRT Filter</span>
+            <span class="option-value" id="crt-value">Off</span>
+        </div>
+
+        <div class="section-header">Audio/Video</div>
+
+        <div class="option-row" data-action="adjust_brightness" tabindex="11">
+            <span class="option-label">Brightness</span>
+            <div class="slider-container">
+                <div class="slider-bar">
+                    <div class="slider-fill" id="brightness-fill" style="width: 50%;"></div>
+                </div>
+                <span class="option-value" id="brightness-value">50</span>
+            </div>
+        </div>
+
+        <div class="option-row" data-action="adjust_volume" tabindex="12">
+            <span class="option-label">Volume</span>
+            <div class="slider-container">
+                <div class="slider-bar">
+                    <div class="slider-fill" id="volume-fill" style="width: 80%;"></div>
+                </div>
+                <span class="option-value" id="volume-value">80</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="restart-warning">Some options require restart to take effect</div>
+    <div id="controls-hint">Use LEFT/RIGHT to adjust, ENTER to cycle</div>
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

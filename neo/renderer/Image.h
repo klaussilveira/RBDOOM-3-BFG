@@ -461,6 +461,7 @@ public:
 
 private:
 	friend class idImageManager;
+	friend class idRmlRenderInterface;
 
 	void				DeriveOpts();
 	void				AllocImage();

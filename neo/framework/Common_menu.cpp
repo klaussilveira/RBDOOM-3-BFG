@@ -145,19 +145,37 @@ idCommonLocal::StartMainMenu
 */
 void idCommonLocal::StartMenu( bool playIntro )
 {
-	if( game && game->Shell_IsActive() )
+	if( RmlUIHook::IsEnabled() )
 	{
-		return;
-	}
+		if( RmlUIHook::IsMenuActive() )
+		{
+			return;
+		}
 
-	if( game )
+		if( mapSpawned )
+		{
+			RmlUIHook::SetScreen( RmlUIHook::SCREEN_PAUSE );
+		}
+		else
+		{
+			RmlUIHook::SetScreen( RmlUIHook::SCREEN_GAME_SELECT );
+		}
+	}
+	else
 	{
-		game->Shell_Show( true );
-		game->Shell_SyncWithSession();
+		if( game && game->Shell_IsActive() )
+		{
+			return;
+		}
+
+		if( game )
+		{
+			game->Shell_Show( true );
+			game->Shell_SyncWithSession();
+		}
 	}
 
 	console->Close();
-
 }
 
 /*
@@ -167,6 +185,11 @@ idCommonLocal::ExitMenu
 */
 void idCommonLocal::ExitMenu()
 {
+	if( RmlUIHook::IsEnabled() )
+	{
+		RmlUIHook::SetScreen( RmlUIHook::SCREEN_NONE );
+	}
+
 	if( game )
 	{
 		game->Shell_Show( false );

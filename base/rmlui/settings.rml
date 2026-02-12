@@ -1,0 +1,112 @@
+<rml>
+<head>
+    <title>Settings</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #header {
+            margin-top: 100dp;
+            margin-bottom: 60dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 48dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+        }
+
+        #menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15dp;
+        }
+
+        .menu-btn {
+            width: 300dp;
+            height: 52dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            font-size: 20dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2dp;
+            cursor: pointer;
+            padding-top: 13dp;
+        }
+
+        .menu-btn:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:active {
+            background-color: #ff6600;
+            color: #000000;
+        }
+
+        .menu-btn:disabled {
+            background-color: #0d0d0d;
+            border-color: #252525;
+            color: #404040;
+            cursor: default;
+        }
+
+        .menu-description {
+            font-size: 12dp;
+            color: #505050;
+            margin-top: -10dp;
+            margin-bottom: 5dp;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">Settings</div>
+    </div>
+
+    <div id="menu-container">
+        <button class="menu-btn" data-action="open_controls" tabindex="1" autofocus>
+            Controls
+        </button>
+        <div class="menu-description">Customize keyboard and gamepad bindings</div>
+
+        <button class="menu-btn" data-action="open_game_options" tabindex="2">
+            Game Options
+        </button>
+        <div class="menu-description">Gameplay and audio settings</div>
+
+        <button class="menu-btn" data-action="open_system_options" tabindex="3">
+            System
+        </button>
+        <div class="menu-description">Video and performance settings</div>
+    </div>
+
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

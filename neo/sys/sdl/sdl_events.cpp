@@ -43,6 +43,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "renderer/RenderCommon.h"
 #include "sdl_local.h"
 #include "../posix/posix_public.h"
+#include "../../rmlui/RmlUI_Hooks.h"
 
 // DG: those are needed for moving/resizing windows
 extern idCVar r_windowX;
@@ -617,7 +618,7 @@ sysEvent_t Sys_GetEvent()
 			case SDL_MOUSEMOTION:
 				// DG: return event with absolute mouse-coordinates when in menu
 				// to fix cursor problems in windowed mode
-				if( game && ( game->Shell_IsActive() || ImGuiTools::ReleaseMouseForTools() ) )
+				if( game && ( game->Shell_IsActive() || ImGuiTools::ReleaseMouseForTools() || RmlUIHook::IsMenuActive() ) )
 				{
 					res.evType = SE_MOUSE_ABSOLUTE;
 					res.evValue = ev.motion.x;

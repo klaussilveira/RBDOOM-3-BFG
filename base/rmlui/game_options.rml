@@ -1,0 +1,162 @@
+<rml>
+<head>
+    <title>Game Options</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #header {
+            margin-top: 80dp;
+            margin-bottom: 40dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 48dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+        }
+
+        #options-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8dp;
+            margin: 0 auto;
+            width: 500dp;
+        }
+
+        .option-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 40dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            padding: 0 20dp;
+            cursor: pointer;
+        }
+
+        .option-row:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+        }
+
+        .option-row:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+        }
+
+        .option-label {
+            font-size: 15dp;
+            color: #c0c0c0;
+        }
+
+        .option-value {
+            font-size: 15dp;
+            color: #ff6600;
+            font-weight: bold;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10dp;
+        }
+
+        .slider-bar {
+            width: 100dp;
+            height: 6dp;
+            background-color: #303030;
+            border: 1dp solid #505050;
+        }
+
+        .slider-fill {
+            height: 100%;
+            background-color: #ff6600;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 90dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12dp;
+            color: #505050;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">Game Options</div>
+    </div>
+
+    <div id="options-container">
+        <div class="option-row" data-action="adjust_fov" tabindex="1" autofocus>
+            <span class="option-label">Field of View</span>
+            <div class="slider-container">
+                <div class="slider-bar">
+                    <div class="slider-fill" id="fov-fill" style="width: 50%;"></div>
+                </div>
+                <span class="option-value" id="fov-value">90</span>
+            </div>
+        </div>
+
+        <div class="option-row" data-action="toggle_checkpoints" tabindex="2">
+            <span class="option-label">Checkpoints</span>
+            <span class="option-value" id="checkpoints-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_auto_switch" tabindex="3">
+            <span class="option-label">Auto Weapon Switch</span>
+            <span class="option-value" id="auto-switch-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_auto_reload" tabindex="4">
+            <span class="option-label">Auto Weapon Reload</span>
+            <span class="option-value" id="auto-reload-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_aim_assist" tabindex="5">
+            <span class="option-label">Aim Assist</span>
+            <span class="option-value" id="aim-assist-value">Off</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_always_run" tabindex="6">
+            <span class="option-label">Always Run</span>
+            <span class="option-value" id="always-run-value">On</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_flashlight" tabindex="7">
+            <span class="option-label">Classic Flashlight (SP)</span>
+            <span class="option-value" id="flashlight-value">Off</span>
+        </div>
+
+        <div class="option-row" data-action="toggle_muzzle_flash" tabindex="8">
+            <span class="option-label">Muzzle Flashes</span>
+            <span class="option-value" id="muzzle-value">On</span>
+        </div>
+    </div>
+
+    <div id="controls-hint">Use LEFT/RIGHT or ENTER to toggle options</div>
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

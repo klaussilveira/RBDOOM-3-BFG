@@ -1,0 +1,112 @@
+<rml>
+<head>
+    <title>New Game</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #header {
+            margin-top: 100dp;
+            margin-bottom: 50dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 48dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+        }
+
+        #subtitle {
+            font-size: 18dp;
+            color: #606060;
+            margin-top: 15dp;
+        }
+
+        #menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15dp;
+        }
+
+        .game-btn {
+            width: 340dp;
+            height: 60dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            font-size: 22dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2dp;
+            cursor: pointer;
+            padding-top: 16dp;
+        }
+
+        .game-btn:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .game-btn:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .game-btn:active {
+            background-color: #ff6600;
+            color: #000000;
+        }
+
+        .game-description {
+            font-size: 12dp;
+            color: #505050;
+            margin-top: -10dp;
+            margin-bottom: 5dp;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">New Game</div>
+        <div id="subtitle">Select a campaign</div>
+    </div>
+
+    <div id="menu-container">
+        <button class="game-btn" data-action="game_doom3" tabindex="1" autofocus>
+            DOOM 3
+        </button>
+        <div class="game-description">The original Mars City nightmare</div>
+
+        <button class="game-btn" data-action="game_roe" tabindex="2">
+            Resurrection of Evil
+        </button>
+        <div class="game-description">The expansion pack campaign</div>
+
+        <button class="game-btn" data-action="game_le" tabindex="3">
+            The Lost Mission
+        </button>
+        <div class="game-description">Exclusive BFG Edition content</div>
+    </div>
+
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

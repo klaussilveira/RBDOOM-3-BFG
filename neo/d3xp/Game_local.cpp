@@ -6003,7 +6003,10 @@ void idGameLocal::Shell_SetGameComplete()
 	if( shellHandler != NULL )
 	{
 		shellHandler->SetGameComplete();
-		Shell_Show( true );
+		if( !RmlUIHook::IsEnabled() )
+		{
+			Shell_Show( true );
+		}
 	}
 }
 

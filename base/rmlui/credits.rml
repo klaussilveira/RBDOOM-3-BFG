@@ -1,0 +1,221 @@
+<rml>
+<head>
+    <title>Credits</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #credits-container {
+            position: absolute;
+            top: 100dp;
+            bottom: 100dp;
+            left: 0;
+            right: 0;
+            overflow: hidden;
+        }
+
+        #credits-scroll {
+            text-align: center;
+            padding: 0 100dp;
+        }
+
+        .credits-heading {
+            font-size: 36dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 4dp;
+            margin-top: 40dp;
+            margin-bottom: 20dp;
+        }
+
+        .credits-section {
+            font-size: 24dp;
+            font-weight: bold;
+            color: #cc5500;
+            text-transform: uppercase;
+            margin-top: 30dp;
+            margin-bottom: 15dp;
+        }
+
+        .credits-title {
+            font-size: 18dp;
+            font-weight: bold;
+            color: #888888;
+            margin-top: 20dp;
+            margin-bottom: 8dp;
+        }
+
+        .credits-name {
+            font-size: 16dp;
+            color: #c0c0c0;
+            margin-bottom: 4dp;
+        }
+
+        .credits-spacer {
+            height: 30dp;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 40dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="credits-container">
+        <div id="credits-scroll">
+            <div class="credits-heading">RBDOOM 3 BFG Edition</div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-title">Project Owner</div>
+            <div class="credits-name">Robert Beckebans - Engine upgrades, Linux, TrenchBroom</div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-title">Additional Programming</div>
+            <div class="credits-name">Daniel Gibson - Tons of code cleanups, netcode++</div>
+            <div class="credits-name">Jonathan Young - Bugfixes, misc improvements</div>
+            <div class="credits-name">Felix Rueegg - Doomclassic Linux support</div>
+            <div class="credits-name">Carl Kenner - Bink video support</div>
+            <div class="credits-name">Pat Raynor - Compiler tools, QOL patches</div>
+            <div class="credits-name">Biel B. de Luna - Intro skipping, QOL patches</div>
+            <div class="credits-name">Dustin Land - Initial Vulkan backend</div>
+            <div class="credits-name">Stephen Saunders - macOS support, Vulkan bugfixes</div>
+            <div class="credits-name">Justin Marshall - QOL patches from IcedHellFire branch</div>
+            <div class="credits-name">Stephen Pridham - Major work on NVRHI backend</div>
+            <div class="credits-name">Harrie van Ginneken - glTF2 support, IcedHellFire++</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-heading">DOOM 3 BFG Edition</div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-section">Development Team</div>
+
+            <div class="credits-title">Executive Producer</div>
+            <div class="credits-name">Eric Webb</div>
+
+            <div class="credits-title">Lead Programmer</div>
+            <div class="credits-name">Brian Harris</div>
+
+            <div class="credits-title">Lead Designer</div>
+            <div class="credits-name">Jerry Keehan</div>
+
+            <div class="credits-title">Programming</div>
+            <div class="credits-name">Curtis Arink</div>
+            <div class="credits-name">Robert Duffy</div>
+            <div class="credits-name">Jeff Farrand</div>
+            <div class="credits-name">Ryan Gerleve</div>
+            <div class="credits-name">Billy Khan</div>
+            <div class="credits-name">Gloria Kennickell</div>
+            <div class="credits-name">Mike Maynard</div>
+            <div class="credits-name">John Roberts</div>
+            <div class="credits-name">Steven Serafin</div>
+            <div class="credits-name">Jan Paul Van Waveren</div>
+
+            <div class="credits-title">Design</div>
+            <div class="credits-name">Steve Rescoe</div>
+            <div class="credits-name">Chris Voss</div>
+            <div class="credits-name">David Vargo</div>
+
+            <div class="credits-title">Art</div>
+            <div class="credits-name">Kevin Cloud</div>
+            <div class="credits-name">Andy Chang</div>
+            <div class="credits-name">Pat Duffy</div>
+
+            <div class="credits-title">Audio</div>
+            <div class="credits-name">Christian Antkow</div>
+            <div class="credits-name">Chris Hite</div>
+
+            <div class="credits-title">Studio Director</div>
+            <div class="credits-name">Tim Willits</div>
+
+            <div class="credits-title">Studio President</div>
+            <div class="credits-name">Todd Hollenshead</div>
+
+            <div class="credits-title">Technical Director</div>
+            <div class="credits-name">John Carmack</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-heading">DOOM 3 Developed by</div>
+            <div class="credits-section">id Software</div>
+
+            <div class="credits-title">Technical Director</div>
+            <div class="credits-name">John Carmack</div>
+
+            <div class="credits-title">Lead Programmer</div>
+            <div class="credits-name">Robert A. Duffy</div>
+
+            <div class="credits-title">Lead Designer</div>
+            <div class="credits-name">Tim Willits</div>
+
+            <div class="credits-title">Lead Artist</div>
+            <div class="credits-name">Kenneth Scott</div>
+
+            <div class="credits-title">Animation</div>
+            <div class="credits-name">James Houska</div>
+            <div class="credits-name">Fredrik Nilsson</div>
+            <div class="credits-name">Eric Webb</div>
+
+            <div class="credits-title">Art</div>
+            <div class="credits-name">Adrian Carmack</div>
+            <div class="credits-name">Andy Chang</div>
+            <div class="credits-name">Kevin Cloud</div>
+            <div class="credits-name">Seneca Menard</div>
+            <div class="credits-name">Patrick Thomas</div>
+
+            <div class="credits-title">Design</div>
+            <div class="credits-name">Mal Blackwell</div>
+            <div class="credits-name">Matt Hooper</div>
+            <div class="credits-name">Jerry Keehan</div>
+            <div class="credits-name">Steve Rescoe</div>
+
+            <div class="credits-title">Programming</div>
+            <div class="credits-name">Timothee Besset</div>
+            <div class="credits-name">Jim Dose</div>
+            <div class="credits-name">Jan Paul van Waveren</div>
+            <div class="credits-name">Jonathan Wright</div>
+            <div class="credits-name">Brian Harris</div>
+
+            <div class="credits-title">Sound Design</div>
+            <div class="credits-name">Christian Antkow</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-section">3rd Party</div>
+
+            <div class="credits-title">DOOM 3: Resurrection of Evil Developed by</div>
+            <div class="credits-name">Nerve Software</div>
+
+            <div class="credits-title">Theme for DOOM 3 Produced by</div>
+            <div class="credits-name">Chris Vrenna</div>
+
+            <div class="credits-title">Theme for DOOM 3 Composed by</div>
+            <div class="credits-name">Clint Walsh</div>
+
+            <div class="credits-title">Additional Story and Dialog</div>
+            <div class="credits-name">Matthew J. Costello</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+
+            <div class="credits-heading">Special Thanks</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-name">Thanks to everyone who provided valuable feedback on</div>
+            <div class="credits-name">GitHub and the id Tech 4 Discord</div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+            <div class="credits-spacer"></div>
+        </div>
+    </div>
+
+    <div id="back-hint">Press ESC to go back</div>
+</body>
+</rml>

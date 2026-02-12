@@ -1,0 +1,117 @@
+<rml>
+<head>
+    <title>HUD</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: transparent;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Bottom-left: Health + Armor */
+        #health-container {
+            position: absolute;
+            bottom: 40dp;
+            left: 40dp;
+        }
+
+        #health-value {
+            font-size: 64dp;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        #health-label {
+            font-size: 14dp;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 1dp;
+        }
+
+        #armor-container {
+            position: absolute;
+            bottom: 40dp;
+            left: 180dp;
+        }
+
+        #armor-value {
+            font-size: 40dp;
+            font-weight: bold;
+            color: #4488ff;
+        }
+
+        #armor-label {
+            font-size: 14dp;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 1dp;
+        }
+
+        /* Bottom-right: Ammo */
+        #ammo-container {
+            position: absolute;
+            bottom: 40dp;
+            right: 40dp;
+            text-align: right;
+        }
+
+        #ammo-clip {
+            font-size: 64dp;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        #ammo-reserve {
+            font-size: 28dp;
+            color: #808080;
+            margin-left: 4dp;
+        }
+
+        #ammo-label {
+            font-size: 14dp;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 1dp;
+            text-align: right;
+        }
+
+        /* Bottom-left below health: Stamina bar */
+        #stamina-container {
+            position: absolute;
+            bottom: 24dp;
+            left: 40dp;
+            width: 200dp;
+            height: 6dp;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #stamina-fill {
+            width: 100%;
+            height: 100%;
+            background-color: #ff6600;
+        }
+    </style>
+</head>
+<body id="hud-body">
+    <div id="health-container">
+        <div id="health-label">Health</div>
+        <span id="health-value">100</span>
+    </div>
+
+    <div id="armor-container">
+        <div id="armor-label">Armor</div>
+        <span id="armor-value">0</span>
+    </div>
+
+    <div id="ammo-container">
+        <div id="ammo-label">Ammo</div>
+        <span id="ammo-clip">0</span><span id="ammo-reserve">/ 0</span>
+    </div>
+
+    <div id="stamina-container">
+        <div id="stamina-fill"></div>
+    </div>
+</body>
+</rml>

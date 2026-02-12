@@ -1,0 +1,130 @@
+<rml>
+<head>
+    <title>Paused</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: rgba(0, 0, 0, 0.85);
+        }
+
+        #header {
+            margin-top: 150dp;
+            margin-bottom: 60dp;
+            text-align: center;
+        }
+
+        #title {
+            font-size: 56dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 6dp;
+        }
+
+        #menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12dp;
+        }
+
+        .menu-btn {
+            width: 280dp;
+            height: 48dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            font-size: 18dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2dp;
+            cursor: pointer;
+            padding-top: 12dp;
+        }
+
+        .menu-btn:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:active {
+            background-color: #ff6600;
+            color: #000000;
+        }
+
+        .menu-btn:disabled {
+            background-color: #0d0d0d;
+            border-color: #252525;
+            color: #404040;
+            cursor: default;
+        }
+
+        .menu-btn.danger {
+            color: #cc0000;
+            border-color: #660000;
+        }
+
+        .menu-btn.danger:hover,
+        .menu-btn.danger:focus {
+            border-color: #cc0000;
+            color: #ff0000;
+        }
+
+        .menu-btn.danger:active {
+            background-color: #cc0000;
+            color: #000000;
+        }
+
+        #hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="header">
+        <div id="title">Paused</div>
+    </div>
+
+    <div id="menu-container">
+        <button class="menu-btn" data-action="resume_game" tabindex="1" autofocus>
+            Resume
+        </button>
+
+        <button class="menu-btn" data-action="save_game" tabindex="2">
+            Save Game
+        </button>
+
+        <button class="menu-btn" data-action="load_game" tabindex="3">
+            Load Game
+        </button>
+
+        <button class="menu-btn" data-action="pause_settings" tabindex="4">
+            Settings
+        </button>
+
+        <button class="menu-btn" data-action="restart_map" tabindex="5">
+            Restart Map
+        </button>
+
+        <button class="menu-btn danger" data-action="exit_to_menu" tabindex="6">
+            Exit to Menu
+        </button>
+    </div>
+
+    <div id="hint">Press ESC to resume</div>
+</body>
+</rml>

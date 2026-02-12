@@ -1,0 +1,144 @@
+<rml>
+<head>
+    <title>Game Selection</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+            font-family: LatoLatin;
+            font-size: 16dp;
+        }
+
+        #title {
+            font-family: LatoLatin;
+            font-size: 36dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-align: center;
+            margin-top: 60dp;
+            margin-bottom: 20dp;
+            text-transform: uppercase;
+            letter-spacing: 3dp;
+        }
+
+        #subtitle {
+            font-family: LatoLatin;
+            font-size: 18dp;
+            color: #808080;
+            text-align: center;
+            margin-bottom: 40dp;
+        }
+
+        #game-carousel {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 30dp;
+            margin: 40dp 0;
+        }
+
+        .game-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 220dp;
+            padding: 15dp;
+            background-color: #151515;
+            border: 3dp solid #303030;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            border-color: #606060;
+            background-color: #1a1a1a;
+        }
+
+        .game-card:focus {
+            border-color: #ff6600;
+            background-color: #202020;
+        }
+
+        .game-cover {
+            width: 180dp;
+            height: 240dp;
+            background-color: #0a0a0a;
+            margin-bottom: 15dp;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-cover-text {
+            font-family: LatoLatin;
+            font-size: 24dp;
+            font-weight: bold;
+            color: #404040;
+        }
+
+        .game-name {
+            font-family: LatoLatin;
+            font-size: 20dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .game-card:hover .game-name,
+        .game-card:focus .game-name {
+            color: #ffffff;
+        }
+
+        #nav-hint {
+            position: absolute;
+            bottom: 50dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: LatoLatin;
+            font-size: 14dp;
+            color: #505050;
+        }
+
+        #copyright {
+            position: absolute;
+            bottom: 15dp;
+            right: 20dp;
+            font-family: LatoLatin;
+            font-size: 11dp;
+            color: #303030;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="title">Select Your Game</div>
+    <div id="subtitle">Choose a game to play</div>
+
+    <div id="game-carousel">
+        <button class="game-card" id="btn_doom1" data-action="select_doom1" tabindex="1">
+            <div class="game-cover">
+                <span class="game-cover-text">DOOM</span>
+            </div>
+            <span class="game-name">Doom</span>
+        </button>
+
+        <button class="game-card" id="btn_doom3" data-action="select_doom3" tabindex="2" autofocus>
+            <div class="game-cover">
+                <span class="game-cover-text">DOOM 3</span>
+            </div>
+            <span class="game-name">Doom 3</span>
+        </button>
+
+        <button class="game-card" id="btn_doom2" data-action="select_doom2" tabindex="3">
+            <div class="game-cover">
+                <span class="game-cover-text">DOOM II</span>
+            </div>
+            <span class="game-name">Doom II</span>
+        </button>
+    </div>
+
+    <div id="nav-hint">Use Arrow Keys to navigate, Enter to select</div>
+    <div id="copyright">DOOM 3 BFG Edition</div>
+</body>
+</rml>

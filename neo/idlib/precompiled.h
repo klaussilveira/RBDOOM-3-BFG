@@ -153,6 +153,7 @@ constexpr uint32 NUM_FRAME_DATA	= 3;
 // The editor entry points are always declared, but may just be
 // stubbed out on non-windows platforms.
 #include "../imgui/ImGui_Hooks.h"
+#include "../rmlui/RmlUI_Hooks.h"
 #include "../tools/edit_public.h"
 
 #include "../tools/compilers/compiler_public.h"

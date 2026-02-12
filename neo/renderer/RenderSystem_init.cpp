@@ -511,6 +511,7 @@ void R_SetNewMode( const bool fullInit )
 #endif
 			{
 				ImGuiHook::Init( renderSystem->GetWidth(), renderSystem->GetHeight() );
+				RmlUIHook::Init( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -526,6 +527,7 @@ void R_SetNewMode( const bool fullInit )
 			{
 				Framebuffer::ResizeFramebuffers();
 				ImGuiHook::NotifyDisplaySizeChanged( renderSystem->GetWidth(), renderSystem->GetHeight() );
+				RmlUIHook::NotifyDisplaySizeChanged( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}

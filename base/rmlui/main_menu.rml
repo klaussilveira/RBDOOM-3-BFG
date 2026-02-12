@@ -1,0 +1,148 @@
+<rml>
+<head>
+    <title>Doom 3 - Main Menu</title>
+    <link type="text/rcss" href="doom3_theme.rcss"/>
+    <style>
+        body {
+            background-color: #000000;
+        }
+
+        #logo-area {
+            margin-top: 80dp;
+            margin-bottom: 50dp;
+            text-align: center;
+        }
+
+        #game-title {
+            font-size: 64dp;
+            font-weight: bold;
+            color: #ff6600;
+            text-transform: uppercase;
+            letter-spacing: 8dp;
+            margin-bottom: 10dp;
+        }
+
+        #game-subtitle {
+            font-size: 24dp;
+            color: #606060;
+            letter-spacing: 4dp;
+        }
+
+        #menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12dp;
+            margin-top: 30dp;
+        }
+
+        .menu-btn {
+            width: 300dp;
+            height: 52dp;
+            background-color: #1a1a1a;
+            border: 2dp solid #404040;
+            font-size: 20dp;
+            font-weight: bold;
+            color: #c0c0c0;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2dp;
+            cursor: pointer;
+            padding-top: 13dp;
+        }
+
+        .menu-btn:hover {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:focus {
+            background-color: #252525;
+            border-color: #ff6600;
+            color: #ffffff;
+        }
+
+        .menu-btn:active {
+            background-color: #ff6600;
+            color: #000000;
+        }
+
+        .menu-btn:disabled {
+            background-color: #0d0d0d;
+            border-color: #252525;
+            color: #404040;
+            cursor: default;
+        }
+
+        .separator {
+            width: 240dp;
+            height: 1dp;
+            background-color: #303030;
+            margin: 6dp 0;
+        }
+
+        #back-hint {
+            position: absolute;
+            bottom: 60dp;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14dp;
+            color: #404040;
+        }
+
+        #version {
+            position: absolute;
+            bottom: 15dp;
+            left: 20dp;
+            font-size: 11dp;
+            color: #303030;
+        }
+
+        #copyright {
+            position: absolute;
+            bottom: 15dp;
+            right: 20dp;
+            font-size: 11dp;
+            color: #303030;
+        }
+    </style>
+</head>
+<body id="body" class="menu-screen">
+    <div id="logo-area">
+        <div id="game-title">Doom 3</div>
+        <div id="game-subtitle">BFG Edition</div>
+    </div>
+
+    <div id="menu-container">
+        <button class="menu-btn" id="btn_campaign" data-action="open_campaign" tabindex="1" autofocus>
+            Campaign
+        </button>
+
+        <button class="menu-btn" id="btn_multiplayer" data-action="open_multiplayer" tabindex="2" disabled>
+            Multiplayer
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="menu-btn" id="btn_settings" data-action="open_settings" tabindex="3">
+            Settings
+        </button>
+
+        <button class="menu-btn" id="btn_credits" data-action="open_credits" tabindex="4">
+            Credits
+        </button>
+
+        <div class="separator"></div>
+
+        <button class="menu-btn" id="btn_quit" data-action="quit_game" tabindex="5">
+            Quit
+        </button>
+    </div>
+
+    <div id="back-hint">Press ESC to return to game selection</div>
+    <div id="version">RBDOOM 3 BFG</div>
+    <div id="copyright">id Software</div>
+</body>
+</rml>

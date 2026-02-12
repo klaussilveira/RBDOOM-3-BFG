@@ -401,6 +401,10 @@ void idCommonLocal::Draw()
 	{
 		SCOPED_PROFILE_EVENT( "Post-Draw" );
 
+		// draw RmlUI menus
+		RmlUIHook::Update();
+		RmlUIHook::Render();
+
 		// draw Imgui before the console
 		ImGuiHook::Render();
 
@@ -503,7 +507,14 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 		{
 			if( !IsMultiplayer() )
 			{
-				game->Shell_Show( true );
+				if( RmlUIHook::IsEnabled() )
+				{
+					RmlUIHook::SetScreen( RmlUIHook::SCREEN_PAUSE );
+				}
+				else
+				{
+					game->Shell_Show( true );
+				}
 			}
 		}
 		else if( !idStr::Icmp( args.Argv( 0 ), "disconnect" ) )
@@ -566,10 +577,16 @@ void idCommonLocal::Frame()
 		// DG: prepare new ImGui frame - I guess this is a good place, as all new events should be available?
 		ImGuiHook::NewFrame();
 
+		// Prepare new RmlUI frame
+		RmlUIHook::NewFrame();
+
 		// Activate the shell if it's been requested
 		if( showShellRequested && game )
 		{
-			game->Shell_Show( true );
+			if( !RmlUIHook::IsEnabled() )
+			{
+				game->Shell_Show( true );
+			}
 			showShellRequested = false;
 		}
 
@@ -580,16 +597,18 @@ void idCommonLocal::Frame()
 		// RB begin
 #if defined(USE_DOOMCLASSIC)
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) || ImGuiTools::ReleaseMouseForTools() )
+				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) || ImGuiTools::ReleaseMouseForTools()
+				|| RmlUIHook::IsMenuActive() )
 #else
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() ) ||  ImGuiTools::ReleaseMouseForTools() )
+				|| ( game && game->InhibitControls() ) ||  ImGuiTools::ReleaseMouseForTools()
+				|| RmlUIHook::IsMenuActive() )
 #endif
 			// RB end, DG end
 		{
 			// RB: don't release the mouse when opening a PDA or menu
 			// SRS - but always release at main menu after exiting game or demo
-			if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() )
+			if( console->Active() || !mapSpawned || ImGuiTools::ReleaseMouseForTools() || RmlUIHook::IsMenuActive() )
 			{
 				Sys_GrabMouseCursor( false );
 			}
@@ -607,13 +626,15 @@ void idCommonLocal::Frame()
 		const bool pauseGame = ( !mapSpawned
 								 || ( !IsMultiplayer()
 									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) )
+										   || ( game && game->Shell_IsActive() ) || RmlUIHook::IsMenuActive()
+										   || com_pause.GetInteger() ) ) )
 							   && !IsPlayingDoomClassic();
 #else
 		const bool pauseGame = ( !mapSpawned
 								 || ( !IsMultiplayer()
 									  && ( Dialog().IsDialogPausing() || session->IsSystemUIShowing()
-										   || ( game && game->Shell_IsActive() ) || com_pause.GetInteger() ) ) );
+										   || ( game && game->Shell_IsActive() ) || RmlUIHook::IsMenuActive()
+										   || com_pause.GetInteger() ) ) );
 #endif
 		// RB end
 

@@ -3576,6 +3576,27 @@ void idPlayer::DrawHUD( idMenuHandler_HUD* _hudManager )
 		UpdateSpectatingText();
 	}
 
+	// Push data to RmlUI HUD if active
+	if( RmlUIHook::IsEnabled() && RmlUIHook::IsHudLoaded() )
+	{
+		int ammoInClip = 0, ammoAvail = 0, clipSz = 0;
+		if( weapon.GetEntity() )
+		{
+			ammoInClip = weapon.GetEntity()->AmmoInClip();
+			ammoAvail = weapon.GetEntity()->AmmoAvailable();
+			clipSz = weapon.GetEntity()->ClipSize();
+		}
+		extern idCVar pm_stamina;
+		RmlUIHook::UpdateHUD( health, inventory.armor,
+			stamina, pm_stamina.GetFloat(), ammoInClip, ammoAvail, clipSz );
+
+		// Skip Flash HUD in single-player when RmlUI is active
+		if( !common->IsMultiplayer() )
+		{
+			return;
+		}
+	}
+
 	// Always draw the local client's messages so that chat works correctly while spectating another player.
 	idPlayer* localPlayer = static_cast< idPlayer* >( gameLocal.entities[ gameLocal.GetLocalClientNum() ] );
 

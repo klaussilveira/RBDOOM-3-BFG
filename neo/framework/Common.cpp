@@ -1532,6 +1532,9 @@ void idCommonLocal::Shutdown()
 	printf( "ImGuiHook::Destroy();\n" );
 	ImGuiHook::Destroy();
 
+	printf( "RmlUIHook::Destroy();\n" );
+	RmlUIHook::Destroy();
+
 	printf( "delete renderWorld;\n" );
 	// SRS - Call FreeRenderWorld() vs. delete, otherwise worlds list not updated on shutdown
 	renderSystem->FreeRenderWorld( renderWorld );
@@ -1659,8 +1662,16 @@ void idCommonLocal::CreateMainMenu()
 		// create main inside an "empty" game level load - so assets get
 		// purged automagically when we transition to a "real" map
 		game->Shell_CreateMenu( false );
-		game->Shell_Show( true );
-		game->Shell_SyncWithSession();
+
+		if( RmlUIHook::IsEnabled() )
+		{
+			RmlUIHook::SetScreen( RmlUIHook::SCREEN_GAME_SELECT );
+		}
+		else
+		{
+			game->Shell_Show( true );
+			game->Shell_SyncWithSession();
+		}
 
 		// load
 		renderSystem->EndLevelLoad();
@@ -1799,8 +1810,25 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 			{
 				game->SkipCinematicScene();
 			}
+			else if( RmlUIHook::IsEnabled() )
+			{
+				// RmlUI ESC handling: either open pause or let RmlUI navigate
+				if( RmlUIHook::IsMenuActive() )
+				{
+					// Menu is showing — let RmlUI handle ESC (back navigation / resume)
+					RmlUIHook::InjectSysEvent( event );
+				}
+				else
+				{
+					// No menu showing — open the pause menu
+					console->Close();
+					StartMenu();
+				}
+				return true;
+			}
 			else
 			{
+				// Flash shell ESC handling
 				if( !game->Shell_IsActive() )
 				{
 					// menus / etc
@@ -1884,7 +1912,16 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 #endif
 	// RB end
 
-	// menus / etc
+	// RmlUI menu input
+	if( RmlUIHook::IsMenuActive() )
+	{
+		if( RmlUIHook::InjectSysEvent( event ) )
+		{
+			return true;
+		}
+	}
+
+	// Flash menus / etc
 	if( MenuEvent( event ) )
 	{
 		return true;

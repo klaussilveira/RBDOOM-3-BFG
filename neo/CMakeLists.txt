@@ -342,6 +342,14 @@ endif()
 include_directories("libs/imgui")
 include_directories("libs/mikktspace")
 
+# FreeType is required by RmlUI for font rendering
+find_package(Freetype REQUIRED)
+include_directories(${FREETYPE_INCLUDE_DIRS})
+
+# RmlUI integration
+include_directories("libs/rmlui/Include")
+add_definitions(-DRMLUI_FONT_ENGINE_FREETYPE)
+
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
 endmacro()
@@ -492,6 +500,14 @@ list(REMOVE_ITEM FRAMEWORK_SOURCES ${FRAMEWORK_DECLS_SOURCES})
 
 file(GLOB FRAMEWORK_IMGUI_INCLUDES imgui/*.h)
 file(GLOB FRAMEWORK_IMGUI_SOURCES imgui/*.cpp)
+
+# RmlUI integration files
+file(GLOB RMLUI_HOOK_INCLUDES rmlui/*.h)
+file(GLOB RMLUI_HOOK_SOURCES rmlui/*.cpp)
+
+# RmlUI Core library
+file(GLOB_RECURSE RMLUI_CORE_INCLUDES libs/rmlui/Include/RmlUi/*.h)
+file(GLOB_RECURSE RMLUI_CORE_SOURCES libs/rmlui/Source/Core/*.cpp)
 
 file(GLOB RENDERER_INCLUDES renderer/*.h)
 file(GLOB RENDERER_SOURCES renderer/*.cpp)
@@ -818,6 +834,12 @@ source_group("engine\\decls" FILES ${FRAMEWORK_DECLS_SOURCES})
 source_group("engine\\imgui" FILES ${FRAMEWORK_IMGUI_INCLUDES})
 source_group("engine\\imgui" FILES ${FRAMEWORK_IMGUI_SOURCES})
 
+source_group("engine\\rmlui" FILES ${RMLUI_HOOK_INCLUDES})
+source_group("engine\\rmlui" FILES ${RMLUI_HOOK_SOURCES})
+
+source_group("libs\\rmlui" FILES ${RMLUI_CORE_INCLUDES})
+source_group("libs\\rmlui" FILES ${RMLUI_CORE_SOURCES})
+
 source_group("engine\\renderer" FILES ${RENDERER_INCLUDES})
 source_group("engine\\renderer" FILES ${RENDERER_SOURCES})
 
@@ -962,6 +984,8 @@ set(RBDOOM3_INCLUDES
 			${IRRXML_INCLUDES}
 			${FRAMEWORK_IMGUI_INCLUDES}
 			${IMGUI_INCLUDES}
+			${RMLUI_HOOK_INCLUDES}
+			${RMLUI_CORE_INCLUDES}
 			${STB_INCLUDES}
 			${MESA_INCLUDES}
 			${TINYEXR_INCLUDES}
@@ -1009,6 +1033,8 @@ set(RBDOOM3_SOURCES
 			${IRRXML_SOURCES}
 			${FRAMEWORK_IMGUI_SOURCES}
 			${IMGUI_SOURCES}
+			${RMLUI_HOOK_SOURCES}
+			${RMLUI_CORE_SOURCES}
 			${MIKKTSPACE_SOURCES}
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
@@ -1472,6 +1498,9 @@ endif()
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(${APP_NAME} nvrhi)
 target_link_libraries(${APP_NAME} ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
+
+# FreeType is required by RmlUI
+target_link_libraries(${APP_NAME} ${FREETYPE_LIBRARIES})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
