@@ -251,12 +251,16 @@ void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* 
 			}
 		}
 
-		// cull reference bounds
-		if( CullEntityByPortals( entity, ps ) )
+		// Do not portal-cull view weapons
+		if( !entity->parms.allowSurfaceInViewID )
 		{
-			// we are culled out through this portal chain, but it might
-			// still be visible through others
-			continue;
+			// cull reference bounds
+			if( CullEntityByPortals( entity, ps ) )
+			{
+				// we are culled out through this portal chain, but it might
+				// still be visible through others
+				continue;
+			}
 		}
 
 		viewEntity_t* vEnt = R_SetEntityDefViewEntity( entity );
