@@ -193,6 +193,11 @@ public:
 		return worldModel.GetEntity();
 	}
 
+	idAnimatedEntity* 		GetArmsViewModel()
+	{
+		return armsViewModel.GetEntity();
+	}
+
 	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsg& msg );
 
@@ -246,6 +251,7 @@ private:
 
 	idPlayer* 				owner;
 	idEntityPtr<idAnimatedEntity>	worldModel;
+	idEntityPtr<idAnimatedEntity>	armsViewModel;
 
 	// hiding (for GUIs and NPCs)
 	int						hideTime;
@@ -387,6 +393,7 @@ private:
 
 	// Visual presentation
 	void					InitWorldModel( const idDeclEntityDef* def );
+	void					InitArmsViewModel( const idDeclEntityDef* def );
 	void					MuzzleRise( idVec3& origin, idMat3& axis );
 	void					UpdateNozzleFx();
 	void					UpdateFlashPosition();

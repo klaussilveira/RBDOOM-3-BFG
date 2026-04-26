@@ -157,6 +157,7 @@ idWeapon::idWeapon()
 {
 	owner					= NULL;
 	worldModel				= NULL;
+	armsViewModel			= NULL;
 	weaponDef				= NULL;
 	thread					= NULL;
 
@@ -197,6 +198,7 @@ idWeapon::~idWeapon()
 {
 	Clear();
 	delete worldModel.GetEntity();
+	delete armsViewModel.GetEntity();
 }
 
 
@@ -213,6 +215,10 @@ void idWeapon::Spawn()
 		worldModel = static_cast< idAnimatedEntity* >( gameLocal.SpawnEntityType( idAnimatedEntity::Type, NULL ) );
 		worldModel.GetEntity()->fl.networkSync = true;
 	}
+
+	// setup the arms-only view model
+	armsViewModel = static_cast< idAnimatedEntity* >( gameLocal.SpawnEntityType( idAnimatedEntity::Type, NULL ) );
+	armsViewModel.GetEntity()->fl.networkSync = true;
 
 	if( 1 /*!common->IsMultiplayer()*/ )
 	{
@@ -241,6 +247,11 @@ void idWeapon::SetOwner( idPlayer* _owner )
 	{
 		worldModel.GetEntity()->SetName( va( "%s_weapon_worldmodel", owner->name.c_str() ) );
 	}
+
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->SetName( va( "%s_weapon_armsview", owner->name.c_str() ) );
+	}
 }
 
 /*
@@ -259,6 +270,11 @@ void idWeapon::SetFlashlightOwner( idPlayer* _owner )
 	if( worldModel.GetEntity() )
 	{
 		worldModel.GetEntity()->SetName( va( "%s_weapon_flashlight_worldmodel", owner->name.c_str() ) );
+	}
+
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->SetName( va( "%s_weapon_flashlight_armsview", owner->name.c_str() ) );
 	}
 }
 
@@ -336,6 +352,7 @@ void idWeapon::Save( idSaveGame* savefile ) const
 
 	savefile->WriteObject( owner );
 	worldModel.Save( savefile );
+	armsViewModel.Save( savefile );
 
 	savefile->WriteInt( hideTime );
 	savefile->WriteFloat( hideDistance );
@@ -507,6 +524,7 @@ void idWeapon::Restore( idRestoreGame* savefile )
 
 	savefile->ReadObject( reinterpret_cast<idClass*&>( owner ) );
 	worldModel.Restore( savefile );
+	armsViewModel.Restore( savefile );
 
 	savefile->ReadInt( hideTime );
 	savefile->ReadFloat( hideDistance );
@@ -929,6 +947,10 @@ void idWeapon::Clear()
 	allowDrop			= true;
 
 	animator.ClearAllAnims( gameLocal.time, 0 );
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->GetAnimator()->ClearAllAnims( gameLocal.time, 0 );
+	}
 	FreeModelDef();
 
 	sndHum				= NULL;
@@ -994,6 +1016,56 @@ void idWeapon::InitWorldModel( const idDeclEntityDef* def )
 	flashJointWorld = ent->GetAnimator()->GetJointHandle( "flash" );
 	barrelJointWorld = ent->GetAnimator()->GetJointHandle( "muzzle" );
 	ejectJointWorld = ent->GetAnimator()->GetJointHandle( "eject" );
+}
+
+/*
+================
+idWeapon::InitArmsViewModel
+================
+*/
+void idWeapon::InitArmsViewModel( const idDeclEntityDef* def )
+{
+	idEntity* ent = armsViewModel.GetEntity();
+	if( !ent )
+	{
+		return;
+	}
+
+	assert( def );
+
+	const char* model = def->dict.GetString( "model_view_arms" );
+
+	ent->SetSkin( NULL );
+	if( model[0] )
+	{
+		ent->Show();
+		ent->SetModel( model );
+		if( ent->GetAnimator()->ModelDef() )
+		{
+			ent->SetSkin( ent->GetAnimator()->ModelDef()->GetDefaultSkin() );
+		}
+		ent->GetPhysics()->SetContents( 0 );
+		ent->GetPhysics()->SetClipModel( NULL, 1.0f );
+		ent->GetPhysics()->SetOrigin( vec3_origin );
+		ent->GetPhysics()->SetAxis( mat3_identity );
+
+		ent->SetUseClientInterpolation( false );
+
+		// arms are visible to owner only, depth-hacked, no shadow
+		renderEntity_t* armsRE = ent->GetRenderEntity();
+		if( armsRE )
+		{
+			armsRE->allowSurfaceInViewID = owner->entityNumber + 1;
+			armsRE->weaponDepthHack = true;
+			armsRE->noShadow = true;
+			armsRE->suppressShadowInViewID = owner->entityNumber + 1;
+		}
+	}
+	else
+	{
+		ent->SetModel( "" );
+		ent->Hide();
+	}
 }
 
 /*
@@ -1087,6 +1159,9 @@ void idWeapon::GetWeaponDef( const char* objectname, int ammoinclip )
 
 	// setup the world model
 	InitWorldModel( weaponDef );
+
+	// setup the arms view model overlay
+	InitArmsViewModel( weaponDef );
 
 	// copy the sounds from the weapon view model def into out spawnargs
 	const idKeyValue* kv = weaponDef->dict.MatchPrefix( "snd_" );
@@ -1876,6 +1951,10 @@ void idWeapon::HideWeapon()
 	{
 		worldModel.GetEntity()->Hide();
 	}
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->Hide();
+	}
 	muzzleFlashEnd = 0;
 }
 
@@ -1890,6 +1969,10 @@ void idWeapon::ShowWeapon()
 	if( worldModel.GetEntity() )
 	{
 		worldModel.GetEntity()->Show();
+	}
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->Show();
 	}
 	if( lightOn )
 	{
@@ -1946,6 +2029,10 @@ void idWeapon::OwnerDied()
 	if( worldModel.GetEntity() )
 	{
 		worldModel.GetEntity()->Hide();
+	}
+	if( armsViewModel.GetEntity() )
+	{
+		armsViewModel.GetEntity()->Hide();
 	}
 
 	// don't clear the weapon immediately since the owner might have killed himself by firing the weapon
@@ -2683,6 +2770,32 @@ void idWeapon::PresentWeapon( bool showViewModel )
 	else
 	{
 		FreeModelDef();
+	}
+
+	// present the arms view-model
+	if( armsViewModel.GetEntity() )
+	{
+		idAnimatedEntity* armsEnt = armsViewModel.GetEntity();
+		armsEnt->GetPhysics()->SetOrigin( viewWeaponOrigin );
+		armsEnt->GetPhysics()->SetAxis( viewWeaponAxis );
+		armsEnt->UpdateVisuals();
+		armsEnt->UpdateAnimation();
+
+		renderEntity_t* armsRE = armsEnt->GetRenderEntity();
+		if( armsRE )
+		{
+			armsRE->allowSurfaceInViewID = owner->entityNumber + 1;
+			armsRE->weaponDepthHack = g_useWeaponDepthHack.GetBool();
+		}
+
+		if( showViewModel )
+		{
+			armsEnt->Present();
+		}
+		else
+		{
+			armsEnt->FreeModelDef();
+		}
 	}
 
 	if( worldModel.GetEntity() && worldModel.GetEntity()->GetRenderEntity() )
@@ -3681,6 +3794,14 @@ void idWeapon::Event_PlayAnim( int channel, const char* animname )
 				worldModel.GetEntity()->GetAnimator()->PlayAnim( channel, anim, gameLocal.time, FRAME2MS( animBlendFrames ) );
 			}
 		}
+		if( armsViewModel.GetEntity() )
+		{
+			int armsAnim = armsViewModel.GetEntity()->GetAnimator()->GetAnim( animname );
+			if( armsAnim )
+			{
+				armsViewModel.GetEntity()->GetAnimator()->PlayAnim( channel, armsAnim, gameLocal.time, FRAME2MS( animBlendFrames ) );
+			}
+		}
 	}
 	animBlendFrames = 0;
 	idThread::ReturnInt( 0 );
@@ -3714,6 +3835,14 @@ void idWeapon::Event_PlayCycle( int channel, const char* animname )
 		{
 			anim = worldModel.GetEntity()->GetAnimator()->GetAnim( animname );
 			worldModel.GetEntity()->GetAnimator()->CycleAnim( channel, anim, gameLocal.time, FRAME2MS( animBlendFrames ) );
+		}
+		if( armsViewModel.GetEntity() )
+		{
+			int armsAnim = armsViewModel.GetEntity()->GetAnimator()->GetAnim( animname );
+			if( armsAnim )
+			{
+				armsViewModel.GetEntity()->GetAnimator()->CycleAnim( channel, armsAnim, gameLocal.time, FRAME2MS( animBlendFrames ) );
+			}
 		}
 	}
 	animBlendFrames = 0;
