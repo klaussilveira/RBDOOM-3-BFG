@@ -53,6 +53,9 @@ idCVar r_useStencilShadowPreload( "r_useStencilShadowPreload", "0", CVAR_RENDERE
 idCVar r_skipShaderPasses( "r_skipShaderPasses", "0", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_skipInteractionFastPath( "r_skipInteractionFastPath", "1", CVAR_RENDERER | CVAR_BOOL, "" );
 idCVar r_useLightStencilSelect( "r_useLightStencilSelect", "0", CVAR_RENDERER | CVAR_BOOL, "use stencil select pass" );
+#if defined(__APPLE__) && !USE_OPTICK
+idCVar r_mvkAMDShadowMappingFix( "r_mvkAMDShadowMappingFix", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "Use one command list per light when shadow mapping on macOS/MoltenVK + AMD" );
+#endif
 
 extern idCVar stereoRender_swapEyes;
 
@@ -3320,6 +3323,23 @@ void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_
 		return;
 	}
 
+#if defined(__APPLE__) && !USE_OPTICK
+	if( glConfig.vendor == VENDOR_AMD && r_mvkAMDShadowMappingFix.GetBool() )
+	{
+		// SRS - On AMD GPUs, break up commandList to avoid Vulkan driver command buffer overload/timeout issues seen on macOS/MoltenVK
+		//     - ShadowMapPassFast() is a command buffer hot spot and can generate approximately 75% of all GPU draw calls in a frame
+		//     - Breaking up command buffers on a per-light basis seems to be the correct chunking without causing too many submits
+		//     - Note: Optick depends on a single command buffer, so disable this stability fix when building with Optick enabled
+		if( prevViewLight && vLight != prevViewLight )
+		{
+			commandList->close();
+			deviceManager->GetDevice()->executeCommandList( commandList );
+			commandList->open();
+		}
+		prevViewLight = vLight;
+	}
+#endif
+
 	renderLog.OpenBlock( "Render_ShadowMaps", colorBrown );
 
 	renderProgManager.BindShader_Depth();
@@ -3699,6 +3719,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 	shadowIndex = 0;
 	int failedNum = 0;
 
+	prevViewLight = NULL;
 	for( viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
 	{
 		if( vLight->lightShader->IsFogLight() )
@@ -3856,6 +3877,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 	//
 	// for each light, perform shadowing and adding
 	//
+	prevViewLight = NULL;
 	for( const viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
 	{
 		// do fogging later

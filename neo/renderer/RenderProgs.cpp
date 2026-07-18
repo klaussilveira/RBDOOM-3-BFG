@@ -40,6 +40,10 @@ If you have questions concerning this license or the applicable additional terms
 #include <nvrhi/utils.h>
 extern DeviceManager* deviceManager;
 
+#if defined(__APPLE__) && !USE_OPTICK
+extern idCVar r_mvkAMDShadowMappingFix;
+#endif
+
 idRenderProgManager renderProgManager;
 
 /*
@@ -400,16 +404,27 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	layoutTypeAttributes[BINDING_LAYOUT_HISTOGRAM].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 	layoutTypeAttributes[BINDING_LAYOUT_EXPOSURE].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 
-	// SRS - Apply push constant workarounds for Vulkan running on AMD vs. other GPUs (and also needs to work for Universal Binaries on macOS)
-	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor == VENDOR_AMD )
+#if defined(__APPLE__)
+	// SRS - Apply push constant workarounds for Vulkan running on macOS/MoltenVK + AMD (also needs to work for Universal Binaries on macOS)
+	if( glConfig.vendor == VENDOR_AMD )
 	{
-		// SRS - FIXME: Workaround - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on Linux+AMD and macOS+AMD)
-		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs
-		//     - Note this may not be required on Windows Vulkan+AMD, but being conservative with minimal impact
-		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY].pcEnabled = false;
+#if !USE_OPTICK
+		// SRS - We can skip these push constant workarounds if using the AMD shadow mapping fix (see idRenderBackend::ShadowMapPassFast)
+		//     - Note: Optick is not compatible with the AMD shadow mapping fix, so don't skip these when building with Optick enabled
+		if( !r_mvkAMDShadowMappingFix.GetBool() )
+#endif
+		{
+			// SRS - FIXME: Workaround - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on macOS+AMD)
+			//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem on macOS + AMD GPUs
+			layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
+			layoutTypeAttributes[BINDING_LAYOUT_GBUFFER_SKINNED].pcEnabled = false;
+			layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
+			layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
+			layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY].pcEnabled = false;
+			layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED].pcEnabled = false;
+		}
 	}
+#endif
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
 							 .setVisibility( nvrhi::ShaderType::Pixel )
