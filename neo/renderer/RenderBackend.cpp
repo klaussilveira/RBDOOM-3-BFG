@@ -3894,7 +3894,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 
 		// RB: render interactions with shadow mapping
 		{
-			if( !r_useShadowAtlas.GetBool() && vLight->shadowLOD > -1 )
+			if( !r_skipShadows.GetBool() && vLight->shadowLOD > -1 && !r_useShadowAtlas.GetBool() )
 			{
 				int	side, sideStop;
 
