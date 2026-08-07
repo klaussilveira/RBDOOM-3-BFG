@@ -1555,11 +1555,30 @@ void DeviceManager_VK::BeginFrame()
 	}
 	commonLocal.SetRendererGpuMemoryMB( gpuMemoryAllocated / 1024 / 1024 );
 
-	const vk::Result res = m_VulkanDevice.acquireNextImageKHR( m_SwapChain,
-						   std::numeric_limits<uint64_t>::max(), // timeout
-						   m_PresentSemaphore,
-						   vk::Fence(),
-						   &m_SwapChainIndex );
+	vk::Result res = vk::Result::eSuccess;
+	for( int attempt = 0; attempt < 2; attempt++ )
+	{
+		res = m_VulkanDevice.acquireNextImageKHR( m_SwapChain,
+				std::numeric_limits<uint64_t>::max(), // timeout
+				m_PresentSemaphore,
+				vk::Fence(),
+				&m_SwapChainIndex );
+
+		if( res != vk::Result::eErrorOutOfDateKHR )
+		{
+			break;
+		}
+
+		// The swap chain no longer matches the surface, e.g. after a fullscreen
+		// transition on Wayland where the compositor invalidates it without a
+		// size change. A failed acquire leaves m_PresentSemaphore unsignaled, so
+		// rendering this frame would deadlock the graphics queue on the semaphore
+		// wait below. Recreate the swap chain and acquire again.
+		common->Printf( "vkAcquireNextImageKHR returned VK_ERROR_OUT_OF_DATE_KHR, recreating swap chain\n" );
+		BackBufferResizing();
+		ResizeSwapChain();
+		BackBufferResized();
+	}
 
 	assert( res == vk::Result::eSuccess || res == vk::Result::eSuboptimalKHR );
 
