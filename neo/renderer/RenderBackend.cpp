@@ -1503,7 +1503,7 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 			}
 			else
 			{
-				if( !r_skipShadows.GetBool() && din->vLight->globalShadows )
+				if( !r_skipShadows.GetBool() && din->vLight->globalShadows && din->vLight->shadowLOD > -1 )
 				{
 					// RB: we have shadow mapping enabled and shadow maps so do a shadow compare
 
@@ -1810,7 +1810,7 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 
 			SetVertexParms( RENDERPARM_SHADOW_ATLAS_OFFSET_0, &shadowOffsets[0][0], 6 );
 		}
-		else
+		else if( !r_useShadowAtlas.GetBool() )
 		{
 			// screen power of two correction factor
 			float screenCorrectionParm[4];
@@ -1868,28 +1868,38 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 			RB_GetShaderTextureMatrix( lightRegs, &lightStage->texture, lightTextureMatrix );
 		}
 
-		// texture 1 will be the light falloff texture
+		// texture 3 will be the light falloff texture
 		GL_SelectTexture( INTERACTION_TEXUNIT_FALLOFF );
 		vLight->falloffImage->Bind();
 
-		// texture 2 will be the light projection texture
+		// texture 4 will be the light projection texture
 		GL_SelectTexture( INTERACTION_TEXUNIT_PROJECTION );
 		lightStage->texture.image->Bind();
 
-		// texture 5 will be the shadow maps array
-		GL_SelectTexture( INTERACTION_TEXUNIT_SHADOWMAPS );
-		if( r_useShadowAtlas.GetBool() )
+		// SRS - Bind shadow map and jitter images only if we are using them
+		if( !r_skipShadows.GetBool() && vLight->shadowLOD > -1 )
 		{
-			globalImages->shadowAtlasImage->Bind();
-		}
-		else
-		{
-			globalImages->shadowImage[vLight->shadowLOD]->Bind();
-		}
+			if( r_useShadowAtlas.GetBool() && vLight->ImageAtlasPlaced() )
+			{
+				// texture 5 will be the shadow maps atlas
+				GL_SelectTexture( INTERACTION_TEXUNIT_SHADOWMAPS );
+				globalImages->shadowAtlasImage->Bind();
 
-		// texture 6 will be the jitter texture for soft shadowing
-		GL_SelectTexture( INTERACTION_TEXUNIT_JITTER );
-		globalImages->blueNoiseImage256->Bind();
+				// texture 6 will be the jitter texture for soft shadowing
+				GL_SelectTexture( INTERACTION_TEXUNIT_JITTER );
+				globalImages->blueNoiseImage256->Bind();
+			}
+			else if( !r_useShadowAtlas.GetBool() )
+			{
+				// texture 5 will be the shadow maps array
+				GL_SelectTexture( INTERACTION_TEXUNIT_SHADOWMAPS );
+				globalImages->shadowImage[vLight->shadowLOD]->Bind();
+
+				// texture 6 will be the jitter texture for soft shadowing
+				GL_SelectTexture( INTERACTION_TEXUNIT_JITTER );
+				globalImages->blueNoiseImage256->Bind();
+			}
+		}
 
 		// force the light textures to not use anisotropic filtering, which is wasted on them
 		// all of the texture sampler parms should be constant for all interactions, only
@@ -1988,7 +1998,7 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 				SetVertexParm( RENDERPARM_LIGHTFALLOFF_S, lightProjection[3].ToFloatPtr() );
 
 				// RB begin
-				if( !r_skipShadows.GetBool() && vLight->ImageAtlasPlaced() )
+				if( !r_skipShadows.GetBool() && vLight->shadowLOD > -1 && ( ( r_useShadowAtlas.GetBool() && vLight->ImageAtlasPlaced() ) || !r_useShadowAtlas.GetBool() ) )
 				{
 					if( vLight->parallel )
 					{
@@ -3884,7 +3894,7 @@ void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 
 		// RB: render interactions with shadow mapping
 		{
-			if( !r_useShadowAtlas.GetBool() && vLight->shadowLOD > -1 )
+			if( !r_skipShadows.GetBool() && vLight->shadowLOD > -1 && !r_useShadowAtlas.GetBool() )
 			{
 				int	side, sideStop;
 
