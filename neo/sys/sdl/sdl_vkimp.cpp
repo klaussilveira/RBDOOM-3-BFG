@@ -281,16 +281,19 @@ bool VKimp_Init( glimpParms_t parms )
 
 	if( parms.fullScreen > 0 )
 	{
-		// SRS - Make sure display is set to the requested refresh rate
-		if( parms.displayHz > 0 && parms.displayHz != GetDisplayFrequency( parms ) )
-		{
-			SDL_DisplayMode m = {0};
-			SDL_GetWindowDisplayMode( window, &m );
+		SDL_DisplayMode m = {0};
+		SDL_GetWindowDisplayMode( window, &m );
 
-			m.refresh_rate = parms.displayHz;
+		// SRS - Make sure display is set to the requested display mode if different than current mode
+		if( ( parms.width > 0 && parms.width != m.w ) || ( parms.height > 0 && parms.height != m.h ) ||
+		    ( parms.displayHz > 0 && parms.displayHz != m.refresh_rate ) )
+		{
+			m.w = parms.width > 0 ? parms.width : m.w;
+			m.h = parms.height > 0 ? parms.height : m.h;
+			m.refresh_rate = parms.displayHz > 0 ? parms.displayHz : m.refresh_rate;
 			if( SDL_SetWindowDisplayMode( window, &m ) < 0 )
 			{
-				common->Warning( "Couldn't set display refresh rate to %i Hz, reason: %s", parms.displayHz, SDL_GetError() );
+				common->Warning( "Couldn't set display mode to %i x %i @ %i Hz, reason: %s", m.w, m.h, m.refresh_rate, SDL_GetError() );
 			}
 		}
 
@@ -465,7 +468,14 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
 
 	// SRS - handle differences in WM behaviour: for macOS set position first, for linux set it last
 #if defined(__APPLE__)
-	SDL_SetWindowPosition( window, windowPosX, windowPosY );
+	// SRS - SDL hint indicating whether we are using SDL2 native or sdl2-compat + SDL3
+	static const bool sdl2_native = SDL_GetHint( "SDL3_VERSION" ) == NULL;
+
+	// SRS - on macOS set window position first if we are running with SDL2 native (legacy support)
+	if( sdl2_native )
+	{
+		SDL_SetWindowPosition( window, windowPosX, windowPosY );
+	}
 #endif
 
 	// if we're currently in fullscreen mode, we need to disable that
@@ -486,9 +496,13 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
 
 	SDL_SetWindowSize( window, parms.width, parms.height );
 
-#if !defined(__APPLE__)
-	SDL_SetWindowPosition( window, windowPosX, windowPosY );
+#if defined(__APPLE__)
+	// SRS - on macOS set window position last (like linux) if we are running with sdl2-compat + SDL3
+	if( !sdl2_native )
 #endif
+	{
+		SDL_SetWindowPosition( window, windowPosX, windowPosY );
+	}
 
 	return true;
 }
